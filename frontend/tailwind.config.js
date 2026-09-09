@@ -4,7 +4,16 @@ export default {
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        canvas: '#f2f1ed',
+        mint: '#2fd9b4',
+        charcoal: '#232320',
+        amber: '#f2c21a',
+        red: '#e8453c',
+        blue: '#7ea8f5',
+        },
+      },
   },
   plugins: [],
 }

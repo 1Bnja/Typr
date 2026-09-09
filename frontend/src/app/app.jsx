@@ -7,7 +7,9 @@ import './app.css'
 const App = () => {
   return (
     <>
+    <div className="flex min-h-dvh flex-col">
       <Navbar />
+      <main className="flex flex-1 flex-col">
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<div>About</div>} />
@@ -15,6 +17,8 @@ const App = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<div>Register</div>} />
       </Routes>
+      </main>
+    </div>
     </>
   )
 }
