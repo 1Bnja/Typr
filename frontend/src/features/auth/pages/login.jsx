@@ -1,4 +1,5 @@
 import LoginForm from '../components/login-form'
+import { Link } from 'react-router-dom'
 
 const Login = () => {
     return (
@@ -9,7 +10,7 @@ const Login = () => {
             <div className="max-w-md bg-green-400">
                 <LoginForm />
             </div>
-            <p>Don't have an account?</p>
+            <p>Don't have an account? <Link to="/register">Register</Link></p>
             { /* Agregar react router dom */ }
         </section>
     )
