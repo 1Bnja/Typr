@@ -1,0 +1,34 @@
+---
+description: Arquitectura Bulletproof React del frontend
+alwaysApply: true
+---
+
+# Bulletproof React
+
+El frontend (`frontend/src`) sigue [Bulletproof React](https://github.com/alan2207/bulletproof-react). Organiza por feature, no por tipo de archivo.
+
+## Carpetas
+
+- `app/` — capa de aplicación: `App`, providers, router
+- `components/` — UI compartida (Navbar, botones, layouts)
+- `features/<nombre>/` — módulos de negocio (`auth`, etc.)
+- `config/`, `hooks/`, `lib/`, `utils/` — solo código compartido entre features
+
+## Features
+
+Cada feature puede tener `api/`, `components/`, `hooks/`, `utils/` y **debe** exportar su API pública desde `index.js`.
+
+```js
+// ❌ mal: acoplarse al interior de otro feature
+import LoginForm from '../features/auth/components/login-form'
+
+// ✅ bien: solo la API pública
+import { LoginForm } from '../features/auth'
+```
+
+## Colocación
+
+- Navbar, layouts y UI genérica → `components/`
+- Login, registro, sesión → `features/auth/`
+- No mezclar lógica de un feature dentro de otro
+- Colocar estilos junto al componente (`nav-bar.jsx` + `nav-bar.css`)
