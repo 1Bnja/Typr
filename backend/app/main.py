@@ -1,8 +1,6 @@
-from fastapi import FastAPI, HTTPException
-from database import supabase
+from fastapi import FastAPI
+from app.routers import health
 
-app = FastAPI()
+app = FastAPI(title="Typr API")
 
-@app.get("/")
-async def read_root():
-    return {"message": "Welcome to the Typr API!"}
+app.include_router(health.router, prefix="/api/v1")
