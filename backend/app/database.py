@@ -1,13 +1,11 @@
-import os 
-from dotenv import load_dotenv
-from supabase import create_client, Client
+from sqlalchemy import create_engine
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-load_dotenv()
+from app.config import settings
 
-url: str = os.getenv("SUPABASE_URL")
-key: str = os.getenv("SUPABASE_KEY")
+engine = create_engine(settings.database_url, pool_pre_ping=True)
+SessionLocal = sessionmaker(bind=engine, autoflush=False)
 
-if not url or not key:
-    raise ValueError("Faltan variables de la base de datos")
 
-supabase: Client = create_client(url, key)
+class Base(DeclarativeBase):
+    pass
