@@ -34,7 +34,7 @@ class Game(Base):
 class GameParticipant(Base):
     __tablename__ = "game_participants"
     __table_args__ = (
-        UniqueConstraint("game_id", "user_id", name="uq_game_participants_game_id_user_id"),
+        UniqueConstraint("game_id", "user_id", name="game_participants_game_id_user_id_key"),
         Index("ix_game_participants_user_id", "user_id"),
     )
 
