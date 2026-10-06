@@ -1,100 +1,260 @@
 -- ============================================================
--- Typr - esquema inicial
--- ============================================================
--- Convenciones:
---   * Todos los identificadores van en ingles: tablas, columnas,
---     tipos enumerados, constraints e indices.
---   * Los textos que ve el usuario siguen en espanol; el idioma de la
---     interfaz no tiene nada que ver con el nombre de las columnas.
---   * hashed_password guarda el hash bcrypt, no la contrasena en claro.
+-- 1. TIPOS ENUMERADOS
 -- ============================================================
 
--- 1. Tipos enumerados
-CREATE TYPE room_type AS ENUM ('private', 'quick');
-CREATE TYPE game_mode AS ENUM ('singleplayer', 'multiplayer');
-CREATE TYPE room_status AS ENUM ('waiting', 'in progress', 'finished');
-CREATE TYPE text_language AS ENUM ('spa', 'eng');
-CREATE TYPE difficulty AS ENUM ('easy', 'medium', 'advanced', 'expert');
-
--- 2. Tabla users
---    hashed_password necesita VARCHAR(72): bcrypt devuelve 60 chars y
---    los CHAR(n) rellenan con espacios a la derecha, lo que rompe
---    bcrypt.checkpw en el login.
-CREATE TABLE users (
-    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    username VARCHAR(20) NOT NULL UNIQUE,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    hashed_password VARCHAR(72) NOT NULL,
-    avatar_url VARCHAR(500),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+CREATE TYPE tipo_salas AS ENUM (
+    'privada',
+    'rápida'
 );
 
--- 3. Tabla texts
-CREATE TABLE texts (
-    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    content TEXT NOT NULL,
-    language text_language NOT NULL,
-    difficulty difficulty NOT NULL,
-    ideal_time_ms INT,
-    record_user_id INT,
-    FOREIGN KEY (record_user_id) REFERENCES users(id) ON DELETE SET NULL
+CREATE TYPE modos AS ENUM (
+    'individual',
+    'multijugador'
 );
 
--- 4. Tabla rooms
-CREATE TABLE rooms (
-    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    host_id INT NOT NULL,
-    type room_type DEFAULT 'private',
-    language text_language NOT NULL,
-    difficulty difficulty NOT NULL,
-    status room_status DEFAULT 'waiting',
-    FOREIGN KEY (host_id) REFERENCES users(id) ON DELETE CASCADE
+CREATE TYPE estado_sala AS ENUM (
+    'esperando',
+    'en curso',
+    'finalizada'
 );
 
--- 5. Tabla miembros de la sala
-CREATE TABLE room_members (
-    room_id INT NOT NULL,
-    member_id INT NOT NULL,
-    PRIMARY KEY (room_id, member_id),
-    FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
-    FOREIGN KEY (member_id) REFERENCES users(id) ON DELETE CASCADE
+CREATE TYPE idiomas_disponibles AS ENUM (
+    'esp',
+    'eng'
 );
 
--- 6. Tabla games
-CREATE TABLE games (
-    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    room_id INT DEFAULT NULL,
-    text_id INT NOT NULL,
-    mode game_mode DEFAULT 'singleplayer',
-    started_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    finished_at TIMESTAMPTZ DEFAULT NULL,
-    FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE SET NULL,
-    FOREIGN KEY (text_id) REFERENCES texts(id) ON DELETE RESTRICT
+CREATE TYPE dificultades AS ENUM (
+    'fácil',
+    'medio',
+    'avanzado',
+    'experto'
 );
 
--- 7. Tabla game_participants
---    El puntaje por minuto se llama `ppm` (palabras por minuto) porque en
---    el dominio del juego ya se usa esa sigla; en ingles seria `wpm`.
-CREATE TABLE game_participants (
+
+-- ============================================================
+-- 2. USUARIO
+-- ============================================================
+
+CREATE TABLE usuario (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    game_id INT NOT NULL,
-    user_id INT NOT NULL,
-    time_ms INT DEFAULT NULL,
+
+    nombre VARCHAR(30) NOT NULL UNIQUE,
+    correo VARCHAR(254) NOT NULL UNIQUE,
+    password CHAR(64) NOT NULL,
+
+    avatar_data BYTEA,
+    avatar_mime VARCHAR(50) DEFAULT 'image/jpeg',
+
+    fecha_registro DATE NOT NULL DEFAULT CURRENT_DATE
+);
+
+
+-- ============================================================
+-- 3. TEXTOS
+-- ============================================================
+
+CREATE TABLE textos (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    contenido TEXT NOT NULL,
+    idioma idiomas_disponibles NOT NULL,
+    dificultad dificultades NOT NULL,
+
+    t_ideal_ms INT,
+    record_usr INT,
+
+    CONSTRAINT chk_texto_tiempo_ideal
+        CHECK (t_ideal_ms IS NULL OR t_ideal_ms > 0),
+
+    CONSTRAINT fk_texto_record_usuario
+        FOREIGN KEY (record_usr)
+        REFERENCES usuario(id)
+        ON DELETE SET NULL
+);
+
+
+-- ============================================================
+-- 4. SALAS
+-- ============================================================
+
+CREATE TABLE salas (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    -- Código utilizado por otros usuarios para ingresar.
+    codigo VARCHAR(10) NOT NULL UNIQUE,
+
+    anfitrion INT NOT NULL,
+
+    tipo tipo_salas NOT NULL DEFAULT 'privada',
+
+    idioma idiomas_disponibles NOT NULL,
+    dificultad dificultades NOT NULL,
+
+    cantidad_rondas INT NOT NULL,
+    tiempo_limite_seg INT NOT NULL,
+
+    estado estado_sala NOT NULL DEFAULT 'esperando',
+
+    fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT chk_sala_cantidad_rondas
+        CHECK (cantidad_rondas > 0),
+
+    CONSTRAINT chk_sala_tiempo_limite
+        CHECK (tiempo_limite_seg > 0),
+
+    CONSTRAINT fk_sala_anfitrion
+        FOREIGN KEY (anfitrion)
+        REFERENCES usuario(id)
+        ON DELETE CASCADE
+);
+
+
+-- ============================================================
+-- 5. MIEMBROS DE LA SALA
+-- ============================================================
+
+CREATE TABLE sala_miembro (
+    sala INT NOT NULL,
+    miembro INT NOT NULL,
+
+    -- Estado utilizado antes de iniciar la carrera.
+    listo BOOLEAN NOT NULL DEFAULT FALSE,
+
+    PRIMARY KEY (sala, miembro),
+
+    -- Un usuario solamente puede pertenecer a una sala
+    -- simultáneamente.
+    CONSTRAINT uq_sala_miembro_usuario
+        UNIQUE (miembro),
+
+    CONSTRAINT fk_sala_miembro_sala
+        FOREIGN KEY (sala)
+        REFERENCES salas(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_sala_miembro_usuario
+        FOREIGN KEY (miembro)
+        REFERENCES usuario(id)
+        ON DELETE CASCADE
+);
+
+
+-- ============================================================
+-- 6. PARTIDA
+-- ============================================================
+
+CREATE TABLE partida (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    -- NULL para partidas individuales.
+    sala INT DEFAULT NULL,
+
+    texto INT NOT NULL,
+
+    modo modos NOT NULL DEFAULT 'individual',
+
+    -- En multijugador identifica la ronda dentro de la sala.
+    -- En modo individual puede permanecer NULL.
+    numero_ronda INT DEFAULT NULL,
+
+    tiempo_inicio TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    tiempo_fin TIMESTAMPTZ DEFAULT NULL,
+
+    CONSTRAINT chk_partida_numero_ronda
+        CHECK (numero_ronda IS NULL OR numero_ronda > 0),
+
+    CONSTRAINT chk_partida_tiempos
+        CHECK (
+            tiempo_fin IS NULL
+            OR tiempo_fin >= tiempo_inicio
+        ),
+
+    CONSTRAINT fk_partida_sala
+        FOREIGN KEY (sala)
+        REFERENCES salas(id)
+        ON DELETE SET NULL,
+
+    CONSTRAINT fk_partida_texto
+        FOREIGN KEY (texto)
+        REFERENCES textos(id)
+        ON DELETE RESTRICT
+);
+
+
+-- ============================================================
+-- 7. PARTICIPACIÓN EN PARTIDA
+-- ============================================================
+
+CREATE TABLE participacion_partida (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    partida INT NOT NULL,
+    usuario INT NOT NULL,
+
+    tiempo_ms INT DEFAULT NULL,
     ppm INT DEFAULT NULL,
-    precision_pct REAL DEFAULT NULL,
-    progress REAL DEFAULT NULL,
-    position INT DEFAULT NULL,
-    score INT DEFAULT NULL,
-    UNIQUE (game_id, user_id),
-    FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
 
--- 8. Indices para las consultas mas frecuentes
---    (las columnas UNIQUE ya tienen su indice implicito)
-CREATE INDEX ix_texts_language_difficulty ON texts (language, difficulty);
-CREATE INDEX ix_rooms_status ON rooms (status);
-CREATE INDEX ix_room_members_member_id ON room_members (member_id);
-CREATE INDEX ix_games_room_id ON games (room_id);
-CREATE INDEX ix_games_text_id ON games (text_id);
-CREATE INDEX ix_game_participants_user_id ON game_participants (user_id);
+    precision_pct REAL DEFAULT NULL,
+    progreso REAL DEFAULT NULL,
+
+    posicion INT DEFAULT NULL,
+    puntaje INT DEFAULT NULL,
+
+    -- Un usuario solamente puede participar una vez
+    -- en una misma partida.
+    CONSTRAINT uq_participacion_partida_usuario
+        UNIQUE (partida, usuario),
+
+    CONSTRAINT chk_participacion_tiempo
+        CHECK (
+            tiempo_ms IS NULL
+            OR tiempo_ms >= 0
+        ),
+
+    CONSTRAINT chk_participacion_ppm
+        CHECK (
+            ppm IS NULL
+            OR ppm >= 0
+        ),
+
+    CONSTRAINT chk_participacion_precision
+        CHECK (
+            precision_pct IS NULL
+            OR (
+                precision_pct >= 0
+                AND precision_pct <= 100
+            )
+        ),
+
+    CONSTRAINT chk_participacion_progreso
+        CHECK (
+            progreso IS NULL
+            OR (
+                progreso >= 0
+                AND progreso <= 100
+            )
+        ),
+
+    CONSTRAINT chk_participacion_posicion
+        CHECK (
+            posicion IS NULL
+            OR posicion > 0
+        ),
+
+    CONSTRAINT chk_participacion_puntaje
+        CHECK (
+            puntaje IS NULL
+            OR puntaje >= 0
+        ),
+
+    CONSTRAINT fk_participacion_partida
+        FOREIGN KEY (partida)
+        REFERENCES partida(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_participacion_usuario
+        FOREIGN KEY (usuario)
+        REFERENCES usuario(id)
+        ON DELETE CASCADE
+);
