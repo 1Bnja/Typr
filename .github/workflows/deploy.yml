@@ -14,11 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: crear .env
-      - run: |
+      - name: Crear .env
+        run: |
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
 
-
-      - name: levantar contenedores
-      - run: docker compose up -d --build --remove-orphans
+      - name: Levantar contenedores
+        run: docker compose up -d --build --remove-orphans
