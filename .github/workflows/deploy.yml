@@ -16,8 +16,8 @@ jobs:
 
       - name: Crear .env
         run: |
-          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > backend/.env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> backend/.env
 
       - name: Levantar contenedores
         run: docker compose up -d --build --remove-orphans
