@@ -1,4 +1,4 @@
-http.typr.cfuentes.dev {
+http://typr.cfuentes.dev {
     handle /api/* {
         reverse_proxy backend:8000
     }
