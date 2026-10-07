@@ -20,4 +20,4 @@ jobs:
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> backend/.env
 
       - name: Levantar contenedores
-        run: docker compose up -d --build --remove-orphans
+        run: docker compose down && docker compose up -d --build --remove-orphans
