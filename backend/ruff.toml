@@ -1,0 +1,3 @@
+# ponytail: reglas por defecto de Ruff fijadas, para que una version nueva no rompa el CI
+[lint]
+select = ["E4", "E7", "E9", "F"]
