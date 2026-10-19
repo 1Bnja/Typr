@@ -1,7 +1,6 @@
 import Button from '../button/button'
 import logo from '../../assets/logo.svg'
 import { Link, useNavigate } from 'react-router-dom'
-import './nav-bar.css'
 import { useAuth } from '../../features/auth/context/auth-provider'
 const Navbar = () => {
 

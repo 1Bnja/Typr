@@ -2,8 +2,11 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/auth-provider'
 import Button from '../../../components/button'
-import './login-form.css'
 import authService from '../services/authService'
+
+const fieldClass = 'flex flex-col gap-2 text-sm font-semibold text-charcoal'
+const inputClass =
+    'w-full rounded-xl border border-[#e1e2dc] bg-white px-4 py-3 font-normal text-charcoal shadow-[0_3px_0_#e1e2dc] outline-none caret-charcoal placeholder:text-[#5f605b] selection:bg-mint/45 selection:text-charcoal focus-visible:border-[#18a98a] focus-visible:shadow-[0_3px_0_#18a98a,0_0_0_4px_rgb(47_217_180/0.45)]'
 
 const LoginForm = ({ isRegistering }) => {
     const navigate = useNavigate()
@@ -34,11 +37,12 @@ const LoginForm = ({ isRegistering }) => {
     }
 
     return (
-        <form className="auth-form" onSubmit={handleSubmit}>
+        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             {isRegistering && (
-                <label className="auth-field">
+                <label className={fieldClass}>
                     Username
                     <input
+                        className={inputClass}
                         type="text"
                         name="username"
                         autoComplete="username"
@@ -48,9 +52,10 @@ const LoginForm = ({ isRegistering }) => {
                     />
                 </label>
             )}
-            <label className="auth-field">
+            <label className={fieldClass}>
                 Email
                 <input
+                    className={inputClass}
                     type="email"
                     name="email"
                     autoComplete="email"
@@ -59,9 +64,10 @@ const LoginForm = ({ isRegistering }) => {
                     placeholder="you@email.com"
                 />
             </label>
-            <label className="auth-field">
+            <label className={fieldClass}>
                 Password
                 <input
+                    className={inputClass}
                     type="password"
                     name="password"
                     autoComplete={isRegistering ? 'new-password' : 'current-password'}
@@ -70,7 +76,7 @@ const LoginForm = ({ isRegistering }) => {
                     placeholder="At least 8 characters"
                 />
             </label>
-            <Button className="auth-submit" type="submit" variant="primary">
+            <Button className="mt-2 w-full" type="submit" variant="primary">
                 {isRegistering ? 'Create account' : 'Sign in'}
             </Button>
         </form>
