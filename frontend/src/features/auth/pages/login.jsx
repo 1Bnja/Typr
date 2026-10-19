@@ -1,17 +1,39 @@
+import { useState } from 'react'
 import LoginForm from '../components/login-form'
-import { Link } from 'react-router-dom'
 
 const Login = () => {
-    return (
-        <section className="bg-red-400 flex flex-col items-center justify-center">
-            <h1>Welcome back!</h1>
-            <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Obcaecati, dolorem!</p>
+    const [isRegistering, setIsRegistering] = useState(false)
 
-            <div className="max-w-md bg-green-400">
-                <LoginForm />
+    return (
+        <section className="mx-auto flex w-full max-w-md flex-col px-6 py-10">
+            <div className="flex w-full flex-col">
+                <h1 className="text-center text-4xl font-extrabold tracking-tight text-charcoal">
+                    {isRegistering ? 'Create an account' : 'Welcome back!'}
+                </h1>
+                <p className="mt-4 text-center text-base leading-relaxed text-[#575853]">
+                    {isRegistering
+                        ? 'Save your tests and come back to your speed.'
+                        : 'Sign in to pick up your tests and your speed.'}
+                </p>
+
+                <div className="mt-8">
+                    <LoginForm
+                        key={isRegistering ? 'register' : 'login'}
+                        isRegistering={isRegistering}
+                    />
+                </div>
+
+                <p className="mt-6 text-center text-[#575853]">
+                    {isRegistering ? 'Already have an account? ' : "Don't have an account? "}
+                    <button
+                        type="button"
+                        className="font-semibold text-charcoal underline decoration-[#18a98a] underline-offset-4 outline-none focus-visible:rounded-sm focus-visible:shadow-[0_0_0_4px_rgb(47_217_180/0.45)]"
+                        onClick={() => setIsRegistering((current) => !current)}
+                    >
+                        {isRegistering ? 'Sign in' : 'Register'}
+                    </button>
+                </p>
             </div>
-            <p>Don't have an account? <Link to="/register">Register</Link></p>
-            { /* Agregar react router dom */ }
         </section>
     )
 }
