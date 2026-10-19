@@ -1,12 +1,11 @@
 import Button from '../button/button'
 import logo from '../../assets/logo.svg'
 import { Link, useNavigate } from 'react-router-dom'
-import './nav-bar.css'
-
+import { useAuth } from '../../features/auth/context/auth-provider'
 const Navbar = () => {
 
   const navigate = useNavigate()
-
+  const { user, signOut } = useAuth()
   const handleSignIn = () => {
     navigate('/login')
   }
@@ -19,16 +18,24 @@ const Navbar = () => {
       </div>
 
       <div>
-      <ul className='flex flex-row gap-8 justify-center'>
-        <li><Link to="/">Home</Link></li>
-        <li><Link to="/about">About</Link></li>
-        <li><Link to="/contact">Contact</Link></li>
-      </ul>
+        <ul className='flex flex-row gap-8 justify-center'>
+          <li><Link to="/">Home</Link></li>
+          <li><Link to="/about">About</Link></li>
+          <li><Link to="/contact">Contact</Link></li>
+        </ul>
       </div>
-      
-      <div className="flex flex-row gap-4 justify-end">
-        <Button variant="streak">Try</Button>
-        <Button variant="destructive" onClick={handleSignIn}>Sign in</Button>
+      <div className="flex flex-row gap-4 justify-end items-center">
+        {user ? (
+          <>
+            <span className="text-sm font-medium">{user.username}</span>
+            <Button variant="destructive" onClick={signOut}>Sign out</Button>
+          </>
+        ) : (
+          <>
+            <Button variant="streak">Try</Button>
+            <Button variant="destructive" onClick={handleSignIn}>Sign in</Button>
+          </>
+        )}
       </div>
     </nav>
   )
