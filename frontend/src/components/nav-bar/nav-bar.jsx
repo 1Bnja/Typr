@@ -1,7 +1,7 @@
 import Button from '../button/button'
 import logo from '../../assets/logo.svg'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../features/auth/context/auth-provider'
+import { useAuth } from '../../features/auth/context/auth-context'
 const Navbar = () => {
 
   const navigate = useNavigate()
