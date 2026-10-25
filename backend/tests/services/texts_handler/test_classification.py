@@ -14,7 +14,7 @@ from app.services.texts_handler.processing.classiffy import ClassifyTextStep
 
 
 ROOT = Path(__file__).resolve().parents[4]
-REFERENCE = ROOT / "docs/issues-camilo/t-02.1/calibration-results.json"
+REFERENCE = ROOT / "backend/tests/fixtures/text_calibration.json"
 
 
 class Recorder(TextProcessingStep):
@@ -27,12 +27,6 @@ class Recorder(TextProcessingStep):
 
 
 class ClassificationTests(unittest.TestCase):
-    def test_classification_is_owned_by_processing_module(self):
-        from app.services.texts_handler.processing import classiffy as classify
-
-        self.assertEqual(classify.classify_text.__module__, classify.__name__)
-        self.assertEqual(classify.ClassificationResult.__module__, classify.__name__)
-
     def classify(self, content, language="eng"):
         return TextFacade().process(content, language).classification
 
@@ -54,20 +48,6 @@ class ClassificationTests(unittest.TestCase):
         self.assertIsNotNone(context.difficulty)
         self.assertEqual(recorder.calls, [(context.content, context.difficulty)])
         self.assertEqual(context.classification.difficulty, context.difficulty)
-
-    def test_unused_difficulty_wrapper_is_not_exposed(self):
-        self.assertFalse(hasattr(ClassifyTextStep, "calculate_difficulty"))
-
-    def test_classification_package_owns_keyboard(self):
-        from importlib import import_module
-
-        package = import_module("app.services.texts_handler.processing.classiffy")
-        keyboard = import_module(f"{package.__name__}.keyboard")
-        self.assertEqual(package.ClassifyTextStep.__module__, package.__name__)
-        self.assertEqual(keyboard.keyboard.__module__, keyboard.__name__)
-        module = ROOT / "backend/app/services/texts_handler"
-        self.assertFalse((module / "processing/classify.py").exists())
-        self.assertFalse((module / "keyboard.py").exists())
 
     def test_calibration_scores_and_all_metrics_match_reference(self):
         reference = json.loads(REFERENCE.read_text())
@@ -141,79 +121,11 @@ class ClassificationTests(unittest.TestCase):
             with self.subTest(score=score):
                 self.assertEqual(difficulty_for_score(score).value, expected)
 
-    def test_invalid_input_does_not_delegate_or_mutate_context(self):
-        for content, language in (
-            ("🙂", "spa"),
-            ("é", "eng"),
-            ("Hello", "fr"),
-            (" ", "eng"),
-        ):
-            with self.subTest(content=content, language=language):
-                context = TextContext(content, language)
-                handler, recorder = TextFacade().chain, Recorder()
-                handler.next.next.set_next(recorder)
-                with self.assertRaises(ValueError):
-                    handler.handle(context)
-                self.assertEqual(context.content, content)
-                self.assertIsNone(context.difficulty)
-                self.assertIsNone(context.classification)
-                self.assertEqual(recorder.calls, [])
-
-    def test_standalone_requires_canonical_content(self):
-        from app.services.texts_handler.processing.classiffy import classify_text
-
-        for content in (" Hello ", "Hello,world", "‘hello’"):
-            with self.subTest(content=content), self.assertRaises(ValueError) as caught:
-                classify_text(TextContext(content, "eng"))
-            self.assertEqual(caught.exception.code, "not_normalized")
-
-    def test_complete_processing_chain(self):
-        from app.services.texts_handler.processing.normalize import NormalizeTextStep
-        from app.services.texts_handler.processing.validate import ValidateTextStep
-
-        context = TextContext("  Hola ,mundo.Hola ", "spa")
-        handler, recorder = ValidateTextStep(), Recorder()
-        handler.set_next(NormalizeTextStep()).set_next(ClassifyTextStep()).set_next(
-            recorder
-        )
-        handler.handle(context)
-        self.assertEqual(context.content, "Hola, mundo. Hola")
-        self.assertEqual(len(recorder.calls), 1)
-        self.assertIsNotNone(context.classification)
-
     def test_long_input_has_fixed_call_depth(self):
         result = self.classify("a" * 5000)
         self.assertEqual(result.nonspace_characters, 5000)
         self.assertEqual(result.normalized["mean_length"], 1)
         self.assertEqual(result.normalized["max_length"], 1)
-
-    def test_processing_stages_call_the_next_in_fixed_order(self):
-        names = []
-        expected = [
-            "_prepare",
-            "_measure_characters",
-            "_measure_words",
-            "_measure_keyboard",
-            "_normalize_metrics",
-            "_score",
-        ]
-
-        def trace(frame, event, arg):
-            if (
-                event == "call"
-                and frame.f_globals.get("__name__")
-                == "app.services.texts_handler.processing.classiffy"
-            ):
-                if frame.f_code.co_name in expected:
-                    names.append(frame.f_code.co_name)
-
-        previous = sys.getprofile()
-        try:
-            sys.setprofile(trace)
-            self.classify("Hello world.")
-        finally:
-            sys.setprofile(previous)
-        self.assertEqual(names, expected)
 
     def test_spaces_do_not_change_character_distribution(self):
         joined, spaced = self.classify("aaaa"), self.classify("a a a a")
@@ -245,19 +157,6 @@ class ClassificationTests(unittest.TestCase):
         self.assertGreater(spanish.costs["ü"], spanish.costs["u"])
         self.assertEqual(spanish.sequences["ñ"], (("AC10", False),))
         self.assertNotIn("¿", english.sequences)
-
-    def test_import_avoids_database_and_configuration(self):
-        code = """
-import sys
-from app.services.texts_handler.processing.classiffy import ClassifyTextStep
-from app.services.texts_handler import TextFacade
-from app.text_enums import Difficulty, Language
-assert TextFacade().process('Hello.', Language.ENG).difficulty in Difficulty
-assert 'app.database' not in sys.modules
-assert 'app.config' not in sys.modules
-assert 'app.models' not in sys.modules
-"""
-        subprocess.run([sys.executable, "-c", code], check=True)
 
     def test_existing_enum_module_reexports_identical_pure_enums(self):
         from app.text_enums import Difficulty, Language

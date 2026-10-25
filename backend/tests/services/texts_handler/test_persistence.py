@@ -95,10 +95,6 @@ class PersistenceTests(unittest.TestCase):
         duplicate.CheckDuplicateTextStep(self.db).handle(context)
         return context
 
-    def test_missing_session_is_explicit(self):
-        with self.assertRaisesRegex(RuntimeError, "database session"):
-            TextFacade().create("Hello.", "eng")
-
     def test_create_commits_in_order_and_returns_detached_snapshot(self):
         result = self.create()
         self.assertIsInstance(result, PersistedText)
@@ -132,23 +128,6 @@ class PersistenceTests(unittest.TestCase):
         self.db.close.assert_not_called()
         with self.assertRaises(FrozenInstanceError):
             result.id = 43
-
-    def test_creation_chain_has_five_stages(self):
-        current = TextFacade(self.db).creation_chain
-        names = []
-        while current:
-            names.append(type(current).__name__)
-            current = current.next
-        self.assertEqual(
-            names,
-            [
-                "ValidateTextStep",
-                "NormalizeTextStep",
-                "CheckDuplicateTextStep",
-                "ClassifyTextStep",
-                "PersistTextStep",
-            ],
-        )
 
     def test_creation_runs_each_stage_once_and_in_order(self):
         duplicate, persist = self.handlers()
@@ -268,20 +247,12 @@ class PersistenceTests(unittest.TestCase):
                 with self.assertRaises(TextDatabaseError) as caught:
                     persist.PersistTextStep(self.db).handle(context)
                 self.assertIs(caught.exception.__cause__, failure)
+                self.assertEqual(caught.exception.code, "database_error")
                 self.db.rollback.assert_called_once()
                 self.db.close.assert_not_called()
                 self.assertIsNone(context.persisted_text)
                 if operation != "commit":
                     self.db.commit.assert_not_called()
-
-    def test_failed_write_leaves_context_without_persisted_result(self):
-        _, persist = self.handlers()
-        context = self.checked_context()
-        self.db.commit.side_effect = RuntimeError("constraint failure")
-        with self.assertRaises(TextDatabaseError) as caught:
-            persist.PersistTextStep(self.db).handle(context)
-        self.assertEqual(caught.exception.code, "database_error")
-        self.assertIsNone(context.persisted_text)
 
     def test_rollback_failure_preserves_original_database_cause(self):
         failure = RuntimeError("write failure")

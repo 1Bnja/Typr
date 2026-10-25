@@ -8,7 +8,7 @@ import unittest
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[3]
-REFERENCE = ROOT / "docs/issues-camilo/t-02.1/calibration-results.json"
+REFERENCE = ROOT / "backend/tests/fixtures/text_calibration.json"
 ENABLED = os.environ.get("TYPR_POSTGRES_INTEGRATION") == "1"
 
 

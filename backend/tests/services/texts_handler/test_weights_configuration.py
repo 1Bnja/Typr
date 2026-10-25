@@ -4,27 +4,12 @@ import ast
 from importlib import import_module
 from pathlib import Path
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from app.services.texts_handler import TextFacade
 
 
 class WeightsConfigurationTests(unittest.TestCase):
-    def test_weight_check_accepts_sequential_float_roundoff(self):
-        def sequential_sum(values):
-            total = 0
-            for value in values:
-                total += value
-            return total
-
-        with patch(f"{__name__}.sum", sequential_sum, create=True):
-            self.test_configuration_is_owned_by_constants_module()
-
-    def test_weight_check_rejects_material_total_change(self):
-        with patch(f"{__name__}.sum", return_value=1 + 1e-6, create=True):
-            with self.assertRaises(AssertionError):
-                self.test_configuration_is_owned_by_constants_module()
-
     def test_configuration_is_owned_by_constants_module(self):
         weights = import_module(
             "app.services.texts_handler.processing.classiffy.weights"

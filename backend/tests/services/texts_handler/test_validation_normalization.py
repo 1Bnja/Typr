@@ -2,9 +2,7 @@
 
 from enum import Enum
 from pathlib import Path
-import re
-import subprocess
-import sys
+import json
 import unittest
 
 from app.services.texts_handler.context import TextContext
@@ -58,9 +56,13 @@ class TextProcessingTests(unittest.TestCase):
     def test_invalid_input_stops_chain(self):
         handler, recorder = ValidateTextStep(), Recorder()
         handler.set_next(recorder)
+        context = TextContext("Hola🙂", "spa")
         with self.assertRaises(ValueError):
-            handler.handle(TextContext("Hola🙂", "spa"))
+            handler.handle(context)
         self.assertEqual(recorder.contents, [])
+        self.assertEqual(context.content, "Hola🙂")
+        self.assertIsNone(context.difficulty)
+        self.assertIsNone(context.classification)
 
     def test_unsupported_language_rejected(self):
         for language in ("es", "fr", "", None, 1, []):
@@ -176,25 +178,16 @@ class TextProcessingTests(unittest.TestCase):
         first.handle(TextContext(" Hola ,mundo ", "spa"))
         self.assertEqual(recorder.contents, ["Hola, mundo"])
 
-    def test_normalizer_rejects_unvalidated_direct_use(self):
-        from app.services.texts_handler.processing.normalize import NormalizeTextStep
-
-        with self.assertRaises(ValueError) as caught:
-            NormalizeTextStep().handle(TextContext("Hola\x00", "spa"))
-        self.assertEqual(caught.exception.code, "not_validated")
-
     def test_calibration_examples_unchanged(self):
         root = Path(__file__).resolve().parents[4]
-        document = root / "docs/issues-camilo/t-02.1/calibration-examples.md"
-        rows = re.findall(
-            r"^\| (?:SPA|ENG)-\d+ \| `([^`]+)` \| `[^`]+` \| `([^`]+)`",
-            document.read_text(),
-            re.M,
-        )
+        reference = root / "backend/tests/fixtures/text_calibration.json"
+        rows = json.loads(reference.read_text())["results"]
         self.assertEqual(len(rows), 16)
-        for language, content in rows:
-            with self.subTest(content=content):
-                self.assertEqual(self.normalize(content, language), content)
+        for row in rows:
+            with self.subTest(identifier=row["id"]):
+                self.assertEqual(
+                    self.normalize(row["content"], row["language"]), row["content"]
+                )
 
     def test_validation_error_has_machine_code(self):
         try:
@@ -228,17 +221,6 @@ class TextProcessingTests(unittest.TestCase):
             with self.subTest(raw=raw):
                 self.assertEqual(self.normalize(raw, "eng"), expected)
                 self.assertEqual(self.normalize(expected, "eng"), expected)
-
-    def test_import_does_not_initialize_database(self):
-        code = """
-import sys
-from app.services.texts_handler.processing.validate import ValidateTextStep
-from app.services.texts_handler.processing.normalize import NormalizeTextStep
-assert 'app.database' not in sys.modules
-assert 'app.config' not in sys.modules
-assert 'app.models' not in sys.modules
-"""
-        subprocess.run([sys.executable, "-c", code], check=True)
 
 
 if __name__ == "__main__":

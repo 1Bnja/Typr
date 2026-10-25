@@ -29,7 +29,6 @@ services:
     volumes:
       - ./backend/app:/workspace/backend/app:ro
       - ./backend/tests:/workspace/backend/tests:ro
-      - ./docs/issues-camilo/t-02.1:/workspace/docs/issues-camilo/t-02.1:ro
     command:
       - /bin/sh
       - -ec

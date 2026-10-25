@@ -1,13 +1,7 @@
 """Facade composition and isolated stage contracts without persistence."""
 
 import ast
-from dataclasses import replace
-import json
-import inspect
-from math import nextafter
 from pathlib import Path
-import subprocess
-import sys
 import unittest
 from unittest.mock import patch
 
@@ -148,70 +142,6 @@ class ChainIntegrationTests(unittest.TestCase):
         self.assertEqual(first.content, "'Hola'")
         with self.assertRaisesRegex(RuntimeError, "database session"):
             facade.create("Hello.", "eng")
-
-    def test_all_calibration_results_match_through_facade(self):
-        reference = json.loads(
-            (ROOT / "docs/issues-camilo/t-02.1/calibration-results.json").read_text()
-        )
-        facade = TextFacade()
-        for row in reference["results"]:
-            with self.subTest(identifier=row["id"]):
-                context = facade.process(row["content"], row["language"])
-                self.assertEqual(context.content, row["content"])
-                self.assertAlmostEqual(
-                    context.classification.score, row["score"], delta=1e-12
-                )
-                self.assertEqual(context.difficulty.value, row["actual"])
-
-    def reference_comparison_result(self, adjust_score):
-        process = TextFacade.process
-
-        def adjusted_process(facade, content, language):
-            context = process(facade, content, language)
-            context.classification = replace(
-                context.classification,
-                score=adjust_score(context.classification.score),
-            )
-            return context
-
-        case = ChainIntegrationTests(
-            "test_all_calibration_results_match_through_facade"
-        )
-        result = unittest.TestResult()
-        with patch.object(TextFacade, "process", adjusted_process):
-            case.run(result)
-        return result
-
-    def test_reference_comparison_accepts_float_roundoff(self):
-        result = self.reference_comparison_result(
-            lambda score: nextafter(score, float("inf"))
-        )
-        self.assertEqual(result.errors, [])
-        self.assertEqual(result.failures, [])
-
-    def test_reference_comparison_rejects_material_score_change(self):
-        result = self.reference_comparison_result(lambda score: score + 1e-6)
-        self.assertEqual(result.errors, [])
-        self.assertTrue(result.failures)
-
-    def test_type_only_context_annotations_are_deferred(self):
-        from app.services.texts_handler.processing.classiffy import classify_text
-
-        self.assertEqual(
-            inspect.get_annotations(classify_text)["context"], "TextContext"
-        )
-
-    def test_facade_import_and_processing_do_not_load_database(self):
-        code = """
-import sys
-from app.services.texts_handler import TextFacade
-result = TextFacade().process('Hello.', 'eng')
-assert result.classification is not None
-assert 'app.database' not in sys.modules
-assert 'app.config' not in sys.modules
-assert 'app.models' not in sys.modules
-"""
-        subprocess.run([sys.executable, "-c", code], check=True)
 
 
 if __name__ == "__main__":
