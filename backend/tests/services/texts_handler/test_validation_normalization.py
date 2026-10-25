@@ -8,11 +8,11 @@ import sys
 import unittest
 
 from app.services.texts_handler.context import TextContext
-from app.services.texts_handler.handler import TextHandler
-from app.services.texts_handler.handler.validate import ValidateTextHandler
+from app.services.texts_handler.processing import TextProcessingStep
+from app.services.texts_handler.processing.validate import ValidateTextStep
 
 
-class Recorder(TextHandler):
+class Recorder(TextProcessingStep):
     def __init__(self):
         super().__init__()
         self.contents = []
@@ -28,11 +28,11 @@ class Language(str, Enum):
 
 class TextProcessingTests(unittest.TestCase):
     def normalize(self, content, language="spa"):
-        from app.services.texts_handler.handler.normalize import NormalizeTextHandler
+        from app.services.texts_handler.processing.normalize import NormalizeTextStep
 
         context = TextContext(content, language)
-        first = ValidateTextHandler()
-        first.set_next(NormalizeTextHandler())
+        first = ValidateTextStep()
+        first.set_next(NormalizeTextStep())
         first.handle(context)
         return context.content
 
@@ -43,20 +43,20 @@ class TextProcessingTests(unittest.TestCase):
         self.assertIsNone(context.difficulty)
 
     def test_chain_delegates_in_order(self):
-        first, second, last = TextHandler(), TextHandler(), Recorder()
+        first, second, last = TextProcessingStep(), TextProcessingStep(), Recorder()
         self.assertIs(first.set_next(second), second)
         second.set_next(last)
         first.handle(TextContext("Hola", "spa"))
         self.assertEqual(last.contents, ["Hola"])
 
     def test_validation_preserves_raw_content_and_delegates(self):
-        handler, recorder = ValidateTextHandler(), Recorder()
+        handler, recorder = ValidateTextStep(), Recorder()
         handler.set_next(recorder)
         handler.handle(TextContext(" Hola\n mundo ", Language.SPA))
         self.assertEqual(recorder.contents, [" Hola\n mundo "])
 
     def test_invalid_input_stops_chain(self):
-        handler, recorder = ValidateTextHandler(), Recorder()
+        handler, recorder = ValidateTextStep(), Recorder()
         handler.set_next(recorder)
         with self.assertRaises(ValueError):
             handler.handle(TextContext("Hola🙂", "spa"))
@@ -65,12 +65,12 @@ class TextProcessingTests(unittest.TestCase):
     def test_unsupported_language_rejected(self):
         for language in ("es", "fr", "", None, 1, []):
             with self.subTest(language=language), self.assertRaises(ValueError):
-                ValidateTextHandler().handle(TextContext("Hello", language))
+                ValidateTextStep().handle(TextContext("Hello", language))
 
     def test_empty_and_non_string_input_rejected(self):
         for content in ("", " \t\r\n ", None, 12, []):
             with self.subTest(content=content), self.assertRaises(ValueError):
-                ValidateTextHandler().handle(TextContext(content, "spa"))
+                ValidateTextStep().handle(TextContext(content, "spa"))
 
     def test_explicit_character_allowlist(self):
         for content in (
@@ -89,12 +89,12 @@ class TextProcessingTests(unittest.TestCase):
             "¡Hi!",
         ):
             with self.subTest(content=content), self.assertRaises(ValueError):
-                ValidateTextHandler().handle(TextContext(content, "eng"))
+                ValidateTextStep().handle(TextContext(content, "eng"))
 
     def test_spanish_alphabet_case_and_punctuation(self):
         content = 'ÁÉÍÓÚáéíóúÑñÜü 0123456789. , ; : ¿? ¡! "() -'
         context = TextContext(content, "spa")
-        ValidateTextHandler().handle(context)
+        ValidateTextStep().handle(context)
         self.assertEqual(context.content, content)
 
     def test_decomposed_accents_not_silently_rewritten(self):
@@ -102,9 +102,9 @@ class TextProcessingTests(unittest.TestCase):
             self.normalize("pingu\u0308ino", "spa")
 
     def test_raw_maximum_length(self):
-        ValidateTextHandler().handle(TextContext("a" * 5000, "eng"))
+        ValidateTextStep().handle(TextContext("a" * 5000, "eng"))
         with self.assertRaises(ValueError):
-            ValidateTextHandler().handle(TextContext("a" * 5001, "eng"))
+            ValidateTextStep().handle(TextContext("a" * 5001, "eng"))
 
     def test_normalized_maximum_length(self):
         with self.assertRaises(ValueError):
@@ -167,20 +167,20 @@ class TextProcessingTests(unittest.TestCase):
         )
 
     def test_normalization_delegates_canonical_content(self):
-        from app.services.texts_handler.handler.normalize import NormalizeTextHandler
+        from app.services.texts_handler.processing.normalize import NormalizeTextStep
 
-        handler, recorder = NormalizeTextHandler(), Recorder()
+        handler, recorder = NormalizeTextStep(), Recorder()
         handler.set_next(recorder)
-        first = ValidateTextHandler()
+        first = ValidateTextStep()
         first.set_next(handler)
         first.handle(TextContext(" Hola ,mundo ", "spa"))
         self.assertEqual(recorder.contents, ["Hola, mundo"])
 
     def test_normalizer_rejects_unvalidated_direct_use(self):
-        from app.services.texts_handler.handler.normalize import NormalizeTextHandler
+        from app.services.texts_handler.processing.normalize import NormalizeTextStep
 
         with self.assertRaises(ValueError) as caught:
-            NormalizeTextHandler().handle(TextContext("Hola\x00", "spa"))
+            NormalizeTextStep().handle(TextContext("Hola\x00", "spa"))
         self.assertEqual(caught.exception.code, "not_validated")
 
     def test_calibration_examples_unchanged(self):
@@ -198,14 +198,14 @@ class TextProcessingTests(unittest.TestCase):
 
     def test_validation_error_has_machine_code(self):
         try:
-            ValidateTextHandler().handle(TextContext("🙂", "eng"))
+            ValidateTextStep().handle(TextContext("🙂", "eng"))
         except ValueError as error:
             self.assertEqual(error.code, "invalid_character")
         else:
             self.fail("Invalid input must raise a validation error")
 
     def test_error_precedence_is_preserved(self):
-        from app.services.texts_handler.handler.validate import validate_content
+        from app.services.texts_handler.processing.validate import validate_content
 
         for content, language, code in (
             (None, [], "unsupported_language"),
@@ -232,8 +232,8 @@ class TextProcessingTests(unittest.TestCase):
     def test_import_does_not_initialize_database(self):
         code = """
 import sys
-from app.services.texts_handler.handler.validate import ValidateTextHandler
-from app.services.texts_handler.handler.normalize import NormalizeTextHandler
+from app.services.texts_handler.processing.validate import ValidateTextStep
+from app.services.texts_handler.processing.normalize import NormalizeTextStep
 assert 'app.database' not in sys.modules
 assert 'app.config' not in sys.modules
 assert 'app.models' not in sys.modules

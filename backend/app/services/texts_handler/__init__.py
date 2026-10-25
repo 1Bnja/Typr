@@ -5,28 +5,28 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .context import TextContext
-from .handler.classiffy import ClassifyTextHandler
-from .handler.normalize import NormalizeTextHandler
-from .handler.validate import ValidateTextHandler
-from .handler.duplicate import CheckDuplicateTextHandler
-from .handler.persist import PersistTextHandler
+from .processing.classiffy import ClassifyTextStep
+from .processing.normalize import NormalizeTextStep
+from .processing.validate import ValidateTextStep
+from .processing.duplicate import CheckDuplicateTextStep
+from .processing.persist import PersistTextStep
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
     from app.text_enums import Language
-    from .handler.persist import PersistedText
+    from .processing.persist import PersistedText
 
 
 class TextFacade:
     def __init__(self, db: Session | None = None) -> None:
-        self.chain = ValidateTextHandler()
-        self.chain.set_next(NormalizeTextHandler()).set_next(ClassifyTextHandler())
+        self.chain = ValidateTextStep()
+        self.chain.set_next(NormalizeTextStep()).set_next(ClassifyTextStep())
         self.creation_chain = None
         if db is not None:
-            self.creation_chain = ValidateTextHandler()
-            self.creation_chain.set_next(NormalizeTextHandler()).set_next(
-                CheckDuplicateTextHandler(db)
-            ).set_next(ClassifyTextHandler()).set_next(PersistTextHandler(db))
+            self.creation_chain = ValidateTextStep()
+            self.creation_chain.set_next(NormalizeTextStep()).set_next(
+                CheckDuplicateTextStep(db)
+            ).set_next(ClassifyTextStep()).set_next(PersistTextStep(db))
 
     def generate(self) -> str:
         """Generate raw text without running either processing chain."""

@@ -8,8 +8,8 @@ from .errors import TextValidationError
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
     from app.text_enums import Difficulty, Language
-    from .handler.classiffy import ClassificationResult
-    from .handler.persist import PersistedText
+    from .processing.classiffy import ClassificationResult
+    from .processing.persist import PersistedText
 
 
 class TextContext:

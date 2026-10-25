@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from app.text_constants import MAX_CONTENT_LENGTH
 
-from . import TextHandler
+from . import TextProcessingStep
 from ..errors import TextValidationError
 from ..characters import ALLOWED_CHARACTERS, LETTERS_AND_DIGITS
 
@@ -75,7 +75,7 @@ def validate_content(content: str, language: str) -> dict[int, str]:
     return quote_roles(content, language)
 
 
-class ValidateTextHandler(TextHandler):
+class ValidateTextStep(TextProcessingStep):
     def handle(self, context: TextContext) -> None:
         roles = validate_content(context.content, context.language)
         context.record_validation(roles)

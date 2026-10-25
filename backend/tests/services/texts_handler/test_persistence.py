@@ -13,9 +13,9 @@ from unittest.mock import Mock, call, patch
 from app.services.texts_handler import TextFacade
 from app.services.texts_handler.context import TextContext
 from app.services.texts_handler.errors import TextDatabaseError, TextValidationError
-from app.services.texts_handler.handler.classiffy import ClassifyTextHandler
-from app.services.texts_handler.handler.duplicate import DUPLICATE_SQL
-from app.services.texts_handler.handler.persist import INSERT_SQL, PersistedText
+from app.services.texts_handler.processing.classiffy import ClassifyTextStep
+from app.services.texts_handler.processing.duplicate import DUPLICATE_SQL
+from app.services.texts_handler.processing.persist import INSERT_SQL, PersistedText
 from app.text_enums import Difficulty, Language
 
 SESSION_METHODS = ("connection", "commit", "rollback", "close")
@@ -79,9 +79,11 @@ class PersistenceTests(unittest.TestCase):
 
     def handlers(self):
         duplicate = importlib.import_module(
-            "app.services.texts_handler.handler.duplicate"
+            "app.services.texts_handler.processing.duplicate"
         )
-        persist = importlib.import_module("app.services.texts_handler.handler.persist")
+        persist = importlib.import_module(
+            "app.services.texts_handler.processing.persist"
+        )
         return duplicate, persist
 
     def create(self, content=" Hello ,world. ", language="eng"):
@@ -90,7 +92,7 @@ class PersistenceTests(unittest.TestCase):
     def checked_context(self):
         duplicate, _ = self.handlers()
         context = TextFacade().process("Hello.", "eng")
-        duplicate.CheckDuplicateTextHandler(self.db).handle(context)
+        duplicate.CheckDuplicateTextStep(self.db).handle(context)
         return context
 
     def test_missing_session_is_explicit(self):
@@ -140,26 +142,26 @@ class PersistenceTests(unittest.TestCase):
         self.assertEqual(
             names,
             [
-                "ValidateTextHandler",
-                "NormalizeTextHandler",
-                "CheckDuplicateTextHandler",
-                "ClassifyTextHandler",
-                "PersistTextHandler",
+                "ValidateTextStep",
+                "NormalizeTextStep",
+                "CheckDuplicateTextStep",
+                "ClassifyTextStep",
+                "PersistTextStep",
             ],
         )
 
     def test_creation_runs_each_stage_once_and_in_order(self):
         duplicate, persist = self.handlers()
-        from app.services.texts_handler.handler.normalize import NormalizeTextHandler
-        from app.services.texts_handler.handler.validate import ValidateTextHandler
+        from app.services.texts_handler.processing.normalize import NormalizeTextStep
+        from app.services.texts_handler.processing.validate import ValidateTextStep
         from contextlib import ExitStack
 
         classes = (
-            ValidateTextHandler,
-            NormalizeTextHandler,
-            duplicate.CheckDuplicateTextHandler,
-            ClassifyTextHandler,
-            persist.PersistTextHandler,
+            ValidateTextStep,
+            NormalizeTextStep,
+            duplicate.CheckDuplicateTextStep,
+            ClassifyTextStep,
+            persist.PersistTextStep,
         )
         events = []
 
@@ -218,7 +220,7 @@ class PersistenceTests(unittest.TestCase):
             with self.subTest(identifier=identifier):
                 self.db.reset_mock()
                 self.lookup.scalar.return_value = identifier
-                with patch.object(ClassifyTextHandler, "handle") as classify:
+                with patch.object(ClassifyTextStep, "handle") as classify:
                     with self.assertRaises(TextValidationError) as caught:
                         self.create(" Hello   world. ", "eng")
                 self.assertEqual(caught.exception.code, "duplicate_content")
@@ -264,7 +266,7 @@ class PersistenceTests(unittest.TestCase):
                     self.db.commit.side_effect = failure
                 _, persist = self.handlers()
                 with self.assertRaises(TextDatabaseError) as caught:
-                    persist.PersistTextHandler(self.db).handle(context)
+                    persist.PersistTextStep(self.db).handle(context)
                 self.assertIs(caught.exception.__cause__, failure)
                 self.db.rollback.assert_called_once()
                 self.db.close.assert_not_called()
@@ -277,7 +279,7 @@ class PersistenceTests(unittest.TestCase):
         context = self.checked_context()
         self.db.commit.side_effect = RuntimeError("constraint failure")
         with self.assertRaises(TextDatabaseError) as caught:
-            persist.PersistTextHandler(self.db).handle(context)
+            persist.PersistTextStep(self.db).handle(context)
         self.assertEqual(caught.exception.code, "database_error")
         self.assertIsNone(context.persisted_text)
 
@@ -322,14 +324,14 @@ class PersistenceTests(unittest.TestCase):
             (19, "Database returned this.", Language.SPA, Difficulty.EXPERT),
         )
 
-    def test_handlers_require_predecessors_before_io(self):
+    def test_steps_require_predecessors_before_io(self):
         duplicate, persist = self.handlers()
         raw = TextContext("Hello.", "eng")
         with self.assertRaises(TextValidationError):
-            duplicate.CheckDuplicateTextHandler(self.db).handle(raw)
+            duplicate.CheckDuplicateTextStep(self.db).handle(raw)
         classified = TextFacade().process("Hello.", "eng")
         with self.assertRaises(TextValidationError):
-            persist.PersistTextHandler(self.db).handle(classified)
+            persist.PersistTextStep(self.db).handle(classified)
         self.assertEqual(self.db.mock_calls, [])
 
     def test_changed_context_after_duplicate_check_cannot_be_saved(self):
@@ -344,7 +346,7 @@ class PersistenceTests(unittest.TestCase):
                 self.db.reset_mock()
                 setattr(context, attribute, value)
                 with self.assertRaises(TextValidationError):
-                    persist.PersistTextHandler(self.db).handle(context)
+                    persist.PersistTextStep(self.db).handle(context)
                 self.assertEqual(self.db.mock_calls, [])
 
     def test_check_with_different_session_cannot_be_reused(self):
@@ -352,13 +354,13 @@ class PersistenceTests(unittest.TestCase):
         context = self.checked_context()
         other = Mock(spec=SESSION_METHODS)
         with self.assertRaises(TextValidationError):
-            persist.PersistTextHandler(other).handle(context)
+            persist.PersistTextStep(other).handle(context)
         self.assertEqual(other.mock_calls, [])
 
     def test_terminal_persist_does_not_delegate_after_commit(self):
         _, persist = self.handlers()
         context = self.checked_context()
-        handler = persist.PersistTextHandler(self.db)
+        handler = persist.PersistTextStep(self.db)
         following = Mock()
         handler.set_next(following)
         handler.handle(context)
@@ -368,7 +370,7 @@ class PersistenceTests(unittest.TestCase):
     def test_same_context_cannot_be_persisted_twice(self):
         _, persist = self.handlers()
         context = self.checked_context()
-        handler = persist.PersistTextHandler(self.db)
+        handler = persist.PersistTextStep(self.db)
         handler.handle(context)
         with self.assertRaises(TextValidationError) as caught:
             handler.handle(context)

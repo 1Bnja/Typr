@@ -5,7 +5,7 @@ from pathlib import Path
 import unittest
 from unittest.mock import Mock
 
-from app.services.texts_handler.handler import duplicate, persist
+from app.services.texts_handler.processing import duplicate, persist
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -68,11 +68,13 @@ class RawSqlTests(unittest.TestCase):
             sql,
         )
 
-    def test_handlers_have_no_orm_or_sql_builder_operations(self):
+    def test_steps_have_no_orm_or_sql_builder_operations(self):
         for filename in ("duplicate.py", "persist.py"):
             with self.subTest(filename=filename):
                 tree = ast.parse(
-                    (ROOT / "app/services/texts_handler/handler" / filename).read_text()
+                    (
+                        ROOT / "app/services/texts_handler/processing" / filename
+                    ).read_text()
                 )
                 for node in ast.walk(tree):
                     if isinstance(node, ast.ImportFrom):

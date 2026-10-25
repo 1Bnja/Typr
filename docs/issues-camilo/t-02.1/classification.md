@@ -1,9 +1,9 @@
 # Clasificación determinista implementada
 
 **Estado: clasificación implementada.** `process()` no accede a BD;
-`create()` dispone de [manejadores de duplicados y persistencia](persistence.md),
+`create()` dispone de [pasos de duplicados y persistencia](persistence.md),
 verificados mediante mocks. No hay endpoints nuevos. El
-manejador aplica el modelo inicial aceptado y conserva su explicación en el
+paso aplica el modelo inicial aceptado y conserva su explicación en el
 contexto. No se modificaron los pesos, escalas ni cortes de la calibración.
 
 La fachada también ofrece [`generate()`](generation.md), que devuelve texto
@@ -12,7 +12,7 @@ plano sin ejecutar esta cadena; el llamador elige procesarlo o guardarlo.
 ## Flujo de llamadas
 
 ```text
-TextFacade.process -> ValidateTextHandler -> NormalizeTextHandler -> ClassifyTextHandler
+TextFacade.process -> ValidateTextStep -> NormalizeTextStep -> ClassifyTextStep
                                                 |
                                                 v
 classify_text -> _prepare -> _measure_characters -> _measure_words
@@ -43,21 +43,21 @@ print(context.difficulty.value)
 print(context.classification.score)
 ```
 
-La fachada llama únicamente al primer manejador. Validación, normalización y
+La fachada llama únicamente al primer paso. Validación, normalización y
 clasificación se suceden mediante `forward(context)`, sin importar ni ejecutar
-funciones de otro manejador concreto. La clasificación ya no vuelve a normalizar
+funciones de otro paso concreto. La clasificación ya no vuelve a normalizar
 ni validar: consume el resultado de las etapas anteriores.
 
 El cálculo auxiliar `classify_text(context)` exige un contexto marcado como
 normalizado. Si el contenido o idioma cambió, o se omitió esa etapa, lanza
 `TextValidationError` con código `not_normalized`. No intenta repararlo ni ejecutar
-manejadores previos. Los snapshots son comprobaciones de orden y coherencia de
+pasos previos. Los snapshots son comprobaciones de orden y coherencia de
 un flujo interno, no una frontera de seguridad frente a código que manipule
 atributos privados del contexto.
 
-El manejador asigna `context.classification` y `context.difficulty` únicamente
+El paso asigna `context.classification` y `context.difficulty` únicamente
 después de completar el cálculo y luego delega. Ante un error no asigna un
-resultado parcial ni llama al siguiente manejador.
+resultado parcial ni llama al siguiente paso.
 
 ## Cálculo y resultado
 
@@ -90,11 +90,11 @@ originales, métricas normalizadas, contribuciones, puntaje y el enum
 
 | Archivo | Responsabilidad |
 | --- | --- |
-| [`handler/classiffy/__init__.py`](../../../backend/app/services/texts_handler/handler/classiffy/__init__.py) | Manejador, etapas del cálculo y resultado explicable. |
-| [`handler/classiffy/keyboard.py`](../../../backend/app/services/texts_handler/handler/classiffy/keyboard.py) | Mapas fijos de pulsaciones, costes y cobertura del alfabeto. |
+| [`processing/classiffy/__init__.py`](../../../backend/app/services/texts_handler/processing/classiffy/__init__.py) | Paso de procesamiento, etapas del cálculo y resultado explicable. |
+| [`processing/classiffy/keyboard.py`](../../../backend/app/services/texts_handler/processing/classiffy/keyboard.py) | Mapas fijos de pulsaciones, costes y cobertura del alfabeto. |
 | [`context.py`](../../../backend/app/services/texts_handler/context.py) | Entrada, roles de comillas, snapshots de etapas y resultado compartidos. |
 | [`__init__.py`](../../../backend/app/services/texts_handler/__init__.py) | Fachada que compone y ejecuta la cadena. |
-| [`characters.py`](../../../backend/app/services/texts_handler/characters.py) | Constantes de caracteres compartidas sin depender de manejadores. |
+| [`characters.py`](../../../backend/app/services/texts_handler/characters.py) | Constantes de caracteres compartidas sin depender de pasos de procesamiento. |
 | [`text_enums.py`](../../../backend/app/text_enums.py) | `Language` y `Difficulty` sin dependencias de ORM o configuración. |
 
 `models/enums.py` sigue reexportando los mismos enums y construyendo los mismos
@@ -115,9 +115,9 @@ no haría más claro el flujo ni sus errores.
 - El coste usa `sum(map(layout.costs.__getitem__, symbols))`, conservando el
   orden de suma y los valores de calibración.
 
-El paquete `handler/classiffy/` reúne la clasificación y su auxiliar de teclado.
-`keyboard.py` no es otro manejador: proporciona los datos y costes que usa esa
-etapa. No quedan módulos paralelos `handler/classify.py`, `classification.py`
+El paquete `processing/classiffy/` reúne la clasificación y su auxiliar de teclado.
+`keyboard.py` no es otro paso: proporciona los datos y costes que usa esa
+etapa. No quedan módulos paralelos `processing/classify.py`, `classification.py`
 ni un `keyboard.py` en la raíz de `texts_handler`.
 
 ### Revisión de código sin uso
@@ -174,7 +174,7 @@ PYTHONPATH=backend python3 -m unittest discover \
   el módulo de clasificación, pasaron las 41 pruebas y se conservaron las 16 referencias
   de calibración sin modificar pesos, escalas ni umbrales.
 
-La integración posterior añade pruebas de fachada, aislamiento de manejadores,
+La integración posterior añade pruebas de fachada, aislamiento de pasos,
 orden único de ejecución y rechazo de contextos sin preparar o modificados.
 Las pruebas anteriores de entrada se conservan mediante la fachada o mediante
 contextos preparados explícitamente; no se ejecutan etapas ocultas en helpers.
@@ -197,5 +197,5 @@ La clasificación no escribe datos. La integración posterior de
 [duplicados y persistencia](persistence.md) tiene pruebas de transacción con
 mocks, no una comprobación contra una BD real. Para retirar esta unidad se
 revierten el clasificador, el mapa de
-teclado, la integración del manejador/contexto, la extracción de enums y sus
+teclado, la integración del paso/contexto, la extracción de enums y sus
 pruebas/documentación, conservando la normalización y validación anteriores.

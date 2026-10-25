@@ -14,20 +14,20 @@ from unittest.mock import patch
 from app.services.texts_handler import TextFacade
 from app.services.texts_handler.context import TextContext
 from app.services.texts_handler.errors import TextValidationError
-from app.services.texts_handler.handler.classiffy import ClassifyTextHandler
-from app.services.texts_handler.handler.normalize import NormalizeTextHandler
-from app.services.texts_handler.handler.validate import ValidateTextHandler
+from app.services.texts_handler.processing.classiffy import ClassifyTextStep
+from app.services.texts_handler.processing.normalize import NormalizeTextStep
+from app.services.texts_handler.processing.validate import ValidateTextStep
 
 ROOT = Path(__file__).resolve().parents[4]
-HANDLERS = ROOT / "backend/app/services/texts_handler/handler"
+PROCESSING = ROOT / "backend/app/services/texts_handler/processing"
 
 
 class ChainIntegrationTests(unittest.TestCase):
     def test_facade_builds_default_chain_and_processes_raw_text(self):
         facade = TextFacade()
-        self.assertIsInstance(facade.chain, ValidateTextHandler)
-        self.assertIsInstance(facade.chain.next, NormalizeTextHandler)
-        self.assertIsInstance(facade.chain.next.next, ClassifyTextHandler)
+        self.assertIsInstance(facade.chain, ValidateTextStep)
+        self.assertIsInstance(facade.chain.next, NormalizeTextStep)
+        self.assertIsInstance(facade.chain.next.next, ClassifyTextStep)
         self.assertIsNone(facade.chain.next.next.next)
         context = facade.process("  Hola ,mundo.Hola ", "spa")
         self.assertEqual(context.content, "Hola, mundo. Hola")
@@ -36,7 +36,7 @@ class ChainIntegrationTests(unittest.TestCase):
 
     def test_each_stage_runs_once_and_in_order(self):
         calls = []
-        classes = (ValidateTextHandler, NormalizeTextHandler, ClassifyTextHandler)
+        classes = (ValidateTextStep, NormalizeTextStep, ClassifyTextStep)
         original = {cls: cls.handle for cls in classes}
 
         def spy(cls):
@@ -55,7 +55,7 @@ class ChainIntegrationTests(unittest.TestCase):
         self.assertEqual(calls, [cls.__name__ for cls in classes])
 
     def test_helpers_do_not_repeat_predecessor_work(self):
-        from app.services.texts_handler.handler import (
+        from app.services.texts_handler.processing import (
             classiffy as classify,
             normalize,
             validate,
@@ -75,11 +75,11 @@ class ChainIntegrationTests(unittest.TestCase):
             (checked.call_count, canonical.call_count, scored.call_count), (1, 1, 1)
         )
 
-    def test_concrete_handlers_do_not_import_each_other(self):
+    def test_concrete_steps_do_not_import_each_other(self):
         concrete = {"validate", "normalize", "classiffy", "duplicate", "persist"}
         for name in concrete:
             with self.subTest(handler=name):
-                path = HANDLERS / (
+                path = PROCESSING / (
                     "classiffy/__init__.py" if name == "classiffy" else f"{name}.py"
                 )
                 tree = ast.parse(path.read_text())
@@ -94,20 +94,20 @@ class ChainIntegrationTests(unittest.TestCase):
     def test_normalizer_requires_validation_and_uses_quote_metadata(self):
         context = TextContext("‘ hola ’", "spa")
         with self.assertRaises(TextValidationError) as caught:
-            NormalizeTextHandler().handle(context)
+            NormalizeTextStep().handle(context)
         self.assertEqual(caught.exception.code, "not_validated")
-        ValidateTextHandler().handle(context)
-        NormalizeTextHandler().handle(context)
+        ValidateTextStep().handle(context)
+        NormalizeTextStep().handle(context)
         self.assertEqual(context.content, "'hola'")
 
     def test_stale_validation_is_not_reused(self):
         for attribute, replacement in (("content", "don't"), ("language", "eng")):
             with self.subTest(attribute=attribute):
                 context = TextContext("‘ hola ’", "spa")
-                ValidateTextHandler().handle(context)
+                ValidateTextStep().handle(context)
                 setattr(context, attribute, replacement)
                 with self.assertRaises(TextValidationError) as caught:
-                    NormalizeTextHandler().handle(context)
+                    NormalizeTextStep().handle(context)
                 self.assertEqual(caught.exception.code, "not_validated")
                 self.assertIsNone(context.classification)
 
@@ -115,14 +115,14 @@ class ChainIntegrationTests(unittest.TestCase):
         for attribute, replacement in (("content", "🙂"), ("language", "spa")):
             with self.subTest(attribute=attribute):
                 context = TextContext("Hello.", "eng")
-                ValidateTextHandler().handle(context)
+                ValidateTextStep().handle(context)
                 with self.assertRaises(TextValidationError) as caught:
-                    ClassifyTextHandler().handle(context)
+                    ClassifyTextStep().handle(context)
                 self.assertEqual(caught.exception.code, "not_normalized")
-                NormalizeTextHandler().handle(context)
+                NormalizeTextStep().handle(context)
                 setattr(context, attribute, replacement)
                 with self.assertRaises(TextValidationError) as caught:
-                    ClassifyTextHandler().handle(context)
+                    ClassifyTextStep().handle(context)
                 self.assertEqual(caught.exception.code, "not_normalized")
 
     def test_invalid_or_expanded_input_never_reaches_classification(self):
@@ -132,7 +132,7 @@ class ChainIntegrationTests(unittest.TestCase):
         ):
             with (
                 self.subTest(code=code),
-                patch.object(ClassifyTextHandler, "handle") as classify,
+                patch.object(ClassifyTextStep, "handle") as classify,
             ):
                 with self.assertRaises(TextValidationError) as caught:
                     TextFacade().process(content, "eng")
@@ -195,7 +195,7 @@ class ChainIntegrationTests(unittest.TestCase):
         self.assertTrue(result.failures)
 
     def test_type_only_context_annotations_are_deferred(self):
-        from app.services.texts_handler.handler.classiffy import classify_text
+        from app.services.texts_handler.processing.classiffy import classify_text
 
         self.assertEqual(
             inspect.get_annotations(classify_text)["context"], "TextContext"

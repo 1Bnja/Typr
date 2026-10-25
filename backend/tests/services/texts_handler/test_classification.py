@@ -9,15 +9,15 @@ import unittest
 
 from app.services.texts_handler import TextFacade
 from app.services.texts_handler.context import TextContext
-from app.services.texts_handler.handler import TextHandler
-from app.services.texts_handler.handler.classiffy import ClassifyTextHandler
+from app.services.texts_handler.processing import TextProcessingStep
+from app.services.texts_handler.processing.classiffy import ClassifyTextStep
 
 
 ROOT = Path(__file__).resolve().parents[4]
 REFERENCE = ROOT / "docs/issues-camilo/t-02.1/calibration-results.json"
 
 
-class Recorder(TextHandler):
+class Recorder(TextProcessingStep):
     def __init__(self):
         super().__init__()
         self.calls = []
@@ -27,8 +27,8 @@ class Recorder(TextHandler):
 
 
 class ClassificationTests(unittest.TestCase):
-    def test_classification_is_owned_by_handler_module(self):
-        from app.services.texts_handler.handler import classiffy as classify
+    def test_classification_is_owned_by_processing_module(self):
+        from app.services.texts_handler.processing import classiffy as classify
 
         self.assertEqual(classify.classify_text.__module__, classify.__name__)
         self.assertEqual(classify.ClassificationResult.__module__, classify.__name__)
@@ -37,18 +37,18 @@ class ClassificationTests(unittest.TestCase):
         return TextFacade().process(content, language).classification
 
     def normalized_context(self, content, language="eng"):
-        from app.services.texts_handler.handler.normalize import NormalizeTextHandler
-        from app.services.texts_handler.handler.validate import ValidateTextHandler
+        from app.services.texts_handler.processing.normalize import NormalizeTextStep
+        from app.services.texts_handler.processing.validate import ValidateTextStep
 
         context = TextContext(content, language)
-        first = ValidateTextHandler()
-        first.set_next(NormalizeTextHandler())
+        first = ValidateTextStep()
+        first.set_next(NormalizeTextStep())
         first.handle(context)
         return context
 
-    def test_handler_assigns_difficulty_before_delegating(self):
+    def test_step_assigns_difficulty_before_delegating(self):
         context = self.normalized_context("Hello world.")
-        handler, recorder = ClassifyTextHandler(), Recorder()
+        handler, recorder = ClassifyTextStep(), Recorder()
         handler.set_next(recorder)
         handler.handle(context)
         self.assertIsNotNone(context.difficulty)
@@ -56,17 +56,17 @@ class ClassificationTests(unittest.TestCase):
         self.assertEqual(context.classification.difficulty, context.difficulty)
 
     def test_unused_difficulty_wrapper_is_not_exposed(self):
-        self.assertFalse(hasattr(ClassifyTextHandler, "calculate_difficulty"))
+        self.assertFalse(hasattr(ClassifyTextStep, "calculate_difficulty"))
 
     def test_classification_package_owns_keyboard(self):
         from importlib import import_module
 
-        package = import_module("app.services.texts_handler.handler.classiffy")
+        package = import_module("app.services.texts_handler.processing.classiffy")
         keyboard = import_module(f"{package.__name__}.keyboard")
-        self.assertEqual(package.ClassifyTextHandler.__module__, package.__name__)
+        self.assertEqual(package.ClassifyTextStep.__module__, package.__name__)
         self.assertEqual(keyboard.keyboard.__module__, keyboard.__name__)
         module = ROOT / "backend/app/services/texts_handler"
-        self.assertFalse((module / "handler/classify.py").exists())
+        self.assertFalse((module / "processing/classify.py").exists())
         self.assertFalse((module / "keyboard.py").exists())
 
     def test_calibration_scores_and_all_metrics_match_reference(self):
@@ -98,7 +98,7 @@ class ClassificationTests(unittest.TestCase):
         self.assertEqual(levels, {"medium": 8, "advanced": 8})
 
     def test_keyboard_maps_match_frozen_reference(self):
-        from app.services.texts_handler.handler.classiffy.keyboard import keyboard
+        from app.services.texts_handler.processing.classiffy.keyboard import keyboard
 
         reference = json.loads(REFERENCE.read_text())
         for language, expected in reference["keyboards"].items():
@@ -126,7 +126,7 @@ class ClassificationTests(unittest.TestCase):
         self.assertEqual(result.max_word_length, 9)
 
     def test_threshold_boundaries_without_rounding(self):
-        from app.services.texts_handler.handler.classiffy import difficulty_for_score
+        from app.services.texts_handler.processing.classiffy import difficulty_for_score
 
         for score, expected in (
             (0, "easy"),
@@ -160,22 +160,22 @@ class ClassificationTests(unittest.TestCase):
                 self.assertEqual(recorder.calls, [])
 
     def test_standalone_requires_canonical_content(self):
-        from app.services.texts_handler.handler.classiffy import classify_text
+        from app.services.texts_handler.processing.classiffy import classify_text
 
         for content in (" Hello ", "Hello,world", "‘hello’"):
             with self.subTest(content=content), self.assertRaises(ValueError) as caught:
                 classify_text(TextContext(content, "eng"))
             self.assertEqual(caught.exception.code, "not_normalized")
 
-    def test_complete_handler_chain(self):
-        from app.services.texts_handler.handler.normalize import NormalizeTextHandler
-        from app.services.texts_handler.handler.validate import ValidateTextHandler
+    def test_complete_processing_chain(self):
+        from app.services.texts_handler.processing.normalize import NormalizeTextStep
+        from app.services.texts_handler.processing.validate import ValidateTextStep
 
         context = TextContext("  Hola ,mundo.Hola ", "spa")
-        handler, recorder = ValidateTextHandler(), Recorder()
-        handler.set_next(NormalizeTextHandler()).set_next(
-            ClassifyTextHandler()
-        ).set_next(recorder)
+        handler, recorder = ValidateTextStep(), Recorder()
+        handler.set_next(NormalizeTextStep()).set_next(ClassifyTextStep()).set_next(
+            recorder
+        )
         handler.handle(context)
         self.assertEqual(context.content, "Hola, mundo. Hola")
         self.assertEqual(len(recorder.calls), 1)
@@ -202,7 +202,7 @@ class ClassificationTests(unittest.TestCase):
             if (
                 event == "call"
                 and frame.f_globals.get("__name__")
-                == "app.services.texts_handler.handler.classiffy"
+                == "app.services.texts_handler.processing.classiffy"
             ):
                 if frame.f_code.co_name in expected:
                     names.append(frame.f_code.co_name)
@@ -237,7 +237,7 @@ class ClassificationTests(unittest.TestCase):
             result.normalized["entropy"] = 0
 
     def test_keyboard_cost_invariants(self):
-        from app.services.texts_handler.handler.classiffy.keyboard import keyboard
+        from app.services.texts_handler.processing.classiffy.keyboard import keyboard
 
         english, spanish = keyboard("eng"), keyboard("spa")
         self.assertGreater(english.costs["A"], english.costs["a"])
@@ -249,7 +249,7 @@ class ClassificationTests(unittest.TestCase):
     def test_import_avoids_database_and_configuration(self):
         code = """
 import sys
-from app.services.texts_handler.handler.classiffy import ClassifyTextHandler
+from app.services.texts_handler.processing.classiffy import ClassifyTextStep
 from app.services.texts_handler import TextFacade
 from app.text_enums import Difficulty, Language
 assert TextFacade().process('Hello.', Language.ENG).difficulty in Difficulty

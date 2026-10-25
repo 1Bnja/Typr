@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Mapping
 
 from app.text_enums import Difficulty
 
-from .. import TextHandler
+from .. import TextProcessingStep
 from .keyboard import keyboard
 from .weights import (
     MAX_WORD_LENGTH_SCALE,
@@ -139,7 +139,7 @@ def _score(values: _Measurements) -> ClassificationResult:
     )
 
 
-class ClassifyTextHandler(TextHandler):
+class ClassifyTextStep(TextProcessingStep):
     def handle(self, context: TextContext) -> None:
         result = classify_text(context)
         context.record_classification(result)

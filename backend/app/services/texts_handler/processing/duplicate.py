@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from . import TextHandler
+from . import TextProcessingStep
 from ..errors import TextDatabaseError, TextValidationError
 
 if TYPE_CHECKING:
@@ -20,7 +20,7 @@ LIMIT 1
 """
 
 
-class CheckDuplicateTextHandler(TextHandler):
+class CheckDuplicateTextStep(TextProcessingStep):
     def __init__(self, db: Session) -> None:
         super().__init__()
         self.db = db

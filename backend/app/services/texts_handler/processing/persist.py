@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Mapping
 
 from app.text_enums import Difficulty, Language
 
-from . import TextHandler
+from . import TextProcessingStep
 from ..errors import TextDatabaseError
 
 if TYPE_CHECKING:
@@ -51,7 +51,7 @@ def persisted_text(row: Mapping[str, Any]) -> PersistedText:
     )
 
 
-class PersistTextHandler(TextHandler):
+class PersistTextStep(TextProcessingStep):
     def __init__(self, db: Session) -> None:
         super().__init__()
         self.db = db

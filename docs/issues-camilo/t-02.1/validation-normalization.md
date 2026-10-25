@@ -1,7 +1,7 @@
 # Validar y normalizar textos antes de clasificar
 
 **Implementado:** validación de entrada, normalización y delegación entre
-manejadores. La [clasificación](classification.md) también está implementada;
+pasos. La [clasificación](classification.md) también está implementada;
 la fachada construye y ejecuta la cadena. `process()` no consulta la BD;
 `create()` añade [duplicados y persistencia](persistence.md) con una sesión
 inyectada. Su comprobación automatizada utiliza mocks, no Supabase.
@@ -19,8 +19,8 @@ print(context.difficulty.value)
 ```
 
 `TextFacade.__init__` construye una vez por instancia la cadena
-`ValidateTextHandler -> NormalizeTextHandler -> ClassifyTextHandler`.
-`process` crea un contexto nuevo y llama solo al primer `handle`. Cada manejador
+`ValidateTextStep -> NormalizeTextStep -> ClassifyTextStep`.
+`process` crea un contexto nuevo y llama solo al primer `handle`. Cada paso
 delega mediante `forward` únicamente cuando termina correctamente; una excepción
 interrumpe el flujo. No hay llamadas directas entre implementaciones concretas.
 
@@ -28,8 +28,8 @@ La validación guarda los roles de comillas y la entrada comprobada en el contex
 La normalización consume esos datos, sin volver a validar la entrada, y comprueba
 su propio límite de salida: añadir espacios puede superar los 5000 caracteres.
 La clasificación exige el contenido marcado como normalizado y solo calcula.
-Los conjuntos compartidos viven en `characters.py`, no en otro manejador.
-La clasificación y su auxiliar de teclado viven en `handler/classiffy/`;
+Los conjuntos compartidos viven en `characters.py`, no en otro paso.
+La clasificación y su auxiliar de teclado viven en `processing/classiffy/`;
 `errors.py` permanece en el nivel común porque también lo utiliza el contexto.
 
 Los snapshots de contenido e idioma impiden reutilizar datos de una etapa si
@@ -57,7 +57,7 @@ ni aparenta haber creado un registro de base de datos.
 
 El límite de longitud procede de
 [`app/text_constants.py`](../../../backend/app/text_constants.py), compartido con
-el schema existente. Así, importar estos manejadores no carga modelos ORM,
+el schema existente. Así, importar estos pasos no carga modelos ORM,
 configuración, credenciales ni sesiones de base de datos.
 
 ## Simplificación funcional sin cambiar las reglas
@@ -117,7 +117,7 @@ Los 16 textos de [calibración](calibration-examples.md) se mantienen sin cambio
 - No se cambia el guion ni se define cómo cuenta al medir palabras; esa medición
   pertenece al clasificador. Se conserva su separación existente.
 - La normalización no consulta duplicados: produce el contenido canónico que
-  utiliza el manejador de duplicados de la cadena de creación.
+  utiliza el paso de duplicados de la cadena de creación.
 
 ## Verificación reproducible
 
@@ -135,6 +135,6 @@ Se utilizó TDD con `unittest` de la biblioteca estándar porque `pytest` no est
 instalado en el intérprete disponible. Las pruebas también son descubribles por
 pytest cuando esté instalado. Las comprobaciones no necesitan BD, red ni secretos.
 
-**Operación de creación:** la fachada añade manejadores de duplicados y
+**Operación de creación:** la fachada añade pasos de duplicados y
 persistencia cuando recibe una sesión de BD. Las pruebas usan exclusivamente
 mocks; véanse los [contratos y límites](persistence.md).

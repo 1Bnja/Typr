@@ -3,7 +3,7 @@ from __future__ import annotations
 from string import digits
 from typing import TYPE_CHECKING
 
-from . import TextHandler
+from . import TextProcessingStep
 from app.text_constants import MAX_CONTENT_LENGTH
 
 from ..characters import WHITESPACE
@@ -69,7 +69,7 @@ def normalize_content(context: TextContext) -> str:
     return normalized
 
 
-class NormalizeTextHandler(TextHandler):
+class NormalizeTextStep(TextProcessingStep):
     def handle(self, context: TextContext) -> None:
         normalized = normalize_content(context)
         context.record_normalization(normalized)

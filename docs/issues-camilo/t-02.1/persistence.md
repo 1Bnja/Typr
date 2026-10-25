@@ -11,7 +11,7 @@ TextFacade(db).create(content, language)
     -> Validar -> Normalizar -> Comprobar duplicado -> Clasificar -> Persistir
 ```
 
-La fachada construye la cadena y llama únicamente al primer manejador.
+La fachada construye la cadena y llama únicamente al primer paso.
 `TextFacade().process(content, language)` mantiene su flujo sin BD de tres etapas.
 
 Se reutiliza [`app.database`](../../../backend/app/database.py): `SessionLocal`
@@ -23,7 +23,7 @@ transacción de esa misma sesión:
 return db.connection().exec_driver_sql(statement, parameters)
 ```
 
-No hay otro motor, cliente o conector. Los manejadores no crean ni cierran
+No hay otro motor, cliente o conector. Los pasos no crean ni cierran
 sesiones; difieren la importación del conector hasta una operación de BD
 solicitada explícitamente. Importar el módulo o ejecutar `process()` no carga
 configuración ni modelos ORM.
@@ -51,7 +51,7 @@ leen `.env`, no utilizan `DATABASE_URL` y no acceden a Supabase.
 
 ## Consultas explícitas y parámetros separados
 
-[`CheckDuplicateTextHandler`](../../../backend/app/services/texts_handler/handler/duplicate.py)
+[`CheckDuplicateTextStep`](../../../backend/app/services/texts_handler/processing/duplicate.py)
 ejecuta:
 
 ```sql
@@ -65,7 +65,7 @@ Recibe por separado `{"content": contenido_normalizado}`. No carga el catálogo
 completo ni filtra por idioma. Un resultado distinto de `None`, incluido ID `0`,
 interrumpe la cadena con `duplicate_content` antes de clasificar o guardar.
 
-[`PersistTextHandler`](../../../backend/app/services/texts_handler/handler/persist.py)
+[`PersistTextStep`](../../../backend/app/services/texts_handler/processing/persist.py)
 ejecuta:
 
 ```sql
@@ -100,7 +100,7 @@ la fila retornada: `id`, `content`, `language`, `difficulty`, `ideal_time_ms` y
 Es un resultado desconectado, **no una entidad ORM**; leer sus atributos después
 de confirmar no dispara consultas por expiración de atributos.
 
-El manejador de persistencia controla `commit` y `rollback`; la fachada no
+El paso de persistencia controla `commit` y `rollback`; la fachada no
 confirma de nuevo. Si falla la ejecución, lectura o conversión de la fila o
 `commit`, intenta `rollback`, interrumpe el flujo y no publica un resultado
 exitoso. La causa original se conserva sin exponer sus detalles en el mensaje

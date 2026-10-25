@@ -26,8 +26,10 @@ class WeightsConfigurationTests(unittest.TestCase):
                 self.test_configuration_is_owned_by_constants_module()
 
     def test_configuration_is_owned_by_constants_module(self):
-        weights = import_module("app.services.texts_handler.handler.classiffy.weights")
-        classifier = import_module("app.services.texts_handler.handler.classiffy")
+        weights = import_module(
+            "app.services.texts_handler.processing.classiffy.weights"
+        )
+        classifier = import_module("app.services.texts_handler.processing.classiffy")
         self.assertIs(classifier.WEIGHTS, weights.WEIGHTS)
         self.assertAlmostEqual(sum(weights.WEIGHTS.values()), 1, delta=1e-12)
         self.assertEqual(weights.THRESHOLDS, (25, 50, 75))

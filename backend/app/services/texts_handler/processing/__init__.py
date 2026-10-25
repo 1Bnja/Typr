@@ -6,11 +6,11 @@ if TYPE_CHECKING:
     from ..context import TextContext
 
 
-class TextHandler:
+class TextProcessingStep:
     def __init__(self) -> None:
-        self.next: TextHandler | None = None
+        self.next: TextProcessingStep | None = None
 
-    def set_next(self, handler: TextHandler) -> TextHandler:
+    def set_next(self, handler: TextProcessingStep) -> TextProcessingStep:
         self.next = handler
         return handler
 
