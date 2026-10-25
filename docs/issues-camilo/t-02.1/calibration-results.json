@@ -1,0 +1,2067 @@
+{
+  "version": "calibration-v1",
+  "source_sha256": {
+    "calibration-examples.md": "c3f6d1d2e58cc80bd7917aa1c1c23ab2809c0d50b64a3cafb7d223d2d7193724",
+    "keyboard-effort.md": "0d58d8d84a49a4a7b2ae254f86c017c496cbc370e090543c0058dd4499aed783"
+  },
+  "weights": {
+    "entropy": 0.35,
+    "effort": 0.3,
+    "mean_length": 0.15,
+    "variety": 0.1,
+    "max_length": 0.1
+  },
+  "bands": {
+    "easy": "[0,25)",
+    "medium": "[25,50)",
+    "advanced": "[50,75)",
+    "expert": "[75,100]"
+  },
+  "word_tokenization_status": "experimental assumption, not approved rule",
+  "keyboards": {
+    "eng": {
+      "alphabet_size": 73,
+      "alphabet": "!\"'(),-.0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+      "max_cost": 3.5615528128088303,
+      "max_cost_characters": [
+        "!",
+        "(",
+        ")"
+      ],
+      "characters": {
+        "!": {
+          "sequence": [
+            [
+              "AE01",
+              true
+            ]
+          ],
+          "cost": 3.5615528128088303
+        },
+        "\"": {
+          "sequence": [
+            [
+              "AC11",
+              true
+            ]
+          ],
+          "cost": 2.5
+        },
+        "'": {
+          "sequence": [
+            [
+              "AC11",
+              false
+            ]
+          ],
+          "cost": 2.0
+        },
+        "(": {
+          "sequence": [
+            [
+              "AE09",
+              true
+            ]
+          ],
+          "cost": 3.5615528128088303
+        },
+        ")": {
+          "sequence": [
+            [
+              "AE10",
+              true
+            ]
+          ],
+          "cost": 3.5615528128088303
+        },
+        ",": {
+          "sequence": [
+            [
+              "AB08",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        "-": {
+          "sequence": [
+            [
+              "AE11",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        ".": {
+          "sequence": [
+            [
+              "AB09",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        "0": {
+          "sequence": [
+            [
+              "AE10",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "1": {
+          "sequence": [
+            [
+              "AE01",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "2": {
+          "sequence": [
+            [
+              "AE02",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "3": {
+          "sequence": [
+            [
+              "AE03",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "4": {
+          "sequence": [
+            [
+              "AE04",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "5": {
+          "sequence": [
+            [
+              "AE05",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "6": {
+          "sequence": [
+            [
+              "AE06",
+              false
+            ]
+          ],
+          "cost": 3.5
+        },
+        "7": {
+          "sequence": [
+            [
+              "AE07",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "8": {
+          "sequence": [
+            [
+              "AE08",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "9": {
+          "sequence": [
+            [
+              "AE09",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        ":": {
+          "sequence": [
+            [
+              "AC10",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        ";": {
+          "sequence": [
+            [
+              "AC10",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "?": {
+          "sequence": [
+            [
+              "AB10",
+              true
+            ]
+          ],
+          "cost": 2.618033988749895
+        },
+        "A": {
+          "sequence": [
+            [
+              "AC01",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        "B": {
+          "sequence": [
+            [
+              "AB05",
+              true
+            ]
+          ],
+          "cost": 3.302775637731995
+        },
+        "C": {
+          "sequence": [
+            [
+              "AB03",
+              true
+            ]
+          ],
+          "cost": 2.618033988749895
+        },
+        "D": {
+          "sequence": [
+            [
+              "AC03",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        "E": {
+          "sequence": [
+            [
+              "AD03",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "F": {
+          "sequence": [
+            [
+              "AC04",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        "G": {
+          "sequence": [
+            [
+              "AC05",
+              true
+            ]
+          ],
+          "cost": 2.5
+        },
+        "H": {
+          "sequence": [
+            [
+              "AC06",
+              true
+            ]
+          ],
+          "cost": 2.5
+        },
+        "I": {
+          "sequence": [
+            [
+              "AD08",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "J": {
+          "sequence": [
+            [
+              "AC07",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        "K": {
+          "sequence": [
+            [
+              "AC08",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        "L": {
+          "sequence": [
+            [
+              "AC09",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        "M": {
+          "sequence": [
+            [
+              "AB07",
+              true
+            ]
+          ],
+          "cost": 2.618033988749895
+        },
+        "N": {
+          "sequence": [
+            [
+              "AB06",
+              true
+            ]
+          ],
+          "cost": 2.618033988749895
+        },
+        "O": {
+          "sequence": [
+            [
+              "AD09",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "P": {
+          "sequence": [
+            [
+              "AD10",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "Q": {
+          "sequence": [
+            [
+              "AD01",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "R": {
+          "sequence": [
+            [
+              "AD04",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "S": {
+          "sequence": [
+            [
+              "AC02",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        "T": {
+          "sequence": [
+            [
+              "AD05",
+              true
+            ]
+          ],
+          "cost": 2.75
+        },
+        "U": {
+          "sequence": [
+            [
+              "AD07",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "V": {
+          "sequence": [
+            [
+              "AB04",
+              true
+            ]
+          ],
+          "cost": 2.618033988749895
+        },
+        "W": {
+          "sequence": [
+            [
+              "AD02",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "X": {
+          "sequence": [
+            [
+              "AB02",
+              true
+            ]
+          ],
+          "cost": 2.618033988749895
+        },
+        "Y": {
+          "sequence": [
+            [
+              "AD06",
+              true
+            ]
+          ],
+          "cost": 3.100781059358212
+        },
+        "Z": {
+          "sequence": [
+            [
+              "AB01",
+              true
+            ]
+          ],
+          "cost": 2.618033988749895
+        },
+        "a": {
+          "sequence": [
+            [
+              "AC01",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "b": {
+          "sequence": [
+            [
+              "AB05",
+              false
+            ]
+          ],
+          "cost": 2.802775637731995
+        },
+        "c": {
+          "sequence": [
+            [
+              "AB03",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        "d": {
+          "sequence": [
+            [
+              "AC03",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "e": {
+          "sequence": [
+            [
+              "AD03",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "f": {
+          "sequence": [
+            [
+              "AC04",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "g": {
+          "sequence": [
+            [
+              "AC05",
+              false
+            ]
+          ],
+          "cost": 2.0
+        },
+        "h": {
+          "sequence": [
+            [
+              "AC06",
+              false
+            ]
+          ],
+          "cost": 2.0
+        },
+        "i": {
+          "sequence": [
+            [
+              "AD08",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "j": {
+          "sequence": [
+            [
+              "AC07",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "k": {
+          "sequence": [
+            [
+              "AC08",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "l": {
+          "sequence": [
+            [
+              "AC09",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "m": {
+          "sequence": [
+            [
+              "AB07",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        "n": {
+          "sequence": [
+            [
+              "AB06",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        "o": {
+          "sequence": [
+            [
+              "AD09",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "p": {
+          "sequence": [
+            [
+              "AD10",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "q": {
+          "sequence": [
+            [
+              "AD01",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "r": {
+          "sequence": [
+            [
+              "AD04",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "s": {
+          "sequence": [
+            [
+              "AC02",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "t": {
+          "sequence": [
+            [
+              "AD05",
+              false
+            ]
+          ],
+          "cost": 2.25
+        },
+        "u": {
+          "sequence": [
+            [
+              "AD07",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "v": {
+          "sequence": [
+            [
+              "AB04",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        "w": {
+          "sequence": [
+            [
+              "AD02",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "x": {
+          "sequence": [
+            [
+              "AB02",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        "y": {
+          "sequence": [
+            [
+              "AD06",
+              false
+            ]
+          ],
+          "cost": 2.600781059358212
+        },
+        "z": {
+          "sequence": [
+            [
+              "AB01",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        }
+      }
+    },
+    "spa": {
+      "alphabet_size": 89,
+      "alphabet": "!\"'(),-.0123456789:;?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz¡¿ÁÉÍÑÓÚÜáéíñóúü",
+      "max_cost": 5.280776406404415,
+      "max_cost_characters": [
+        "Ü"
+      ],
+      "characters": {
+        "!": {
+          "sequence": [
+            [
+              "AE01",
+              true
+            ]
+          ],
+          "cost": 3.5615528128088303
+        },
+        "\"": {
+          "sequence": [
+            [
+              "AE02",
+              true
+            ]
+          ],
+          "cost": 3.5615528128088303
+        },
+        "'": {
+          "sequence": [
+            [
+              "AE11",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "(": {
+          "sequence": [
+            [
+              "AE08",
+              true
+            ]
+          ],
+          "cost": 3.5615528128088303
+        },
+        ")": {
+          "sequence": [
+            [
+              "AE09",
+              true
+            ]
+          ],
+          "cost": 3.5615528128088303
+        },
+        ",": {
+          "sequence": [
+            [
+              "AB08",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        "-": {
+          "sequence": [
+            [
+              "AB10",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        ".": {
+          "sequence": [
+            [
+              "AB09",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        "0": {
+          "sequence": [
+            [
+              "AE10",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "1": {
+          "sequence": [
+            [
+              "AE01",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "2": {
+          "sequence": [
+            [
+              "AE02",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "3": {
+          "sequence": [
+            [
+              "AE03",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "4": {
+          "sequence": [
+            [
+              "AE04",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "5": {
+          "sequence": [
+            [
+              "AE05",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "6": {
+          "sequence": [
+            [
+              "AE06",
+              false
+            ]
+          ],
+          "cost": 3.5
+        },
+        "7": {
+          "sequence": [
+            [
+              "AE07",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "8": {
+          "sequence": [
+            [
+              "AE08",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        "9": {
+          "sequence": [
+            [
+              "AE09",
+              false
+            ]
+          ],
+          "cost": 3.0615528128088303
+        },
+        ":": {
+          "sequence": [
+            [
+              "AB09",
+              true
+            ]
+          ],
+          "cost": 2.618033988749895
+        },
+        ";": {
+          "sequence": [
+            [
+              "AB08",
+              true
+            ]
+          ],
+          "cost": 2.618033988749895
+        },
+        "?": {
+          "sequence": [
+            [
+              "AE11",
+              true
+            ]
+          ],
+          "cost": 3.5615528128088303
+        },
+        "A": {
+          "sequence": [
+            [
+              "AC01",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        "B": {
+          "sequence": [
+            [
+              "AB05",
+              true
+            ]
+          ],
+          "cost": 3.302775637731995
+        },
+        "C": {
+          "sequence": [
+            [
+              "AB03",
+              true
+            ]
+          ],
+          "cost": 2.618033988749895
+        },
+        "D": {
+          "sequence": [
+            [
+              "AC03",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        "E": {
+          "sequence": [
+            [
+              "AD03",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "F": {
+          "sequence": [
+            [
+              "AC04",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        "G": {
+          "sequence": [
+            [
+              "AC05",
+              true
+            ]
+          ],
+          "cost": 2.5
+        },
+        "H": {
+          "sequence": [
+            [
+              "AC06",
+              true
+            ]
+          ],
+          "cost": 2.5
+        },
+        "I": {
+          "sequence": [
+            [
+              "AD08",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "J": {
+          "sequence": [
+            [
+              "AC07",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        "K": {
+          "sequence": [
+            [
+              "AC08",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        "L": {
+          "sequence": [
+            [
+              "AC09",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        "M": {
+          "sequence": [
+            [
+              "AB07",
+              true
+            ]
+          ],
+          "cost": 2.618033988749895
+        },
+        "N": {
+          "sequence": [
+            [
+              "AB06",
+              true
+            ]
+          ],
+          "cost": 2.618033988749895
+        },
+        "O": {
+          "sequence": [
+            [
+              "AD09",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "P": {
+          "sequence": [
+            [
+              "AD10",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "Q": {
+          "sequence": [
+            [
+              "AD01",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "R": {
+          "sequence": [
+            [
+              "AD04",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "S": {
+          "sequence": [
+            [
+              "AC02",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        "T": {
+          "sequence": [
+            [
+              "AD05",
+              true
+            ]
+          ],
+          "cost": 2.75
+        },
+        "U": {
+          "sequence": [
+            [
+              "AD07",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "V": {
+          "sequence": [
+            [
+              "AB04",
+              true
+            ]
+          ],
+          "cost": 2.618033988749895
+        },
+        "W": {
+          "sequence": [
+            [
+              "AD02",
+              true
+            ]
+          ],
+          "cost": 2.5307764064044154
+        },
+        "X": {
+          "sequence": [
+            [
+              "AB02",
+              true
+            ]
+          ],
+          "cost": 2.618033988749895
+        },
+        "Y": {
+          "sequence": [
+            [
+              "AD06",
+              true
+            ]
+          ],
+          "cost": 3.100781059358212
+        },
+        "Z": {
+          "sequence": [
+            [
+              "AB01",
+              true
+            ]
+          ],
+          "cost": 2.618033988749895
+        },
+        "a": {
+          "sequence": [
+            [
+              "AC01",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "b": {
+          "sequence": [
+            [
+              "AB05",
+              false
+            ]
+          ],
+          "cost": 2.802775637731995
+        },
+        "c": {
+          "sequence": [
+            [
+              "AB03",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        "d": {
+          "sequence": [
+            [
+              "AC03",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "e": {
+          "sequence": [
+            [
+              "AD03",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "f": {
+          "sequence": [
+            [
+              "AC04",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "g": {
+          "sequence": [
+            [
+              "AC05",
+              false
+            ]
+          ],
+          "cost": 2.0
+        },
+        "h": {
+          "sequence": [
+            [
+              "AC06",
+              false
+            ]
+          ],
+          "cost": 2.0
+        },
+        "i": {
+          "sequence": [
+            [
+              "AD08",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "j": {
+          "sequence": [
+            [
+              "AC07",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "k": {
+          "sequence": [
+            [
+              "AC08",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "l": {
+          "sequence": [
+            [
+              "AC09",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "m": {
+          "sequence": [
+            [
+              "AB07",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        "n": {
+          "sequence": [
+            [
+              "AB06",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        "o": {
+          "sequence": [
+            [
+              "AD09",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "p": {
+          "sequence": [
+            [
+              "AD10",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "q": {
+          "sequence": [
+            [
+              "AD01",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "r": {
+          "sequence": [
+            [
+              "AD04",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "s": {
+          "sequence": [
+            [
+              "AC02",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "t": {
+          "sequence": [
+            [
+              "AD05",
+              false
+            ]
+          ],
+          "cost": 2.25
+        },
+        "u": {
+          "sequence": [
+            [
+              "AD07",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "v": {
+          "sequence": [
+            [
+              "AB04",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        "w": {
+          "sequence": [
+            [
+              "AD02",
+              false
+            ]
+          ],
+          "cost": 2.0307764064044154
+        },
+        "x": {
+          "sequence": [
+            [
+              "AB02",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        "y": {
+          "sequence": [
+            [
+              "AD06",
+              false
+            ]
+          ],
+          "cost": 2.600781059358212
+        },
+        "z": {
+          "sequence": [
+            [
+              "AB01",
+              false
+            ]
+          ],
+          "cost": 2.118033988749895
+        },
+        "¡": {
+          "sequence": [
+            [
+              "AE12",
+              true
+            ]
+          ],
+          "cost": 4.0
+        },
+        "¿": {
+          "sequence": [
+            [
+              "AE12",
+              false
+            ]
+          ],
+          "cost": 3.5
+        },
+        "Á": {
+          "sequence": [
+            [
+              "AD11",
+              false
+            ],
+            [
+              "AC01",
+              true
+            ]
+          ],
+          "cost": 3.75
+        },
+        "É": {
+          "sequence": [
+            [
+              "AD11",
+              false
+            ],
+            [
+              "AD03",
+              true
+            ]
+          ],
+          "cost": 4.780776406404415
+        },
+        "Í": {
+          "sequence": [
+            [
+              "AD11",
+              false
+            ],
+            [
+              "AD08",
+              true
+            ]
+          ],
+          "cost": 4.780776406404415
+        },
+        "Ñ": {
+          "sequence": [
+            [
+              "AC10",
+              true
+            ]
+          ],
+          "cost": 1.5
+        },
+        "Ó": {
+          "sequence": [
+            [
+              "AD11",
+              false
+            ],
+            [
+              "AD09",
+              true
+            ]
+          ],
+          "cost": 4.780776406404415
+        },
+        "Ú": {
+          "sequence": [
+            [
+              "AD11",
+              false
+            ],
+            [
+              "AD07",
+              true
+            ]
+          ],
+          "cost": 4.780776406404415
+        },
+        "Ü": {
+          "sequence": [
+            [
+              "AD11",
+              true
+            ],
+            [
+              "AD07",
+              true
+            ]
+          ],
+          "cost": 5.280776406404415
+        },
+        "á": {
+          "sequence": [
+            [
+              "AD11",
+              false
+            ],
+            [
+              "AC01",
+              false
+            ]
+          ],
+          "cost": 3.25
+        },
+        "é": {
+          "sequence": [
+            [
+              "AD11",
+              false
+            ],
+            [
+              "AD03",
+              false
+            ]
+          ],
+          "cost": 4.280776406404415
+        },
+        "í": {
+          "sequence": [
+            [
+              "AD11",
+              false
+            ],
+            [
+              "AD08",
+              false
+            ]
+          ],
+          "cost": 4.280776406404415
+        },
+        "ñ": {
+          "sequence": [
+            [
+              "AC10",
+              false
+            ]
+          ],
+          "cost": 1.0
+        },
+        "ó": {
+          "sequence": [
+            [
+              "AD11",
+              false
+            ],
+            [
+              "AD09",
+              false
+            ]
+          ],
+          "cost": 4.280776406404415
+        },
+        "ú": {
+          "sequence": [
+            [
+              "AD11",
+              false
+            ],
+            [
+              "AD07",
+              false
+            ]
+          ],
+          "cost": 4.280776406404415
+        },
+        "ü": {
+          "sequence": [
+            [
+              "AD11",
+              true
+            ],
+            [
+              "AD07",
+              false
+            ]
+          ],
+          "cost": 4.780776406404415
+        }
+      }
+    }
+  },
+  "checks": [
+    "weights_sum_to_one",
+    "sixteen_samples_eight_per_language",
+    "eng_alphabet_exact_coverage",
+    "eng_one_nonempty_canonical_sequence_per_character",
+    "eng_uppercase_cost_greater",
+    "spa_alphabet_exact_coverage",
+    "spa_one_nonempty_canonical_sequence_per_character",
+    "spa_uppercase_cost_greater",
+    "acute_cost_greater",
+    "diaeresis_cost_greater",
+    "enye_single_unshifted_key",
+    "control_entropy_aaaabbbb",
+    "control_entropy_abababab",
+    "contraction_length",
+    "decimal_operational_assumption",
+    "SPA-01_metrics_in_unit_interval",
+    "SPA-01_contribution_sum",
+    "SPA-02_metrics_in_unit_interval",
+    "SPA-02_contribution_sum",
+    "SPA-03_metrics_in_unit_interval",
+    "SPA-03_contribution_sum",
+    "SPA-04_metrics_in_unit_interval",
+    "SPA-04_contribution_sum",
+    "SPA-05_metrics_in_unit_interval",
+    "SPA-05_contribution_sum",
+    "SPA-06_metrics_in_unit_interval",
+    "SPA-06_contribution_sum",
+    "SPA-07_metrics_in_unit_interval",
+    "SPA-07_contribution_sum",
+    "SPA-08_metrics_in_unit_interval",
+    "SPA-08_contribution_sum",
+    "ENG-01_metrics_in_unit_interval",
+    "ENG-01_contribution_sum",
+    "ENG-02_metrics_in_unit_interval",
+    "ENG-02_contribution_sum",
+    "ENG-03_metrics_in_unit_interval",
+    "ENG-03_contribution_sum",
+    "ENG-04_metrics_in_unit_interval",
+    "ENG-04_contribution_sum",
+    "ENG-05_metrics_in_unit_interval",
+    "ENG-05_contribution_sum",
+    "ENG-06_metrics_in_unit_interval",
+    "ENG-06_contribution_sum",
+    "ENG-07_metrics_in_unit_interval",
+    "ENG-07_contribution_sum",
+    "ENG-08_metrics_in_unit_interval",
+    "ENG-08_contribution_sum",
+    "repeat_measurement_identical"
+  ],
+  "results": [
+    {
+      "id": "SPA-01",
+      "language": "spa",
+      "tentative": "easy",
+      "content": "La casa es de Ana. La sala es clara.",
+      "nonspace_characters": 28,
+      "unique_characters": 11,
+      "word_count": 9,
+      "entropy_bits": 3.0472044750881655,
+      "mean_word_length": 2.888888888888889,
+      "max_word_length": 5,
+      "mean_key_cost": 1.4004741274773977,
+      "normalized": {
+        "entropy": 0.4705574291425736,
+        "effort": 0.26520231490561347,
+        "mean_length": 0.24074074074074073,
+        "variety": 0.12359550561797752,
+        "max_length": 0.20833333333333334
+      },
+      "contributions": {
+        "entropy": 16.469510019990075,
+        "effort": 7.956069447168404,
+        "mean_length": 3.6111111111111107,
+        "variety": 1.2359550561797752,
+        "max_length": 2.0833333333333335
+      },
+      "score": 31.355978967782697,
+      "actual": "medium"
+    },
+    {
+      "id": "SPA-02",
+      "language": "spa",
+      "tentative": "easy",
+      "content": "Luis sale al sol. Sara lee en la sala.",
+      "nonspace_characters": 30,
+      "unique_characters": 12,
+      "word_count": 9,
+      "entropy_bits": 3.1348486136508464,
+      "mean_word_length": 3.111111111111111,
+      "max_word_length": 4,
+      "mean_key_cost": 1.4200104405828335,
+      "normalized": {
+        "entropy": 0.48409167039833223,
+        "effort": 0.2689018302044893,
+        "mean_length": 0.25925925925925924,
+        "variety": 0.1348314606741573,
+        "max_length": 0.16666666666666666
+      },
+      "contributions": {
+        "entropy": 16.943208463941627,
+        "effort": 8.067054906134679,
+        "mean_length": 3.888888888888889,
+        "variety": 1.348314606741573,
+        "max_length": 1.6666666666666665
+      },
+      "score": 31.914133532373434,
+      "actual": "medium"
+    },
+    {
+      "id": "SPA-03",
+      "language": "spa",
+      "tentative": "medium",
+      "content": "Mañana visitaré el jardín y llevaré una cámara pequeña.",
+      "nonspace_characters": 47,
+      "unique_characters": 23,
+      "word_count": 9,
+      "entropy_bits": 4.092268512247839,
+      "mean_word_length": 5.111111111111111,
+      "max_word_length": 8,
+      "mean_key_cost": 1.8497082099357942,
+      "normalized": {
+        "entropy": 0.6319390005584486,
+        "effort": 0.3502720182760449,
+        "mean_length": 0.4259259259259259,
+        "variety": 0.25842696629213485,
+        "max_length": 0.3333333333333333
+      },
+      "contributions": {
+        "entropy": 22.117865019545704,
+        "effort": 10.508160548281348,
+        "mean_length": 6.388888888888888,
+        "variety": 2.5842696629213484,
+        "max_length": 3.333333333333333
+      },
+      "score": 44.93251745297062,
+      "actual": "medium"
+    },
+    {
+      "id": "SPA-04",
+      "language": "spa",
+      "tentative": "medium",
+      "content": "El pingüino nadó junto al muelle, mientras Lucía tomó una foto.",
+      "nonspace_characters": 53,
+      "unique_characters": 24,
+      "word_count": 11,
+      "entropy_bits": 4.237472936455823,
+      "mean_word_length": 4.636363636363637,
+      "max_word_length": 8,
+      "mean_key_cost": 1.9923299774697334,
+      "normalized": {
+        "entropy": 0.6543618543951475,
+        "effort": 0.3772797452763721,
+        "mean_length": 0.3863636363636364,
+        "variety": 0.2696629213483146,
+        "max_length": 0.3333333333333333
+      },
+      "contributions": {
+        "entropy": 22.90266490383016,
+        "effort": 11.318392358291163,
+        "mean_length": 5.795454545454546,
+        "variety": 2.696629213483146,
+        "max_length": 3.333333333333333
+      },
+      "score": 46.04647435439235,
+      "actual": "medium"
+    },
+    {
+      "id": "SPA-05",
+      "language": "spa",
+      "tentative": "advanced",
+      "content": "¿Puedes revisar la configuración del equipo? La conexión falló a las 9.30.",
+      "nonspace_characters": 63,
+      "unique_characters": 26,
+      "word_count": 12,
+      "entropy_bits": 4.375536027935081,
+      "mean_word_length": 4.916666666666667,
+      "max_word_length": 13,
+      "mean_key_cost": 1.9380122491110947,
+      "normalized": {
+        "entropy": 0.6756819246159278,
+        "effort": 0.36699380923621644,
+        "mean_length": 0.40972222222222227,
+        "variety": 0.29213483146067415,
+        "max_length": 0.5416666666666666
+      },
+      "contributions": {
+        "entropy": 23.64886736155747,
+        "effort": 11.009814277086493,
+        "mean_length": 6.145833333333334,
+        "variety": 2.9213483146067416,
+        "max_length": 5.416666666666666
+      },
+      "score": 49.14252995325071,
+      "actual": "medium"
+    },
+    {
+      "id": "SPA-06",
+      "language": "spa",
+      "tentative": "advanced",
+      "content": "La lingüista explicó: 'Esta interpretación necesita precisión'; después corrigió el párrafo.",
+      "nonspace_characters": 82,
+      "unique_characters": 26,
+      "word_count": 11,
+      "entropy_bits": 4.246774384961481,
+      "mean_word_length": 7.0,
+      "max_word_length": 14,
+      "mean_key_cost": 2.0671541185889364,
+      "normalized": {
+        "entropy": 0.6557982088412986,
+        "effort": 0.39144890059763465,
+        "mean_length": 0.5833333333333334,
+        "variety": 0.29213483146067415,
+        "max_length": 0.5833333333333334
+      },
+      "contributions": {
+        "entropy": 22.95293730944545,
+        "effort": 11.74346701792904,
+        "mean_length": 8.75,
+        "variety": 2.9213483146067416,
+        "max_length": 5.833333333333334
+      },
+      "score": 52.20108597531456,
+      "actual": "advanced"
+    },
+    {
+      "id": "SPA-07",
+      "language": "spa",
+      "tentative": "expert",
+      "content": "¡ATENCIÓN! El diagnóstico (versión 3.14) exige sincronización, reproducibilidad y verificación exhaustiva.",
+      "nonspace_characters": 96,
+      "unique_characters": 38,
+      "word_count": 11,
+      "entropy_bits": 4.746822038170344,
+      "mean_word_length": 8.090909090909092,
+      "max_word_length": 16,
+      "mean_key_cost": 2.143812178684509,
+      "normalized": {
+        "entropy": 0.7330168989772574,
+        "effort": 0.4059653379916897,
+        "mean_length": 0.6742424242424243,
+        "variety": 0.42696629213483145,
+        "max_length": 0.6666666666666666
+      },
+      "contributions": {
+        "entropy": 25.655591464204008,
+        "effort": 12.178960139750691,
+        "mean_length": 10.113636363636365,
+        "variety": 4.269662921348314,
+        "max_length": 6.666666666666666
+      },
+      "score": 58.884517555606045,
+      "actual": "advanced"
+    },
+    {
+      "id": "SPA-08",
+      "language": "spa",
+      "tentative": "expert",
+      "content": "La investigadora escribió: \"¿Qué relación existe entre la interdisciplinariedad, la ambigüedad y el año 2026?\" ¡Explícalo con precisión!",
+      "nonspace_characters": 119,
+      "unique_characters": 37,
+      "word_count": 18,
+      "entropy_bits": 4.571830471066418,
+      "mean_word_length": 6.166666666666667,
+      "max_word_length": 21,
+      "mean_key_cost": 2.045276401046625,
+      "normalized": {
+        "entropy": 0.70599423521733,
+        "effort": 0.38730600268668003,
+        "mean_length": 0.513888888888889,
+        "variety": 0.4157303370786517,
+        "max_length": 0.875
+      },
+      "contributions": {
+        "entropy": 24.70979823260655,
+        "effort": 11.619180080600401,
+        "mean_length": 7.708333333333334,
+        "variety": 4.157303370786517,
+        "max_length": 8.75
+      },
+      "score": 56.9446150173268,
+      "actual": "advanced"
+    },
+    {
+      "id": "ENG-01",
+      "language": "eng",
+      "tentative": "easy",
+      "content": "Dad has a red hat. Ada has a red bag.",
+      "nonspace_characters": 28,
+      "unique_characters": 12,
+      "word_count": 10,
+      "entropy_bits": 3.208966082694623,
+      "mean_word_length": 2.6,
+      "max_word_length": 3,
+      "mean_key_cost": 1.5147124728874801,
+      "normalized": {
+        "entropy": 0.5184260154984507,
+        "effort": 0.42529552487329175,
+        "mean_length": 0.21666666666666667,
+        "variety": 0.1643835616438356,
+        "max_length": 0.125
+      },
+      "contributions": {
+        "entropy": 18.144910542445775,
+        "effort": 12.758865746198753,
+        "mean_length": 3.25,
+        "variety": 1.643835616438356,
+        "max_length": 1.25
+      },
+      "score": 37.04761190508288,
+      "actual": "medium"
+    },
+    {
+      "id": "ENG-02",
+      "language": "eng",
+      "tentative": "easy",
+      "content": "Sam sits at home. The cat sits on a mat.",
+      "nonspace_characters": 31,
+      "unique_characters": 13,
+      "word_count": 10,
+      "entropy_bits": 3.471158618417937,
+      "mean_word_length": 2.9,
+      "max_word_length": 4,
+      "mean_key_cost": 1.7906740761185727,
+      "normalized": {
+        "entropy": 0.5607846531672952,
+        "effort": 0.502779032134119,
+        "mean_length": 0.24166666666666667,
+        "variety": 0.1780821917808219,
+        "max_length": 0.16666666666666666
+      },
+      "contributions": {
+        "entropy": 19.62746286085533,
+        "effort": 15.08337096402357,
+        "mean_length": 3.625,
+        "variety": 1.7808219178082192,
+        "max_length": 1.6666666666666665
+      },
+      "score": 41.78332240935379,
+      "actual": "medium"
+    },
+    {
+      "id": "ENG-03",
+      "language": "eng",
+      "tentative": "medium",
+      "content": "Please bring the yellow basket and leave it beside the window.",
+      "nonspace_characters": 52,
+      "unique_characters": 19,
+      "word_count": 11,
+      "entropy_bits": 3.9120989785316507,
+      "mean_word_length": 4.636363636363637,
+      "max_word_length": 6,
+      "mean_key_cost": 1.8220304317460845,
+      "normalized": {
+        "entropy": 0.6320209791599494,
+        "effort": 0.5115831569851506,
+        "mean_length": 0.3863636363636364,
+        "variety": 0.2602739726027397,
+        "max_length": 0.25
+      },
+      "contributions": {
+        "entropy": 22.120734270598227,
+        "effort": 15.347494709554518,
+        "mean_length": 5.795454545454546,
+        "variety": 2.602739726027397,
+        "max_length": 2.5
+      },
+      "score": 48.366423251634686,
+      "actual": "medium"
+    },
+    {
+      "id": "ENG-04",
+      "language": "eng",
+      "tentative": "medium",
+      "content": "Don't close the window, because we're waiting for the morning breeze.",
+      "nonspace_characters": 59,
+      "unique_characters": 23,
+      "word_count": 11,
+      "entropy_bits": 4.146396237535617,
+      "mean_word_length": 5.0,
+      "max_word_length": 7,
+      "mean_key_cost": 1.9536553310345164,
+      "normalized": {
+        "entropy": 0.669872982358948,
+        "effort": 0.5485403232006996,
+        "mean_length": 0.4166666666666667,
+        "variety": 0.3150684931506849,
+        "max_length": 0.2916666666666667
+      },
+      "contributions": {
+        "entropy": 23.44555438256318,
+        "effort": 16.456209696020988,
+        "mean_length": 6.25,
+        "variety": 3.150684931506849,
+        "max_length": 2.916666666666667
+      },
+      "score": 52.21911567675768,
+      "actual": "advanced"
+    },
+    {
+      "id": "ENG-05",
+      "language": "eng",
+      "tentative": "advanced",
+      "content": "Can you verify the configuration? The connection failed at 9.30.",
+      "nonspace_characters": 55,
+      "unique_characters": 23,
+      "word_count": 10,
+      "entropy_bits": 4.220478414761672,
+      "mean_word_length": 5.2,
+      "max_word_length": 13,
+      "mean_key_cost": 2.006789965842279,
+      "normalized": {
+        "entropy": 0.6818413631298982,
+        "effort": 0.563459275017634,
+        "mean_length": 0.43333333333333335,
+        "variety": 0.3150684931506849,
+        "max_length": 0.5416666666666666
+      },
+      "contributions": {
+        "entropy": 23.864447709546436,
+        "effort": 16.903778250529022,
+        "mean_length": 6.5,
+        "variety": 3.150684931506849,
+        "max_length": 5.416666666666666
+      },
+      "score": 55.83557755824897,
+      "actual": "advanced"
+    },
+    {
+      "id": "ENG-06",
+      "language": "eng",
+      "tentative": "advanced",
+      "content": "The analyst wrote: 'Check the measurements'; then she compared the unexpected results.",
+      "nonspace_characters": 75,
+      "unique_characters": 24,
+      "word_count": 12,
+      "entropy_bits": 4.07031773783892,
+      "mean_word_length": 5.833333333333333,
+      "max_word_length": 12,
+      "mean_key_cost": 1.8628824784803475,
+      "normalized": {
+        "entropy": 0.6575820847780862,
+        "effort": 0.5230534478614621,
+        "mean_length": 0.4861111111111111,
+        "variety": 0.3287671232876712,
+        "max_length": 0.5
+      },
+      "contributions": {
+        "entropy": 23.015372967233017,
+        "effort": 15.691603435843863,
+        "mean_length": 7.291666666666667,
+        "variety": 3.287671232876712,
+        "max_length": 5.0
+      },
+      "score": 54.286314302620255,
+      "actual": "advanced"
+    },
+    {
+      "id": "ENG-07",
+      "language": "eng",
+      "tentative": "expert",
+      "content": "WARNING! The diagnostic report (version 3.14) requires synchronization, reproducibility and thorough verification.",
+      "nonspace_characters": 103,
+      "unique_characters": 36,
+      "word_count": 12,
+      "entropy_bits": 4.6176590234165324,
+      "mean_word_length": 8.083333333333334,
+      "max_word_length": 15,
+      "mean_key_cost": 2.0515805001995817,
+      "normalized": {
+        "entropy": 0.746008062020428,
+        "effort": 0.576035400295411,
+        "mean_length": 0.6736111111111112,
+        "variety": 0.4931506849315068,
+        "max_length": 0.625
+      },
+      "contributions": {
+        "entropy": 26.11028217071498,
+        "effort": 17.28106200886233,
+        "mean_length": 10.104166666666668,
+        "variety": 4.931506849315069,
+        "max_length": 6.25
+      },
+      "score": 64.67701769555904,
+      "actual": "advanced"
+    },
+    {
+      "id": "ENG-08",
+      "language": "eng",
+      "tentative": "expert",
+      "content": "The researcher asked: \"Which interdependencies affect the 2026 experiment?\" Don't overlook uncertainty, characterization or quantitative measurements!",
+      "nonspace_characters": 135,
+      "unique_characters": 34,
+      "word_count": 16,
+      "entropy_bits": 4.352517937009517,
+      "mean_word_length": 8.0,
+      "max_word_length": 17,
+      "mean_key_cost": 1.9526561360765455,
+      "normalized": {
+        "entropy": 0.7031730698675986,
+        "effort": 0.548259772831103,
+        "mean_length": 0.6666666666666666,
+        "variety": 0.4657534246575342,
+        "max_length": 0.7083333333333334
+      },
+      "contributions": {
+        "entropy": 24.61105744536595,
+        "effort": 16.44779318493309,
+        "mean_length": 10.0,
+        "variety": 4.657534246575342,
+        "max_length": 7.083333333333334
+      },
+      "score": 62.799718210207715,
+      "actual": "advanced"
+    }
+  ]
+}

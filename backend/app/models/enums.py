@@ -1,5 +1,6 @@
 from enum import Enum
 from sqlalchemy import Enum as SAEnum
+from app.text_enums import Difficulty, Language
 
 def pg_enum(enum_cls: type[Enum], name: str) -> SAEnum:
     return SAEnum(
@@ -22,16 +23,6 @@ class RoomStatus(str, Enum):
     WAITING = "waiting"
     IN_PROGRESS = "in progress"
     FINISHED = "finished"
-
-class Language(str, Enum):
-    SPA = "spa"
-    ENG = "eng"
-
-class Difficulty(str, Enum):
-    EASY = "easy"
-    MEDIUM = "medium"
-    ADVANCED = "advanced"
-    EXPERT = "expert"
 
 ROOM_TYPE_ENUM = pg_enum(RoomType, "room_type")
 GAME_MODE_ENUM = pg_enum(GameMode, "game_mode")

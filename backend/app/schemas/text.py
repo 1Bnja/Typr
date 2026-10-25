@@ -3,8 +3,7 @@ from pydantic import Field, field_validator
 from app.models.enums import Difficulty, Language
 from app.schemas.base import CamelModel
 from app.schemas.user import UserPublic
-
-MAX_CONTENT_LENGTH = 5000
+from app.text_constants import MAX_CONTENT_LENGTH
 
 class TextCreate(CamelModel):
     content: str = Field(min_length=1, max_length=MAX_CONTENT_LENGTH)
