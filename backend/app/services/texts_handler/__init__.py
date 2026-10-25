@@ -28,6 +28,12 @@ class TextFacade:
                 CheckDuplicateTextHandler(db)
             ).set_next(ClassifyTextHandler()).set_next(PersistTextHandler(db))
 
+    def generate(self) -> str:
+        """Generate raw text without running either processing chain."""
+        from app.services.generador import generate_text
+
+        return generate_text()
+
     def process(self, content: str, language: Language | str) -> TextContext:
         """Validate, normalize and classify without accessing the database."""
         context = TextContext(content, language)

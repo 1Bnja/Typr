@@ -6,6 +6,9 @@ verificados mediante mocks. No hay endpoints nuevos. El
 manejador aplica el modelo inicial aceptado y conserva su explicación en el
 contexto. No se modificaron los pesos, escalas ni cortes de la calibración.
 
+La fachada también ofrece [`generate()`](generation.md), que devuelve texto
+plano sin ejecutar esta cadena; el llamador elige procesarlo o guardarlo.
+
 ## Flujo de llamadas
 
 ```text
