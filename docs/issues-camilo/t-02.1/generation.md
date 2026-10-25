@@ -4,6 +4,8 @@
 No valida, normaliza, clasifica ni guarda esa salida. El llamador decide cuándo
 pasarla a `process()` o `create()`.
 
+El generador vive en `backend/app/services/texts_handler/generator/__init__.py`.
+
 ## Uso
 
 ```python
@@ -48,7 +50,7 @@ llamador; no se implementó una política de lote implícita.
 
 - `GEMINI_API_KEY` y `GEMINI_MODEL` deben estar configurados para generar.
   Son opcionales para las rutas que solo procesan o persisten textos.
-- Importar la fachada o `generador` no carga la configuración ni el SDK y no
+- Importar la fachada o `generator` no carga la configuración ni el SDK y no
   realiza peticiones. Esas dependencias se cargan al invocar `generate()`.
 - Sin clave o modelo, se lanza `RuntimeError` antes de crear el cliente.
 - Una respuesta sin texto utilizable provoca `ValueError`; los errores del SDK

@@ -30,7 +30,7 @@ class TextFacade:
 
     def generate(self) -> str:
         """Generate raw text without running either processing chain."""
-        from app.services.generador import generate_text
+        from .generator import generate_text
 
         return generate_text()
 

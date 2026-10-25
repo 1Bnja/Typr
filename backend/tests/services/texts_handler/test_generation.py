@@ -32,7 +32,7 @@ class GenerationTests(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
     def generator(self):
-        return import_module("app.services.generador")
+        return import_module("app.services.texts_handler.generator")
 
     def test_facade_returns_raw_output_without_running_either_chain(self):
         raw = "  Hola, mundo.\nOtra frase.\n"
@@ -146,8 +146,8 @@ class BlockExternalImports(importlib.abc.MetaPathFinder):
 
 sys.meta_path.insert(0, BlockExternalImports())
 from app.services.texts_handler import TextFacade
-from app.services import generador
-assert callable(generador.generate_text)
+from app.services.texts_handler import generator
+assert callable(generator.generate_text)
 assert TextFacade().process('Hola.', 'spa').classification is not None
 assert 'app.config' not in sys.modules
 assert 'app.database' not in sys.modules
