@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import Button from '../button/button'
 import logo from '../../assets/logo.svg'
-import { useAuth } from '../../features/auth/context/auth-provider'
+import { useAuth } from '../../features/auth/context/auth-context'
 
 const links = [
   { to: '/', label: 'Home' },
@@ -73,6 +73,7 @@ const Navbar = () => {
   const [open, setOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [lastPathname, setLastPathname] = useState(pathname)
 
   const toggleRef = useRef(null)
   const userMenuRef = useRef(null)
@@ -88,10 +89,11 @@ const Navbar = () => {
   }, [])
 
   // Cierra los menús al cambiar de ruta (incluye atrás/adelante del navegador)
-  useEffect(() => {
+  if (pathname !== lastPathname) {
+    setLastPathname(pathname)
     setOpen(false)
     setUserMenuOpen(false)
-  }, [pathname])
+  }
 
   // Cierra el menú móvil al pasar a escritorio
   useEffect(() => {
