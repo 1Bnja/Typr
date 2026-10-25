@@ -1,0 +1,46 @@
+# Standalone, disposable integration environment. Do not merge with production.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: typr_test
+      POSTGRES_PASSWORD: local_test_only
+      POSTGRES_DB: typr_texts_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    volumes:
+      - ./supabase/db/init.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U typr_test -d typr_texts_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks: [test]
+
+  test-runner:
+    build: ./backend
+    working_dir: /workspace
+    environment:
+      DATABASE_URL: postgresql+psycopg://typr_test:local_test_only@postgres:5432/typr_texts_test
+      JWT_SECRET: local-integration-test-only
+      TYPR_POSTGRES_INTEGRATION: "1"
+      PYTHONPATH: /workspace/backend
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - ./backend/app:/workspace/backend/app:ro
+      - ./backend/tests:/workspace/backend/tests:ro
+      - ./docs/issues-camilo/t-02.1:/workspace/docs/issues-camilo/t-02.1:ro
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        python -m unittest discover -s backend/tests/services/texts_handler -v
+        python -m unittest discover -s backend/tests/integration -v
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [test]
+
+networks:
+  test:
+    internal: true
