@@ -1,7 +1,9 @@
 """Generate raw Spanish typing texts without import-time external effects."""
 
 PROMPT = """
-    Genera 30 frases para un juego de mecanografía
+    Genera 30 frases para un juego de mecanografía: exactamente 10 de complejidad baja,
+    10 de complejidad media y 10 de complejidad alta, en ese orden.
+    Respeta especialmente la longitud indicada para cada grupo.
 
     Grupo 1 - Complejidad baja:
         - Longitud de 40 a 80 caracteres.
@@ -11,14 +13,14 @@ PROMPT = """
         - Sin números ni símbolos especiales.
 
     Grupo 2 - Complejidad media:
-        - Longitud de 81 a 100 caracteres.
+        - Longitud de 81 a 120 caracteres.
         - Vocabulario variado y algo más complejo.
         - Entre 3 y 5 signos de puntuación por frase, además del punto final.
         - Pueden contener tildes, mayúsculas, comas, dos puntos, signos de interrogación y signos de exclamación.
         - Sin números ni símbolos especiales.
 
     Grupo 3 - Complejidad alta:
-        - Longitud de 101 a 150 caracteres.
+        - Longitud de 121 a 250 caracteres.
         - Vocabulario avanzado y expresiones idiomáticas.
         - Entre 6 y 10 signos de puntuación por frase, además del punto final.
         - Pueden contener tildes, mayúsculas, números, comas, dos puntos, punto y coma, paréntesis, signos de interrogación y signos de exclamación.

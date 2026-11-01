@@ -27,6 +27,7 @@ PUNCTUATION_KEYS = {
         "(": ("AE09", True),
         ")": ("AE10", True),
         "-": ("AE11", False),
+        "/": ("AB10", False),
     },
     "spa": {
         ".": ("AB09", False),
@@ -42,6 +43,7 @@ PUNCTUATION_KEYS = {
         "(": ("AE08", True),
         ")": ("AE09", True),
         "-": ("AB10", False),
+        "/": ("AE07", True),
     },
 }
 

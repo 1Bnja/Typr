@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import Field, field_validator
 
 from app.models.enums import Difficulty, Language
@@ -17,6 +19,40 @@ class TextCreate(CamelModel):
         if not value.strip():
             raise ValueError("el texto no puede estar vacio")
         return value
+
+
+class TextInput(CamelModel):
+    content: str
+    language: Language
+
+
+class TextBulkSaveRequest(CamelModel):
+    phrases: list[str] = Field(min_length=1, max_length=100)
+
+
+class TextGenerationItem(CamelModel):
+    content: str
+    status: Literal["valid", "stored", "duplicate", "rejected"]
+    difficulty: Difficulty | None = None
+    id: int | None = None
+    reason_code: str | None = None
+
+
+class TextGenerateResponse(CamelModel):
+    language: Language
+    generated: int
+    valid: int
+    stored: int
+    duplicates: int
+    rejected: int
+    phrases: list[TextGenerationItem]
+
+
+class TextVerifyResponse(CamelModel):
+    content: str
+    language: Language
+    difficulty: Difficulty
+    score: float
 
 
 class TextUpdate(CamelModel):

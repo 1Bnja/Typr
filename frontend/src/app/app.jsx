@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import Navbar from '../components/nav-bar'
 import Login from '../features/auth/pages/login'
 import { Home } from '../features/home'
+import Texts from '../features/texts/pages/texts'
 import './app.css'
 
 const App = () => {
@@ -16,6 +17,7 @@ const App = () => {
         <Route path="/contact" element={<div>Contact</div>} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<div>Register</div>} />
+        <Route path="/texts" element={<Texts />} />
       </Routes>
       </main>
     </div>

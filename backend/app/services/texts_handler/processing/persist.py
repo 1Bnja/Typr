@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Mapping
 from app.text_enums import Difficulty, Language
 
 from . import TextProcessingStep
-from ..errors import TextDatabaseError
+from ..errors import TextDatabaseError, TextValidationError
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -78,10 +78,22 @@ class PersistTextStep(TextProcessingStep):
             text = persisted_text(row)
             self.db.commit()
         except Exception as error:
+            rolled_back = True
             try:
                 self.db.rollback()
             except Exception:
+                rolled_back = False
                 error.add_note("Database rollback also failed.")
+            original = getattr(error, "orig", error)
+            diagnostic = getattr(original, "diag", None)
+            if (
+                rolled_back
+                and getattr(original, "sqlstate", None) == "23505"
+                and getattr(diagnostic, "constraint_name", None) == "uq_texts_content"
+            ):
+                raise TextValidationError(
+                    "duplicate_content", "Text content already exists."
+                ) from error
             raise TextDatabaseError("write") from error
         context.persisted_text = text
         # Persistence is terminal: never run fallible downstream work after commit.

@@ -19,6 +19,7 @@ class Text(Base):
         # El nombre coincide con el de init.sql: si no, Alembic genera un
         # CREATE INDEX duplicado en el proximo autogenerate.
         Index("ix_texts_language_difficulty", "language", "difficulty"),
+        Index("uq_texts_content", "content", unique=True),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

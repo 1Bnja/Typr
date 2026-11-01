@@ -10,12 +10,15 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Mapping
 
 from app.text_enums import Difficulty
+from ...characters import COMMON_PUNCTUATION
+from ...rules import MIN_PHRASE_LENGTH
 
 from .. import TextProcessingStep
 from .keyboard import keyboard
 from .weights import (
     MAX_WORD_LENGTH_SCALE,
     MEAN_WORD_LENGTH_SCALE,
+    LENGTH_SCORE_CEILING,
     SCORE_SCALE,
     THRESHOLDS,
     VERSION,
@@ -25,7 +28,7 @@ from .weights import (
 if TYPE_CHECKING:
     from ...context import TextContext
 
-LEVELS = tuple(Difficulty)
+LEVELS = (Difficulty.EASY, Difficulty.MEDIUM, Difficulty.ADVANCED)
 
 
 @dataclass(frozen=True)
@@ -107,12 +110,20 @@ def _measure_keyboard(values: _Measurements) -> ClassificationResult:
 def _normalize_metrics(values: _Measurements) -> ClassificationResult:
     layout = keyboard(values.language)
     alphabet_size = len(layout.sequences)
+    length_range = LENGTH_SCORE_CEILING - MIN_PHRASE_LENGTH
+    symbol_cost = sum(
+        1.5 if char.isdigit() else 1
+        for char in values.symbols
+        if char.isdigit() or char in COMMON_PUNCTUATION or char in "¿¡"
+    )
     values.normalized = {
         "entropy": values.entropy_bits / log2(alphabet_size),
         "effort": values.mean_key_cost / layout.maximum_cost,
         "mean_length": min(values.mean_word_length / MEAN_WORD_LENGTH_SCALE, 1),
         "variety": values.unique_characters / alphabet_size,
         "max_length": min(values.max_word_length / MAX_WORD_LENGTH_SCALE, 1),
+        "length": min(max((len(values.content) - MIN_PHRASE_LENGTH) / length_range, 0), 1),
+        "symbols": min(symbol_cost / 12, 1),
     }
     return _score(values)
 
