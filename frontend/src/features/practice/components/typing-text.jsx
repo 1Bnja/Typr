@@ -1,16 +1,27 @@
+import { useEffect, useRef } from 'react'
+
 const getCharClass = (char, typedChar, isCurrent) => {
   if (typedChar === undefined) {
-    return isCurrent ? 'text-charcoal border-b-2 border-charcoal' : 'text-neutral-400'
+    return isCurrent ? 'practice-character--current' : 'practice-character--pending'
   }
-  if (typedChar === char) return 'text-emerald-600'
-  return 'text-red bg-red/15 rounded-sm'
+  return typedChar === char ? 'practice-character--correct' : 'practice-character--incorrect'
 }
 
 const TypingText = ({ text, typed }) => {
+  const currentRef = useRef(null)
+
+  useEffect(() => {
+    if (typed.length > 0) currentRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [typed.length])
+
   return (
-    <p className="whitespace-pre-wrap break-words font-mono text-xl leading-relaxed sm:text-2xl">
+    <p id="practice-text" className="practice-text">
       {text.split('').map((char, index) => (
-        <span key={index} className={getCharClass(char, typed[index], index === typed.length)}>
+        <span
+          key={index}
+          ref={index === typed.length ? currentRef : null}
+          className={getCharClass(char, typed[index], index === typed.length)}
+        >
           {char}
         </span>
       ))}

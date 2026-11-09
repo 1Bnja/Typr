@@ -1,19 +1,18 @@
-import { SAMPLE_TEXTS } from '../constants'
-
-function getSampleText(language, difficulty) {
-  const options = SAMPLE_TEXTS[language] ?? SAMPLE_TEXTS.spa
-  const content = options[Math.floor(Math.random() * options.length)]
-  return { id: null, content, language, difficulty, idealTimeMs: null }
-}
+import { USE_LOCAL_TEXTS } from '../constants.js'
+import { generatePracticeText } from '../utils/generate-text.js'
 
 export async function getRandomText({ language, difficulty }) {
+  if (USE_LOCAL_TEXTS) return generatePracticeText(language, difficulty)
+
   const params = new URLSearchParams({ language, difficulty })
   try {
     const response = await fetch(`/api/v1/texts/random?${params}`)
     if (!response.ok) throw new Error('Text not available')
-    return await response.json()
+    const text = await response.json()
+    if (!text?.content?.trim()) throw new Error('Text is empty')
+    return text
   } catch {
-    return getSampleText(language, difficulty)
+    return generatePracticeText(language, difficulty)
   }
 }
 

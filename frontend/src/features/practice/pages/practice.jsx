@@ -4,7 +4,10 @@ import { useAuth } from '../../auth'
 import PracticeSetup from '../components/practice-setup'
 import TypingTest from '../components/typing-test'
 import TestResults from '../components/test-results'
+import TypingReference from '../components/typing-reference'
 import { getRandomText, savePracticeMatch } from '../services/practice-service'
+import { DIFFICULTIES, LANGUAGES } from '../constants'
+import '../practice.css'
 
 const titles = {
   setup: 'Practice test',
@@ -23,6 +26,7 @@ const Practice = () => {
   const [result, setResult] = useState(null)
   const [saveStatus, setSaveStatus] = useState('idle')
   const [attempt, setAttempt] = useState(0)
+  const [error, setError] = useState('')
 
   if (status === 'loading') {
     return <p className="p-8 text-center text-neutral-600">Loading…</p>
@@ -33,14 +37,25 @@ const Practice = () => {
 
   const startWithNewText = async () => {
     setIsLoading(true)
-    const newText = await getRandomText({ language, difficulty })
-    setText(newText)
-    setIsLoading(false)
-    setAttempt((current) => current + 1)
-    setPhase('typing')
+    setError('')
+    try {
+      const newText = await getRandomText({ language, difficulty })
+      setText(newText)
+      setResult(null)
+      setSaveStatus('idle')
+      setAttempt((current) => current + 1)
+      setPhase('typing')
+    } catch {
+      setError('Could not prepare the text. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const retrySameText = () => {
+    setResult(null)
+    setSaveStatus('idle')
+    setError('')
     setAttempt((current) => current + 1)
     setPhase('typing')
   }
@@ -67,8 +82,15 @@ const Practice = () => {
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-10">
-      <h1 className="text-4xl font-extrabold tracking-tight text-charcoal">{titles[phase]}</h1>
+    <section className={`practice practice--${phase}`}>
+      <header className="practice-header">
+        <h1 className={phase === 'typing' ? 'sr-only' : ''}>{titles[phase]}</h1>
+        <p>
+          {phase === 'setup'
+            ? 'Choose a language and a difficulty to practice at your own pace.'
+            : `${LANGUAGES.find((option) => option.value === text.language)?.label} · ${DIFFICULTIES.find((option) => option.value === text.difficulty)?.label} · ${text.content.split(' ').length} words`}
+        </p>
+      </header>
 
       {phase === 'setup' && (
         <PracticeSetup
@@ -78,6 +100,7 @@ const Practice = () => {
           onDifficultyChange={setDifficulty}
           onStart={startWithNewText}
           isLoading={isLoading}
+          error={error}
         />
       )}
 
@@ -97,8 +120,12 @@ const Practice = () => {
           onRetry={retrySameText}
           onNewText={startWithNewText}
           onChangeSettings={() => setPhase('setup')}
+          isLoading={isLoading}
+          error={error}
         />
       )}
+
+      {phase !== 'typing' && <TypingReference ppm={phase === 'results' ? result.ppm : null} />}
     </section>
   )
 }

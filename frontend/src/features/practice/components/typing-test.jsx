@@ -11,7 +11,7 @@ import {
 } from '../utils/metrics'
 
 // Teclas que moverían el cursor dentro del input y desordenarían la comparación.
-const BLOCKED_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End']
+const BLOCKED_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Enter']
 
 const TypingTest = ({ text, onFinish, onCancel }) => {
   const [typed, setTyped] = useState('')
@@ -20,7 +20,9 @@ const TypingTest = ({ text, onFinish, onCancel }) => {
   const [keystrokes, setKeystrokes] = useState(0)
   const [errors, setErrors] = useState(0)
   const [isFocused, setIsFocused] = useState(false)
+  const [composition, setComposition] = useState(null)
   const inputRef = useRef(null)
+  const finishedRef = useRef(false)
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -38,12 +40,22 @@ const TypingTest = ({ text, onFinish, onCancel }) => {
   const precision = calculatePrecision(keystrokes, errors)
 
   const handleChange = (e) => {
-    const value = e.target.value
-    if (value.length > content.length) return
+    if (finishedRef.current) return
+    // Las tildes se evalúan al terminar de componer el carácter.
+    if (e.nativeEvent.isComposing) {
+      setComposition(e.target.value)
+      return
+    }
+    const value = e.target.value.normalize('NFC')
+    if (value.length > content.length || value === typed) return
+    if (value.length > typed.length && !value.startsWith(typed)) return
+    if (value.length < typed.length && !typed.startsWith(value)) return
+    if (value.length === typed.length) return
+    if (!startTime && value.length === 0) return
 
     const time = Date.now()
     const start = startTime ?? time
-    if (!startTime) setStartTime(time)
+    if (startTime === null) setStartTime(time)
     setNow(time)
 
     // Solo contamos caracteres nuevos; borrar no suma ni resta errores.
@@ -58,9 +70,9 @@ const TypingTest = ({ text, onFinish, onCancel }) => {
     setKeystrokes(newKeystrokes)
     setErrors(newErrors)
 
-    const lastIndex = content.length - 1
-    const isFinished = value.length === content.length && value[lastIndex] === content[lastIndex]
+    const isFinished = value.length === content.length && !e.nativeEvent.isComposing
     if (isFinished) {
+      finishedRef.current = true
       const timeMs = time - start
       const finalPpm = calculatePpm(countCorrectChars(value, content), timeMs)
       const finalPrecision = calculatePrecision(newKeystrokes, newErrors)
@@ -75,30 +87,42 @@ const TypingTest = ({ text, onFinish, onCancel }) => {
   }
 
   const handleKeyDown = (e) => {
+    if (e.nativeEvent.isComposing) return
     if (BLOCKED_KEYS.includes(e.key)) e.preventDefault()
   }
 
+  const moveCursorToEnd = (e) => {
+    if (composition !== null) return
+    const input = e.target
+    input.setSelectionRange(input.value.length, input.value.length)
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-3 gap-3">
+    <div className="practice-session">
+      <div className="practice-metrics">
         <Stat label="PPM" value={ppm} />
-        <Stat label="Precision" value={`${precision}%`} />
+        <Stat label="Accuracy" value={`${precision}%`} />
         <Stat label="Time" value={formatTime(elapsedMs)} />
       </div>
 
-      <div
-        className={`relative rounded-2xl border bg-white p-6 shadow-[0_3px_0_#e1e2dc] ${isFocused ? 'border-[#18a98a]' : 'border-[#e1e2dc]'}`}
-      >
+      <div className="practice-typing-area">
         <TypingText text={content} typed={typed} />
-        <input
+        <textarea
           ref={inputRef}
-          className="absolute inset-0 h-full w-full cursor-text opacity-0"
-          type="text"
+          className="practice-input"
           aria-label="Type the text"
-          value={typed}
+          aria-describedby="practice-instructions practice-text"
+          value={composition ?? typed}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onPaste={(e) => e.preventDefault()}
+          onDrop={(e) => e.preventDefault()}
+          onSelect={moveCursorToEnd}
+          onCompositionStart={() => setComposition(typed)}
+          onCompositionEnd={(e) => {
+            setComposition(null)
+            handleChange(e)
+          }}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           autoComplete="off"
@@ -107,13 +131,18 @@ const TypingTest = ({ text, onFinish, onCancel }) => {
           spellCheck={false}
         />
       </div>
-      {!isFocused && (
-        <p className="-mt-3 text-sm text-neutral-600">Click the text to keep typing.</p>
-      )}
+      <div className="practice-test-footer">
+        <p id="practice-instructions" className="practice-focus-status">
+          <span className={isFocused ? 'practice-status-dot practice-status-dot--active' : 'practice-status-dot'} aria-hidden="true" />
+          {!isFocused ? 'Click the text to keep typing.' : startTime === null ? 'Ready when you are.' : 'Test in progress.'}
+        </p>
+        <p className="practice-character-count">{typed.length} / {content.length} characters</p>
+      </div>
 
-      <Button variant="secondary" onClick={onCancel} className="self-start">
-        Change settings
-      </Button>
+      <div className="practice-session-actions">
+        <Button variant="ghost" onClick={onCancel}>Change settings</Button>
+        <p><kbd>Backspace</kbd> to correct a mistake</p>
+      </div>
     </div>
   )
 }
