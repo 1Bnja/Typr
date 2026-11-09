@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Button from '../../../components/button'
 import TypingText from './typing-text'
 import Stat from './stat'
+import { addSpeedSample } from '../utils/speed-history'
 import {
   calculatePpm,
   calculatePrecision,
@@ -23,6 +24,7 @@ const TypingTest = ({ text, onFinish, onCancel, onFocusChange }) => {
   const compositionRef = useRef(false)
   const sessionRef = useRef({ typed: '', startTime: null, keystrokes: 0, errors: 0 })
   const finishedRef = useRef(false)
+  const speedHistoryRef = useRef([])
   const focusMode = hasStarted && isFocused
 
   const updateStats = useCallback(() => {
@@ -41,9 +43,14 @@ const TypingTest = ({ text, onFinish, onCancel, onFocusChange }) => {
 
   useEffect(() => {
     if (!hasStarted) return
-    const interval = setInterval(updateStats, 1000)
+    const interval = setInterval(() => {
+      if (finishedRef.current) return
+      const session = sessionRef.current
+      addSpeedSample(speedHistoryRef.current, session.typed, text.content, Date.now() - session.startTime, session.errors)
+      updateStats()
+    }, 1000)
     return () => clearInterval(interval)
-  }, [hasStarted, updateStats])
+  }, [hasStarted, updateStats, text.content])
 
   const content = text.content
   const { typed, keystrokes, errors, elapsedMs } = stats
@@ -88,12 +95,14 @@ const TypingTest = ({ text, onFinish, onCancel, onFocusChange }) => {
       const timeMs = Math.max(1, time - session.startTime)
       const finalPpm = calculatePpm(countCorrectChars(value, content), timeMs)
       const finalPrecision = calculatePrecision(session.keystrokes, session.errors)
+      addSpeedSample(speedHistoryRef.current, value, content, timeMs, session.errors)
       onFinish({
         timeMs,
         ppm: finalPpm,
         precisionPct: finalPrecision,
         score: calculateScore(finalPpm, finalPrecision),
         progress: 1,
+        speedHistory: [...speedHistoryRef.current],
       })
     }
   }

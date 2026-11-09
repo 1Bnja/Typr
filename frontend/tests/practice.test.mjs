@@ -93,6 +93,7 @@ test('saving a local result sends the text, metrics and bearer token', async (co
   const result = await savePracticeMatch('test-token', {
     text: { content: 'casa mesa gato', language: 'spa' },
     timeMs: 30000, ppm: 40, precisionPct: 95, progress: 1, score: 999,
+    speedHistory: [{ timeMs: 30000, ppm: 40, errors: 1 }],
   })
   const [url, request] = fetchMock.mock.calls[0].arguments
   assert.equal(url, '/api/v1/matches/practice')
