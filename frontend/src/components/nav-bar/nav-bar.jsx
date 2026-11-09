@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import Button from '../button/button'
+import ChevronDown from '../icons/chevron-down'
 import logo from '../../assets/logo.svg'
 import { useAuth } from '../../features/auth/context/auth-context'
 
 const links = [
   { to: '/', label: 'Home' },
+  { to: '/practice', label: 'Practice' },
   { to: '/about', label: 'About' },
   { to: '/contact', label: 'Contact' },
 ]
@@ -41,16 +43,6 @@ const Avatar = ({ name, className = '' }) => (
   </span>
 )
 
-const ChevronDown = ({ className = '' }) => (
-  <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" className={className}>
-    <path
-      fillRule="evenodd"
-      d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"
-      clipRule="evenodd"
-    />
-  </svg>
-)
-
 const MenuIcon = ({ open }) => (
   <span className="relative block h-4 w-5" aria-hidden="true">
     <span
@@ -80,7 +72,6 @@ const Navbar = () => {
 
   const close = () => setOpen(false)
 
-  // Sombra / blur al hacer scroll
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
     onScroll()
@@ -88,14 +79,12 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Cierra los menús al cambiar de ruta (incluye atrás/adelante del navegador)
   if (pathname !== lastPathname) {
     setLastPathname(pathname)
     setOpen(false)
     setUserMenuOpen(false)
   }
 
-  // Cierra el menú móvil al pasar a escritorio
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 768px)')
     const onChange = (event) => {
@@ -105,7 +94,6 @@ const Navbar = () => {
     return () => mq.removeEventListener('change', onChange)
   }, [])
 
-  // Bloquea el scroll del body con el menú móvil abierto
   useEffect(() => {
     if (!open) return
     const { overflow } = document.body.style
@@ -115,7 +103,6 @@ const Navbar = () => {
     }
   }, [open])
 
-  // Escape cierra cualquier menú abierto
   useEffect(() => {
     if (!open && !userMenuOpen) return
     const onKey = (event) => {
@@ -130,7 +117,6 @@ const Navbar = () => {
     return () => window.removeEventListener('keydown', onKey)
   }, [open, userMenuOpen])
 
-  // Click fuera cierra el menú de usuario
   useEffect(() => {
     if (!userMenuOpen) return
     const onPointerDown = (event) => {
@@ -162,7 +148,6 @@ const Navbar = () => {
           aria-label="Principal"
           className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 md:grid md:grid-cols-[1fr_auto_1fr]"
         >
-          {/* Logo */}
           <Link
             to="/"
             onClick={close}
@@ -172,7 +157,6 @@ const Navbar = () => {
             <span className="text-xl font-extrabold tracking-tight text-charcoal">Typr</span>
           </Link>
 
-          {/* Links escritorio (centrados) */}
           <ul className="hidden items-center gap-1 md:flex">
             {links.map((link) => (
               <li key={link.to}>
@@ -183,7 +167,6 @@ const Navbar = () => {
             ))}
           </ul>
 
-          {/* Acciones escritorio */}
           <div className="hidden items-center gap-2 justify-self-end md:flex">
             {user ? (
               <div className="relative" ref={userMenuRef}>
@@ -213,6 +196,8 @@ const Navbar = () => {
                     <p className="truncate text-sm font-semibold text-charcoal">{user.username}</p>
                   </div>
                   <div className="my-1 h-px bg-neutral-200" />
+                  <Link to="/practice/history" onClick={close} className={`block rounded-lg px-3 py-2 text-sm text-charcoal hover:bg-neutral-100 ${focusRing}`}>History</Link>
+                  <Link to="/practice/leaderboard" onClick={close} className={`block rounded-lg px-3 py-2 text-sm text-charcoal hover:bg-neutral-100 ${focusRing}`}>Monthly leaderboard</Link>
                   <button
                     type="button"
                     onClick={handleSignOut}
@@ -232,7 +217,6 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Toggle móvil */}
           <button
             ref={toggleRef}
             type="button"
@@ -247,14 +231,12 @@ const Navbar = () => {
         </nav>
       </header>
 
-      {/* Fondo oscurecido (móvil) */}
       <div
         aria-hidden="true"
         onClick={close}
         className={`fixed inset-0 top-16 z-30 bg-charcoal/20 backdrop-blur-sm transition-opacity duration-300 md:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
       />
 
-      {/* Panel móvil */}
       <div
         id="mobile-menu"
         className={[
@@ -285,6 +267,8 @@ const Navbar = () => {
         <div className="mt-6 border-t border-neutral-200 pt-4">
           {user ? (
             <div className="flex flex-col">
+              <NavLink to="/practice/history" className={mobileLinkClass} onClick={close}>History</NavLink>
+              <NavLink to="/practice/leaderboard" className={mobileLinkClass} onClick={close}>Monthly leaderboard</NavLink>
               <Button variant="ghost" onClick={handleSignOut}>Sign out</Button>
             </div>
           ) : (

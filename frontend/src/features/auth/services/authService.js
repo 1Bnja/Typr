@@ -1,6 +1,3 @@
-/**
- * Login a user
- */
 export async function login({ email, password }) {
     const response = await fetch('/api/v1/auth/login', {
         method: 'POST',
@@ -16,9 +13,6 @@ export async function login({ email, password }) {
     return data
 }
 
-/**
- * Register a new user
- */
 export async function register({ username, email, password }) {
     const response = await fetch('/api/v1/auth/register', {
         method: 'POST',
