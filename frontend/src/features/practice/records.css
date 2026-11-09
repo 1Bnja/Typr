@@ -234,9 +234,17 @@
 }
 
 .records-rank {
+  display: inline-flex;
+  align-items: center;
   color: var(--practice-muted);
   font-size: 13px;
   font-weight: 500;
+}
+
+.records-crown {
+  width: 18px;
+  height: 18px;
+  color: #8a6900;
 }
 
 .records-typist {

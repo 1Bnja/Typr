@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../../auth'
 import Button from '../../../components/button'
+import Crown from '../../../components/icons/crown'
 import Select from '../../../components/select/select'
 import MonthPicker from '../components/month-picker'
 import { DIFFICULTIES, LANGUAGES } from '../constants'
@@ -94,7 +95,7 @@ const Leaderboard = () => {
               <tbody>
                 {ranking.entries.map((entry) => (
                   <tr key={entry.userId} data-current={entry.userId === user.id}>
-                    <td><span className="records-rank">{entry.position}</span></td>
+                    <td><span className="records-rank">{entry.position === 1 ? <><Crown className="records-crown" /><span className="sr-only">1st place</span></> : entry.position}</span></td>
                     <th scope="row"><span className="records-typist"><span className="records-avatar" aria-hidden="true">{entry.username.slice(0, 2).toUpperCase()}</span><span className="records-identity"><span className="records-username" title={entry.username}>{entry.username}</span>{entry.userId === user.id && <span className="records-you">You</span>}</span></span></th>
                     <td className="records-score">{entry.score}</td>
                     <td className="records-speed"><strong>{entry.ppm}</strong> <span className="records-unit">PPM</span></td>
