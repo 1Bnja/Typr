@@ -1,5 +1,6 @@
 import Button from '../../../components/button'
 import Stat from './stat'
+import SpeedChart from './speed-chart'
 import { formatTime, getSpeedUnit } from '../utils/metrics'
 
 const saveMessages = {
@@ -21,6 +22,9 @@ const TestResults = ({ result, language, saveStatus, onNewText, onChangeSettings
       <p className="practice-results-explanation">
         Speed uses five characters per word. Accuracy includes corrected mistakes.
       </p>
+      {result.speedHistory?.length > 0 && (
+        <SpeedChart samples={result.speedHistory} average={result.ppm} language={language} />
+      )}
       {saveMessages[saveStatus] && (
         <p role="status" className={`practice-result-status ${saveStatus === 'error' ? 'practice-error' : ''}`}>
           {saveMessages[saveStatus]}
