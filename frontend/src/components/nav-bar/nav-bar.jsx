@@ -5,6 +5,7 @@ import ChevronDown from '../icons/chevron-down'
 import PracticeMenu from './practice-menu'
 import logo from '../../assets/logo.svg'
 import { useAuth } from '../../features/auth/context/auth-context'
+import './nav-bar.css'
 
 const links = [
   { to: '/', label: 'Home' },
@@ -58,7 +59,7 @@ const MenuIcon = ({ open }) => (
   </span>
 )
 
-const Navbar = () => {
+const Navbar = ({ focusMode = false }) => {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { user, signOut } = useAuth()
@@ -138,8 +139,11 @@ const Navbar = () => {
   return (
     <>
       <header
+        inert={focusMode}
+        aria-hidden={focusMode || undefined}
         className={[
-          'sticky top-0 z-40 border-b transition-[background-color,border-color,box-shadow] duration-300',
+          'site-header sticky top-0 z-40 border-b',
+          focusMode ? 'site-header--focused' : '',
           elevated
             ? 'border-neutral-200/80 bg-canvas/80 shadow-sm backdrop-blur-md'
             : 'border-transparent bg-canvas',

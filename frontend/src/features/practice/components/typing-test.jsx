@@ -8,12 +8,13 @@ import {
   calculateScore,
   countCorrectChars,
   formatTime,
+  getSpeedUnit,
 } from '../utils/metrics'
 
 // Teclas que moverían el cursor dentro del input y desordenarían la comparación.
 const BLOCKED_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Enter']
 
-const TypingTest = ({ text, onFinish, onCancel }) => {
+const TypingTest = ({ text, onFinish, onCancel, onFocusChange }) => {
   const [typed, setTyped] = useState('')
   const [startTime, setStartTime] = useState(null)
   const [now, setNow] = useState(null)
@@ -23,6 +24,12 @@ const TypingTest = ({ text, onFinish, onCancel }) => {
   const [composition, setComposition] = useState(null)
   const inputRef = useRef(null)
   const finishedRef = useRef(false)
+  const focusMode = startTime !== null && isFocused
+
+  useEffect(() => {
+    onFocusChange(focusMode)
+    return () => onFocusChange(false)
+  }, [focusMode, onFocusChange])
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -88,6 +95,11 @@ const TypingTest = ({ text, onFinish, onCancel }) => {
 
   const handleKeyDown = (e) => {
     if (e.nativeEvent.isComposing) return
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      inputRef.current.blur()
+      return
+    }
     if (BLOCKED_KEYS.includes(e.key)) e.preventDefault()
   }
 
@@ -100,9 +112,11 @@ const TypingTest = ({ text, onFinish, onCancel }) => {
   return (
     <div className="practice-session">
       <div className="practice-metrics">
-        <Stat label="PPM" value={ppm} />
-        <Stat label="Accuracy" value={`${precision}%`} />
-        <Stat label="Time" value={formatTime(elapsedMs)} />
+        <div className="practice-live-metrics practice-focus-fade" inert={focusMode} aria-hidden={focusMode || undefined}>
+          <Stat label={getSpeedUnit(text.language)} value={ppm} />
+          <Stat label="Accuracy" value={`${precision}%`} />
+        </div>
+        <p className="practice-timer"><span className="sr-only">Elapsed time </span>{formatTime(elapsedMs)}</p>
       </div>
 
       <div className="practice-typing-area">
@@ -131,7 +145,7 @@ const TypingTest = ({ text, onFinish, onCancel }) => {
           spellCheck={false}
         />
       </div>
-      <div className="practice-test-footer">
+      <div className="practice-test-footer practice-focus-fade" aria-hidden={focusMode || undefined}>
         <p id="practice-instructions" className="practice-focus-status">
           <span className={isFocused ? 'practice-status-dot practice-status-dot--active' : 'practice-status-dot'} aria-hidden="true" />
           {!isFocused ? 'Click the text to keep typing.' : startTime === null ? 'Ready when you are.' : 'Test in progress.'}
@@ -139,9 +153,9 @@ const TypingTest = ({ text, onFinish, onCancel }) => {
         <p className="practice-character-count">{typed.length} / {content.length} characters</p>
       </div>
 
-      <div className="practice-session-actions">
+      <div className="practice-session-actions practice-focus-fade" inert={focusMode} aria-hidden={focusMode || undefined}>
         <Button variant="ghost" onClick={onCancel}>Change settings</Button>
-        <p><kbd>Backspace</kbd> to correct a mistake</p>
+        <p><kbd>Backspace</kbd> to correct · <kbd>Esc</kbd> to leave focus mode</p>
       </div>
     </div>
   )

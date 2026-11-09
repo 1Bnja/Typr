@@ -7,7 +7,7 @@ import Select from '../../../components/select/select'
 import MonthPicker from '../components/month-picker'
 import { DIFFICULTIES, LANGUAGES } from '../constants'
 import { getMonthlyLeaderboard } from '../services/practice-service'
-import { formatTime } from '../utils/metrics'
+import { formatTime, getSpeedUnit } from '../utils/metrics'
 import { formatMonth, getCurrentMonth } from '../utils/records'
 import '../practice.css'
 import '../records.css'
@@ -98,7 +98,7 @@ const Leaderboard = () => {
                     <td><span className="records-rank">{entry.position === 1 ? <><Crown className="records-crown" /><span className="sr-only">1st place</span></> : entry.position}</span></td>
                     <th scope="row"><span className="records-typist"><span className="records-avatar" aria-hidden="true">{entry.username.slice(0, 2).toUpperCase()}</span><span className="records-identity"><span className="records-username" title={entry.username}>{entry.username}</span>{entry.userId === user.id && <span className="records-you">You</span>}</span></span></th>
                     <td className="records-score">{entry.score}</td>
-                    <td className="records-speed"><strong>{entry.ppm}</strong> <span className="records-unit">PPM</span></td>
+                    <td className="records-speed"><strong>{entry.ppm}</strong> <span className="records-unit">{getSpeedUnit(language)}</span></td>
                     <td>{Number(entry.precisionPct.toFixed(1))}%</td>
                     <td>{formatTime(entry.timeMs)}</td>
                   </tr>

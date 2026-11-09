@@ -21,6 +21,10 @@ export function calculatePrecision(keystrokes, errors) {
   return Math.round(precision * 10) / 10
 }
 
+export function getSpeedUnit(language) {
+  return language === 'spa' ? 'PPM' : 'WPM'
+}
+
 export function calculateScore(ppm, precision) {
   return Math.round(ppm * (precision / 100))
 }

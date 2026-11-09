@@ -306,8 +306,33 @@
 
 .practice-metrics {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 40px;
   padding: 0 0 20px;
+}
+
+.practice-live-metrics {
+  display: flex;
+  gap: 40px;
+}
+
+.practice-timer {
+  color: var(--practice-muted);
+  font-size: 18px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.practice-focus-fade {
+  transition: opacity 220ms ease-out, visibility 0s linear;
+}
+
+.practice--focus .practice-focus-fade {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition-delay: 0s, 220ms;
 }
 
 .practice-stat {
@@ -544,6 +569,10 @@
     gap: 32px;
     padding: 0 0 16px;
   }
+
+  .practice-live-metrics {
+    gap: 32px;
+  }
   .practice-typing-area {
     min-height: 160px;
     padding: 12px 0;
@@ -575,6 +604,12 @@
   }
   .practice-result-actions .button {
     flex: 1 1 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .practice-focus-fade {
+    transition: none;
   }
 }
 

@@ -1,0 +1,27 @@
+.site-header {
+  transition:
+    opacity 220ms ease-out,
+    transform 220ms ease-out,
+    visibility 0s linear,
+    background-color 300ms ease,
+    border-color 300ms ease,
+    box-shadow 300ms ease;
+}
+
+.site-header--focused {
+  opacity: 0;
+  transform: translateY(-8px);
+  visibility: hidden;
+  pointer-events: none;
+  transition-delay: 0s, 0s, 220ms, 0s, 0s, 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-header {
+    transition: none;
+  }
+
+  .site-header--focused {
+    transform: none;
+  }
+}
