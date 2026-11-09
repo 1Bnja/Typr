@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Button from '../../../components/button'
 import TypingText from './typing-text'
 import Stat from './stat'
@@ -15,16 +15,20 @@ import {
 const BLOCKED_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Enter']
 
 const TypingTest = ({ text, onFinish, onCancel, onFocusChange }) => {
-  const [typed, setTyped] = useState('')
-  const [startTime, setStartTime] = useState(null)
-  const [now, setNow] = useState(null)
-  const [keystrokes, setKeystrokes] = useState(0)
-  const [errors, setErrors] = useState(0)
+  const [hasStarted, setHasStarted] = useState(false)
+  const [stats, setStats] = useState({ typed: '', keystrokes: 0, errors: 0, elapsedMs: 0 })
   const [isFocused, setIsFocused] = useState(false)
-  const [composition, setComposition] = useState(null)
   const inputRef = useRef(null)
+  const textRef = useRef(null)
+  const compositionRef = useRef(false)
+  const sessionRef = useRef({ typed: '', startTime: null, keystrokes: 0, errors: 0 })
   const finishedRef = useRef(false)
-  const focusMode = startTime !== null && isFocused
+  const focusMode = hasStarted && isFocused
+
+  const updateStats = useCallback(() => {
+    const session = sessionRef.current
+    setStats({ ...session, elapsedMs: session.startTime === null ? 0 : Date.now() - session.startTime })
+  }, [])
 
   useEffect(() => {
     onFocusChange(focusMode)
@@ -36,53 +40,54 @@ const TypingTest = ({ text, onFinish, onCancel, onFocusChange }) => {
   }, [])
 
   useEffect(() => {
-    if (!startTime) return
-    const interval = setInterval(() => setNow(Date.now()), 200)
+    if (!hasStarted) return
+    const interval = setInterval(updateStats, 1000)
     return () => clearInterval(interval)
-  }, [startTime])
+  }, [hasStarted, updateStats])
 
   const content = text.content
-  const elapsedMs = startTime ? now - startTime : 0
+  const { typed, keystrokes, errors, elapsedMs } = stats
   const ppm = calculatePpm(countCorrectChars(typed, content), elapsedMs)
   const precision = calculatePrecision(keystrokes, errors)
 
   const handleChange = (e) => {
     if (finishedRef.current) return
-    // Las tildes se evalúan al terminar de componer el carácter.
-    if (e.nativeEvent.isComposing) {
-      setComposition(e.target.value)
+    // Las tildes se muestran al componer, pero se cuentan al confirmar el carácter.
+    if (compositionRef.current || e.nativeEvent.isComposing) {
+      textRef.current.updateInput(e.target.value.normalize('NFC').slice(0, content.length))
       return
     }
+    const session = sessionRef.current
     const value = e.target.value.normalize('NFC')
-    if (value.length > content.length || value === typed) return
-    if (value.length > typed.length && !value.startsWith(typed)) return
-    if (value.length < typed.length && !typed.startsWith(value)) return
-    if (value.length === typed.length) return
-    if (!startTime && value.length === 0) return
-
-    const time = Date.now()
-    const start = startTime ?? time
-    if (startTime === null) setStartTime(time)
-    setNow(time)
-
-    // Solo contamos caracteres nuevos; borrar no suma ni resta errores.
-    let newKeystrokes = keystrokes
-    let newErrors = errors
-    for (let i = typed.length; i < value.length; i++) {
-      newKeystrokes++
-      if (value[i] !== content[i]) newErrors++
+    if (value.length > content.length || value === session.typed ||
+      (value.length > session.typed.length && !value.startsWith(session.typed)) ||
+      (value.length < session.typed.length && !session.typed.startsWith(value)) ||
+      value.length === session.typed.length) {
+      e.target.value = session.typed
+      textRef.current.updateInput(session.typed)
+      return
     }
 
-    setTyped(value)
-    setKeystrokes(newKeystrokes)
-    setErrors(newErrors)
+    const time = Date.now()
+    if (session.startTime === null) {
+      session.startTime = time
+      setHasStarted(true)
+    }
 
-    const isFinished = value.length === content.length && !e.nativeEvent.isComposing
-    if (isFinished) {
+    // El texto y el cursor responden directamente, sin esperar un render por tecla.
+    textRef.current.updateInput(value)
+    for (let i = session.typed.length; i < value.length; i++) {
+      session.keystrokes++
+      if (value[i] !== content[i]) session.errors++
+    }
+    session.typed = value
+    if (e.target.value !== value) e.target.value = value
+
+    if (value.length === content.length) {
       finishedRef.current = true
-      const timeMs = Math.max(1, time - start)
+      const timeMs = Math.max(1, time - session.startTime)
       const finalPpm = calculatePpm(countCorrectChars(value, content), timeMs)
-      const finalPrecision = calculatePrecision(newKeystrokes, newErrors)
+      const finalPrecision = calculatePrecision(session.keystrokes, session.errors)
       onFinish({
         timeMs,
         ppm: finalPpm,
@@ -104,9 +109,10 @@ const TypingTest = ({ text, onFinish, onCancel, onFocusChange }) => {
   }
 
   const moveCursorToEnd = (e) => {
-    if (composition !== null) return
+    if (compositionRef.current) return
     const input = e.target
-    input.setSelectionRange(input.value.length, input.value.length)
+    const end = input.value.length
+    if (input.selectionStart !== end || input.selectionEnd !== end) input.setSelectionRange(end, end)
   }
 
   return (
@@ -120,25 +126,27 @@ const TypingTest = ({ text, onFinish, onCancel, onFocusChange }) => {
       </div>
 
       <div className="practice-typing-area">
-        <TypingText text={content} typed={typed} isFocused={isFocused} isActive={focusMode} />
+        <TypingText ref={textRef} text={content} isFocused={isFocused} isActive={focusMode} />
         <textarea
           ref={inputRef}
           className="practice-input"
           aria-label="Type the text"
           aria-describedby="practice-instructions practice-text"
-          value={composition ?? typed}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onPaste={(e) => e.preventDefault()}
           onDrop={(e) => e.preventDefault()}
           onSelect={moveCursorToEnd}
-          onCompositionStart={() => setComposition(typed)}
+          onCompositionStart={() => { compositionRef.current = true }}
           onCompositionEnd={(e) => {
-            setComposition(null)
+            compositionRef.current = false
             handleChange(e)
           }}
           onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onBlur={() => {
+            setIsFocused(false)
+            updateStats()
+          }}
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
@@ -148,7 +156,7 @@ const TypingTest = ({ text, onFinish, onCancel, onFocusChange }) => {
       <div className="practice-test-footer practice-focus-fade" aria-hidden={focusMode || undefined}>
         <p id="practice-instructions" className="practice-focus-status">
           <span className={isFocused ? 'practice-status-dot practice-status-dot--active' : 'practice-status-dot'} aria-hidden="true" />
-          {!isFocused ? 'Click the text to keep typing.' : startTime === null ? 'Ready when you are.' : 'Test in progress.'}
+          {!isFocused ? 'Click the text to keep typing.' : !hasStarted ? 'Ready when you are.' : 'Test in progress.'}
         </p>
         <p className="practice-character-count">{typed.length} / {content.length} characters</p>
       </div>
