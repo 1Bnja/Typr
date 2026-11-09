@@ -91,14 +91,15 @@ const Leaderboard = () => {
           <div className="records-table-scroll styled-scrollbar" role="region" aria-label="Monthly practice ranking" tabIndex={0}>
             <table className="records-table records-leaderboard">
               <caption className="sr-only">Best completed test for each typist in {formatMonth(month)}</caption>
+              <colgroup><col className="records-col-rank" /><col className="records-col-typist" /><col /><col /><col /><col /></colgroup>
               <thead><tr><th scope="col">Rank</th><th scope="col">Typist</th><th scope="col">Score</th><th scope="col">Speed</th><th scope="col">Accuracy</th><th scope="col">Time</th></tr></thead>
               <tbody>
                 {ranking.entries.map((entry) => (
                   <tr key={entry.userId} data-current={entry.userId === user.id}>
                     <td><span className={`records-rank ${entry.position === 1 ? 'records-rank--first' : ''}`}>{entry.position}</span></td>
-                    <td><span className="records-typist"><span className="records-avatar" aria-hidden="true">{entry.username.slice(0, 2).toUpperCase()}</span><span>{entry.username}{entry.userId === user.id && <span className="records-you">You</span>}</span></span></td>
+                    <th scope="row"><span className="records-typist"><span className="records-avatar" aria-hidden="true">{entry.username.slice(0, 2).toUpperCase()}</span><span className="records-identity"><span className="records-username" title={entry.username}>{entry.username}</span>{entry.userId === user.id && <span className="records-you">You</span>}</span></span></th>
                     <td className="records-score">{entry.score}</td>
-                    <td><strong>{entry.ppm}</strong> <span className="records-unit">PPM</span></td>
+                    <td className="records-speed"><strong>{entry.ppm}</strong> <span className="records-unit">PPM</span></td>
                     <td>{Number(entry.precisionPct.toFixed(1))}%</td>
                     <td>{formatTime(entry.timeMs)}</td>
                   </tr>
@@ -108,6 +109,7 @@ const Leaderboard = () => {
           </div>
         )}
       </div>
+      {status === 'ready' && ranking.entries.length > 0 && <p className="records-scroll-hint">Scroll sideways to see all metrics.</p>}
       <footer className="records-footer records-ranking-footer">
         <p>Ranked by score, then accuracy, time and earliest finish.</p>
         <p>Months follow Santiago time.</p>

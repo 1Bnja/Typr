@@ -86,13 +86,14 @@ const History = () => {
           <div className="records-table-scroll styled-scrollbar" role="region" aria-label="Saved practice tests" tabIndex={0}>
             <table className="records-table">
               <caption className="sr-only">Your saved tests, newest first</caption>
+              <colgroup><col className="records-col-date" /><col className="records-col-difficulty" /><col /><col /><col /><col /></colgroup>
               <thead><tr><th scope="col">Played</th><th scope="col">Difficulty</th><th scope="col">Speed</th><th scope="col">Accuracy</th><th scope="col">Time</th><th scope="col">Score</th></tr></thead>
               <tbody>
                 {rows.map((match) => (
                   <tr key={match.id}>
-                    <td><time dateTime={match.finishedAt}>{formatMatchDate(match.finishedAt)}</time><span className="records-secondary">{LANGUAGES.find((option) => option.value === match.language)?.label}</span></td>
+                    <th scope="row"><time dateTime={match.finishedAt}>{formatMatchDate(match.finishedAt)}</time><span className="records-secondary">{LANGUAGES.find((option) => option.value === match.language)?.label}</span></th>
                     <td><span className={`records-difficulty records-difficulty--${match.difficulty}`}>{getDifficultyLabel(match.difficulty)}</span></td>
-                    <td><strong>{match.ppm}</strong> <span className="records-unit">PPM</span></td>
+                    <td className="records-speed"><strong>{match.ppm}</strong> <span className="records-unit">PPM</span></td>
                     <td>{Number(match.precisionPct.toFixed(1))}%</td>
                     <td>{formatTime(match.timeMs)}</td>
                     <td className="records-score">{match.score}</td>
@@ -103,6 +104,8 @@ const History = () => {
           </div>
         )}
       </div>
+
+      {status === 'ready' && rows.length > 0 && <p className="records-scroll-hint">Scroll sideways to see all metrics.</p>}
 
       <footer className="records-footer">
         <p>Times shown in Santiago.</p>
