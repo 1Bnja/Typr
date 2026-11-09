@@ -5,11 +5,9 @@ import PracticeSetup from '../components/practice-setup'
 import TypingTest from '../components/typing-test'
 import TestResults from '../components/test-results'
 import TypingReference from '../components/typing-reference'
-import PracticeNav from '../components/practice-nav'
 import { getRandomText, savePracticeMatch } from '../services/practice-service'
 import { DIFFICULTIES, LANGUAGES } from '../constants'
 import '../practice.css'
-import '../records.css'
 
 const titles = {
   setup: 'Practice test',
@@ -77,7 +75,6 @@ const Practice = () => {
 
   return (
     <section className={`practice practice--${phase}`}>
-      {phase !== 'typing' && <PracticeNav />}
       <header className="practice-header">
         <h1 className={phase === 'typing' ? 'sr-only' : ''}>{titles[phase]}</h1>
         <p>

@@ -4,7 +4,6 @@ import { useAuth } from '../../auth'
 import Button from '../../../components/button'
 import Select from '../../../components/select/select'
 import MonthPicker from '../components/month-picker'
-import PracticeNav from '../components/practice-nav'
 import { DIFFICULTIES, LANGUAGES } from '../constants'
 import { getMonthlyLeaderboard } from '../services/practice-service'
 import { formatTime } from '../utils/metrics'
@@ -46,7 +45,6 @@ const Leaderboard = () => {
 
   return (
     <section className="practice practice-records">
-      <PracticeNav />
       <header className="practice-header">
         <h1>Monthly leaderboard</h1>
         <p>A fresh month. A new personal best. Find your place at your level.</p>

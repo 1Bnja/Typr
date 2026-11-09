@@ -3,7 +3,6 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../../auth'
 import Button from '../../../components/button'
 import Select from '../../../components/select/select'
-import PracticeNav from '../components/practice-nav'
 import { LANGUAGES } from '../constants'
 import { getPracticeHistory } from '../services/practice-service'
 import { formatTime } from '../utils/metrics'
@@ -53,7 +52,6 @@ const History = () => {
 
   return (
     <section className="practice practice-records">
-      <PracticeNav />
       <header className="practice-header">
         <h1>Your typing history</h1>
         <p>Every saved test, with your speed, accuracy and score.</p>
