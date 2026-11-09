@@ -22,7 +22,7 @@ const TypingText = ({ text, typed }) => {
           ref={index === typed.length ? currentRef : null}
           className={getCharClass(char, typed[index], index === typed.length)}
         >
-          {char}
+          {typed[index] ?? char}
         </span>
       ))}
     </p>
