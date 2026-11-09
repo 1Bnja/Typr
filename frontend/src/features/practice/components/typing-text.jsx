@@ -1,86 +1,110 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { memo, useCallback, useLayoutEffect, useMemo, useRef } from 'react'
+import { createAnimatable } from 'animejs/animatable'
 
-const getCharClass = (char, typedChar) => {
-  if (typedChar === undefined) return 'practice-character--pending'
-  return typedChar === char ? 'practice-character--correct' : 'practice-character--incorrect'
-}
+const TypingWord = memo(({ word, start, input }) => (
+  <span className="practice-word">
+    {word.split('').map((char, index) => {
+      const typedChar = input[index]
+      const state = typedChar === undefined ? 'pending' : typedChar === char ? 'correct' : 'incorrect'
+      return <span key={index} data-index={start + index} className={`practice-character practice-character--${state}`}>{typedChar ?? char}</span>
+    })}
+  </span>
+))
 
-const TypingText = ({ text, typed, isFocused }) => {
+const TypingText = ({ text, typed, isFocused, isActive }) => {
   const windowRef = useRef(null)
   const textRef = useRef(null)
   const caretRef = useRef(null)
   const caretTrackRef = useRef(null)
   const indexRef = useRef(0)
-  const previousRowRef = useRef(null)
-  const idleTimerRef = useRef(null)
-  const words = useMemo(() => Array.from(text.matchAll(/\S+/g), (match) => ({
+  const frameRef = useRef(null)
+  const layoutRef = useRef(null)
+  const animationsRef = useRef(null)
+  const motionRef = useRef(null)
+  const targetRef = useRef({ y: null, scroll: null })
+  const words = useMemo(() => Array.from(text.matchAll(/\S+ */g), (match) => ({
     word: match[0], start: match.index,
   })), [text])
 
   const moveCaret = useCallback((smooth = true) => {
-    const viewport = windowRef.current
-    const paragraph = textRef.current
-    const character = paragraph?.querySelector(`[data-index="${indexRef.current}"]`)
-    if (!viewport || !character) return
+    const layout = layoutRef.current
+    const animations = animationsRef.current
+    const position = layout?.positions[indexRef.current]
+    if (!position || !animations) return
 
-    const textBounds = paragraph.getBoundingClientRect()
-    const characterBounds = character.getBoundingClientRect()
+    const animate = smooth && !motionRef.current.matches
+    const duration = animate ? 100 : 0
+    const y = position.y + layout.caretInset
+    const scroll = Math.min(Math.max(0, position.y - layout.lineHeight), layout.maxScroll)
+
+    animations.caret.x(position.x, duration)
+    if (!animate || y !== targetRef.current.y) animations.caret.y(y, duration)
+    // El texto y el soporte del cursor comparten el desplazamiento de línea.
+    if (!animate || scroll !== targetRef.current.scroll) {
+      animations.text.y(-scroll, animate ? 125 : 0)
+      animations.track.y(-scroll, animate ? 125 : 0)
+    }
+    targetRef.current = { y, scroll }
+    windowRef.current.dataset.ready = 'true'
+  }, [])
+
+  const measureLayout = useCallback(() => {
+    const paragraph = textRef.current
+    const bounds = paragraph.getBoundingClientRect()
     const style = getComputedStyle(paragraph)
     const lineHeight = parseFloat(style.lineHeight)
-    const caretHeight = parseFloat(style.fontSize) * 1.2
-    const x = characterBounds.left - textBounds.left
-    const y = characterBounds.top - textBounds.top
-    const maxScroll = Math.max(0, textBounds.height - viewport.getBoundingClientRect().height)
-    // La línea activa se mantiene en el centro, dejando ver la siguiente.
-    const scroll = Math.min(Math.max(0, y - lineHeight), maxScroll)
-    const sameRow = previousRowRef.current !== null && Math.abs(previousRowRef.current - y) < 1
+    // Las medidas se calculan al montar o redimensionar, fuera de cada pulsación.
+    layoutRef.current = {
+      lineHeight,
+      caretInset: (lineHeight - parseFloat(style.fontSize) * 1.2) / 2,
+      maxScroll: Math.max(0, bounds.height - windowRef.current.getBoundingClientRect().height),
+      positions: Array.from(paragraph.querySelectorAll('[data-index]'), (letter) => {
+        const rect = letter.getBoundingClientRect()
+        return { x: Math.max(0, rect.left - bounds.left - 1), y: rect.top - bounds.top }
+      }),
+    }
+    moveCaret(false)
+  }, [moveCaret])
 
-    viewport.style.setProperty('--caret-step-duration', smooth && sameRow ? '80ms' : '0ms')
-    viewport.style.setProperty('--line-scroll-duration', smooth ? '160ms' : '0ms')
-    paragraph.style.transform = `translate3d(0, ${-scroll}px, 0)`
-    caretTrackRef.current.style.transform = `translate3d(0, ${y - scroll + (lineHeight - caretHeight) / 2}px, 0)`
-    caretRef.current.style.transform = `translate3d(${Math.max(0, x - 1)}px, 0, 0)`
-    viewport.dataset.ready = 'true'
-    previousRowRef.current = y
-  }, [])
+  useLayoutEffect(() => {
+    let active = true
+    const animations = {
+      caret: createAnimatable(caretRef.current, { x: 100, y: 100, ease: 'inOut(1.25)' }),
+      text: createAnimatable(textRef.current, { y: 125, ease: 'out(2)' }),
+      track: createAnimatable(caretTrackRef.current, { y: 125, ease: 'out(2)' }),
+    }
+    animationsRef.current = animations
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    motionRef.current = motion
+    const resizeObserver = new ResizeObserver(measureLayout)
+    resizeObserver.observe(windowRef.current)
+    motion.addEventListener('change', measureLayout)
+    measureLayout()
+    document.fonts.ready.then(() => { if (active) measureLayout() })
+    return () => {
+      active = false
+      cancelAnimationFrame(frameRef.current)
+      frameRef.current = null
+      resizeObserver.disconnect()
+      motion.removeEventListener('change', measureLayout)
+      Object.values(animations).forEach((animation) => animation.revert())
+      animationsRef.current = null
+    }
+  }, [text, measureLayout])
 
   useLayoutEffect(() => {
     indexRef.current = Math.min(typed.length, text.length - 1)
-    moveCaret()
-    windowRef.current.dataset.moving = 'true'
-    clearTimeout(idleTimerRef.current)
-    idleTimerRef.current = setTimeout(() => {
-      if (windowRef.current) windowRef.current.dataset.moving = 'false'
-    }, 600)
+    if (frameRef.current !== null) return
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = null
+      moveCaret()
+    })
   }, [typed.length, text, moveCaret])
 
-  useEffect(() => {
-    let active = true
-    const observer = new ResizeObserver(() => moveCaret(false))
-    observer.observe(windowRef.current)
-    document.fonts.ready.then(() => { if (active) moveCaret(false) })
-    return () => {
-      active = false
-      observer.disconnect()
-      clearTimeout(idleTimerRef.current)
-    }
-  }, [moveCaret])
-
-  const character = (char, index) => (
-    <span key={index} data-index={index} className={`practice-character ${getCharClass(char, typed[index])}`}>
-      {typed[index] ?? char}
-    </span>
-  )
-
   return (
-    <div ref={windowRef} className="practice-text-window" data-focused={isFocused}>
+    <div ref={windowRef} className="practice-text-window" data-focused={isFocused} data-active={isActive}>
       <p ref={textRef} id="practice-text" className="practice-text">
-        {words.map(({ word, start }, wordIndex) => (
-          <span key={start} className="practice-word">
-            {word.split('').map((char, index) => character(char, start + index))}
-            {wordIndex < words.length - 1 && character(' ', start + word.length)}
-          </span>
-        ))}
+        {words.map(({ word, start }) => <TypingWord key={start} word={word} start={start} input={typed.slice(start, start + word.length)} />)}
       </p>
       <span ref={caretTrackRef} className="practice-caret-track" aria-hidden="true">
         <span ref={caretRef} className="practice-caret" />

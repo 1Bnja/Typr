@@ -386,7 +386,6 @@
   font-family: ui-monospace, monospace;
   font-size: var(--typing-font-size);
   line-height: var(--typing-line-height);
-  transition: transform var(--line-scroll-duration, 160ms) cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
 }
 
@@ -399,7 +398,6 @@
   display: inline-block;
   width: 1ch;
   white-space: pre;
-  transition: color 100ms ease-out, background-color 100ms ease-out;
 }
 
 .practice-caret-track {
@@ -408,7 +406,6 @@
   left: 0;
   opacity: 0;
   pointer-events: none;
-  transition: transform var(--line-scroll-duration, 160ms) cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .practice-text-window[data-ready='true'] .practice-caret-track {
@@ -425,7 +422,6 @@
   height: calc(var(--typing-font-size) * 1.2);
   border-radius: 1px;
   background: #007059;
-  transition: transform var(--caret-step-duration, 80ms) linear;
   will-change: transform;
 }
 
@@ -648,7 +644,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .practice-text-window[data-focused='true'][data-moving='false'] .practice-caret {
+  .practice-text-window[data-focused='true'][data-active='false'] .practice-caret {
     animation: practice-caret-idle 1.4s ease-in-out infinite;
   }
 

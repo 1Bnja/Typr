@@ -120,7 +120,7 @@ const TypingTest = ({ text, onFinish, onCancel, onFocusChange }) => {
       </div>
 
       <div className="practice-typing-area">
-        <TypingText text={content} typed={typed} isFocused={isFocused} />
+        <TypingText text={content} typed={typed} isFocused={isFocused} isActive={focusMode} />
         <textarea
           ref={inputRef}
           className="practice-input"
