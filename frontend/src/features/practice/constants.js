@@ -22,6 +22,6 @@ export const DIFFICULTIES = [
     value: 'advanced',
     label: 'Hard',
     wordCount: 40,
-    description: 'Technical words with capitals, commas and periods.',
+    description: 'Familiar words with capitals, commas and periods.',
   },
 ]
