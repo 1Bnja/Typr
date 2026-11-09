@@ -18,8 +18,15 @@
 }
 
 .records-toolbar {
+  --records-control-height: 46px;
   margin: 40px 0 28px;
   align-items: end;
+}
+
+.records-toolbar .select-trigger,
+.records-toolbar > .button {
+  min-height: var(--records-control-height);
+  font-size: 14px;
 }
 
 .records-filters {
