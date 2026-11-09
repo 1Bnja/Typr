@@ -205,6 +205,8 @@ const Navbar = () => {
                     <p className="truncate text-sm font-semibold text-charcoal">{user.username}</p>
                   </div>
                   <div className="my-1 h-px bg-neutral-200" />
+                  <Link to="/practice/history" onClick={close} className={`block rounded-lg px-3 py-2 text-sm text-charcoal hover:bg-neutral-100 ${focusRing}`}>History</Link>
+                  <Link to="/practice/leaderboard" onClick={close} className={`block rounded-lg px-3 py-2 text-sm text-charcoal hover:bg-neutral-100 ${focusRing}`}>Monthly leaderboard</Link>
                   <button
                     type="button"
                     onClick={handleSignOut}
@@ -274,6 +276,8 @@ const Navbar = () => {
         <div className="mt-6 border-t border-neutral-200 pt-4">
           {user ? (
             <div className="flex flex-col">
+              <NavLink to="/practice/history" className={mobileLinkClass} onClick={close}>History</NavLink>
+              <NavLink to="/practice/leaderboard" className={mobileLinkClass} onClick={close}>Monthly leaderboard</NavLink>
               <Button variant="ghost" onClick={handleSignOut}>Sign out</Button>
             </div>
           ) : (

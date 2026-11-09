@@ -28,8 +28,11 @@ convención camelCase de `CamelModel`.
 
 El texto local pasa por `TextFacade.process`: validación de caracteres,
 normalización y clasificación. Se reutiliza un texto con el mismo contenido
-normalizado e idioma. Su dificultad almacenada corresponde a la clasificación
-del backend; el selector del frontend determina la lista de palabras utilizada.
+normalizado, idioma y dificultad. El frontend envía `difficulty` con el nivel
+seleccionado para el texto local. Si falta ese campo, se conserva la clasificación
+automática del backend como respaldo para clientes anteriores. Un `textId` ya
+registrado no se puede reutilizar con una dificultad distinta. Los resultados
+anteriores conservan su dificultad original.
 
 El servicio conserva la transacción hasta guardar el texto, la partida y el
 participante. Si falla una inserción, hace rollback de toda la operación.
@@ -48,6 +51,27 @@ fallo de almacenamiento. La autenticación usa la dependencia existente.
 Devuelve únicamente las prácticas terminadas del usuario autenticado, de la más
 reciente a la más antigua. `limit` admite entre 1 y 100 y `offset` debe ser
 positivo o cero. Un usuario sin partidas recibe una lista vacía.
+
+La vista `/practice/history` permite filtrar por `difficulty` y `language` y
+recorre los resultados en páginas de diez pruebas.
+
+## Ranking mensual
+
+`GET /api/v1/matches/leaderboard?month=2026-11&difficulty=easy&language=spa`.
+Requiere JWT. `month` es opcional y toma el mes actual en `America/Santiago`.
+El límite predeterminado es 50 y admite hasta 100 participantes. El filtro de
+idioma es opcional.
+
+Solo cuenta prácticas terminadas (`progress = 1`). Se selecciona una mejor partida
+por usuario y se ordena por puntuación descendente, precisión descendente, menor
+tiempo y fecha de finalización más temprana. El identificador de partida resuelve
+empates exactos. No se suman puntos por repetir pruebas. El período incluye el
+inicio del mes en Santiago y excluye el inicio del siguiente mes.
+
+La respuesta contiene `month`, `difficulty`, `language`, `timezone` y `entries`.
+Cada entrada incluye posición, identificador público, nombre de usuario y las
+métricas de la mejor partida; no expone correos ni datos de autenticación.
+La vista `/practice/leaderboard` marca al usuario actual cuando aparece en el top.
 
 ## Pruebas
 

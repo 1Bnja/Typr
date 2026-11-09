@@ -20,6 +20,7 @@ class PracticeMatchCreate(GameParticipantResult):
 
     text_id: int | None = Field(default=None, gt=0)
     text: PracticeTextInput | None = None
+    difficulty: Difficulty | None = None
     time_ms: int = Field(gt=0, le=2_147_483_647)
     ppm: int = Field(ge=0, le=2_147_483_647)
 
@@ -38,3 +39,22 @@ class PracticeMatchPublic(GameParticipantResult):
     score: int
     started_at: datetime
     finished_at: datetime
+
+
+class LeaderboardEntry(CamelModel):
+    position: int
+    user_id: int
+    username: str
+    ppm: int
+    precision_pct: float
+    score: int
+    time_ms: int
+    finished_at: datetime
+
+
+class MonthlyLeaderboard(CamelModel):
+    month: str
+    difficulty: Difficulty
+    language: Language | None
+    timezone: str
+    entries: list[LeaderboardEntry]

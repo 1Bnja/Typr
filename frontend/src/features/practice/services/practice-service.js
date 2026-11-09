@@ -16,14 +16,14 @@ export async function getRandomText({ language, difficulty }) {
   }
 }
 
-export async function savePracticeMatch(token, { textId, text, timeMs, ppm, precisionPct, progress }) {
+export async function savePracticeMatch(token, { textId, text, difficulty, timeMs, ppm, precisionPct, progress }) {
   const response = await fetch('/api/v1/matches/practice', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ textId, text, timeMs, ppm, precisionPct, progress }),
+    body: JSON.stringify({ textId, text, difficulty, timeMs, ppm, precisionPct, progress }),
   })
 
   const data = await response.json().catch(() => null)
@@ -35,4 +35,26 @@ export async function savePracticeMatch(token, { textId, text, timeMs, ppm, prec
     throw new Error('Could not read the saved match')
   }
   return data
+}
+
+async function getPracticeData(path, token, params, signal) {
+  const response = await fetch(`/api/v1/matches/${path}?${params}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal,
+  })
+  if (!response.ok) throw new Error('Could not load your practice data. Please try again.')
+  return response.json()
+}
+
+export function getPracticeHistory(token, { difficulty, language, offset = 0, limit = 11 }, signal) {
+  const params = new URLSearchParams({ offset, limit })
+  if (difficulty) params.set('difficulty', difficulty)
+  if (language) params.set('language', language)
+  return getPracticeData('practice', token, params, signal)
+}
+
+export function getMonthlyLeaderboard(token, { difficulty, language, month }, signal) {
+  const params = new URLSearchParams({ difficulty, month })
+  if (language) params.set('language', language)
+  return getPracticeData('leaderboard', token, params, signal)
 }

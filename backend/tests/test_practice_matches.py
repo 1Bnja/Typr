@@ -1,6 +1,6 @@
 import os
 import unittest
-from datetime import datetime
+from datetime import datetime, timezone
 
 os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite://")
 os.environ.setdefault("JWT_SECRET", "practice-tests-only-secret-not-for-production")
@@ -225,6 +225,160 @@ class PracticeMatchTests(unittest.TestCase):
         with self.engine.begin() as connection:
             connection.execute(text("DROP TRIGGER reject_participant"))
         self.assertEqual(self.save(payload).status_code, 201)
+
+    def test_selected_level_is_saved_and_history_filters_it(self):
+        payload = {key: value for key, value in self.payload.items() if key != "textId"}
+        payload["text"] = {"content": "casa mesa gato", "language": "spa"}
+        easy = self.save({**payload, "difficulty": "easy"})
+        medium = self.save({**payload, "difficulty": "medium"})
+        self.assertEqual(easy.status_code, 201, easy.text)
+        self.assertEqual(medium.status_code, 201, medium.text)
+        self.assertEqual(easy.json()["difficulty"], "easy")
+        self.assertEqual(medium.json()["difficulty"], "medium")
+        self.assertNotEqual(easy.json()["textId"], medium.json()["textId"])
+        rows = self.client.get(
+            "/api/v1/matches/practice?difficulty=easy&language=spa",
+            headers=self.headers,
+        ).json()
+        self.assertEqual([row["id"] for row in rows], [easy.json()["id"]])
+        wrong = self.save(
+            {**self.payload, "textId": easy.json()["textId"], "difficulty": "advanced"}
+        )
+        self.assertEqual(wrong.status_code, 422)
+        retry = self.save(
+            {**self.payload, "textId": easy.json()["textId"], "difficulty": "easy"}
+        )
+        self.assertEqual(retry.status_code, 201, retry.text)
+
+    def add_ranked_match(
+        self,
+        user_id,
+        finished_at,
+        score=50,
+        accuracy=95,
+        time_ms=30000,
+        difficulty=Difficulty.EASY,
+        language=Language.SPA,
+        progress=1,
+    ):
+        with self.sessions() as db:
+            stored_text = Text(
+                content="ranking words", language=language, difficulty=difficulty
+            )
+            game = Game(
+                text=stored_text,
+                mode="singleplayer",
+                finished_at=finished_at,
+                started_at=finished_at,
+            )
+            db.add(game)
+            db.flush()
+            db.add(
+                GameParticipant(
+                    game_id=game.id,
+                    user_id=user_id,
+                    ppm=55,
+                    precision_pct=accuracy,
+                    time_ms=time_ms,
+                    progress=progress,
+                    score=score,
+                )
+            )
+            db.commit()
+            return game.id
+
+    def test_monthly_ranking_keeps_one_best_result_per_person(self):
+        date = datetime(2026, 11, 10, 12, tzinfo=timezone.utc)
+        self.add_ranked_match(self.user_ids[0], date, score=10)
+        self.add_ranked_match(self.user_ids[0], date, score=90)
+        self.add_ranked_match(self.user_ids[1], date, score=70)
+        response = self.client.get(
+            "/api/v1/matches/leaderboard?month=2026-11&difficulty=easy",
+            headers=self.headers,
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        result = response.json()
+        self.assertEqual(result["timezone"], "America/Santiago")
+        self.assertEqual([row["userId"] for row in result["entries"]], self.user_ids)
+        self.assertEqual([row["score"] for row in result["entries"]], [90, 70])
+        self.assertEqual([row["position"] for row in result["entries"]], [1, 2])
+        self.assertNotIn("email", response.text)
+        self.assertNotIn("hashedPassword", response.text)
+
+    def test_monthly_ranking_uses_santiago_boundaries_and_filters(self):
+        from datetime import timedelta
+        from zoneinfo import ZoneInfo
+
+        zone = ZoneInfo("America/Santiago")
+        start = datetime(2026, 11, 1, tzinfo=zone).astimezone(timezone.utc)
+        end = datetime(2026, 12, 1, tzinfo=zone).astimezone(timezone.utc)
+        self.add_ranked_match(
+            self.user_ids[0], start - timedelta(microseconds=1), score=999
+        )
+        self.add_ranked_match(self.user_ids[0], start, score=30)
+        self.add_ranked_match(self.user_ids[0], end, score=888)
+        self.add_ranked_match(
+            self.user_ids[1], start, score=777, difficulty=Difficulty.ADVANCED
+        )
+        self.add_ranked_match(self.user_ids[1], start, score=666, language=Language.ENG)
+        self.add_ranked_match(self.user_ids[1], start, score=555, progress=0.5)
+        response = self.client.get(
+            "/api/v1/matches/leaderboard?month=2026-11&difficulty=easy&language=spa",
+            headers=self.headers,
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual([row["score"] for row in response.json()["entries"]], [30])
+        empty = self.client.get(
+            "/api/v1/matches/leaderboard?month=2026-11&difficulty=expert",
+            headers=self.headers,
+        )
+        self.assertEqual(empty.json()["entries"], [])
+
+    def test_monthly_ranking_breaks_ties_by_accuracy_time_and_earliest_finish(self):
+        from datetime import timedelta
+
+        date = datetime(2026, 11, 10, 12, tzinfo=timezone.utc)
+        self.add_ranked_match(
+            self.user_ids[0], date, score=50, accuracy=96, time_ms=30000
+        )
+        self.add_ranked_match(
+            self.user_ids[1], date, score=50, accuracy=97, time_ms=40000
+        )
+        path = "/api/v1/matches/leaderboard?month=2026-11&difficulty=easy"
+        rows = self.client.get(path, headers=self.headers).json()["entries"]
+        self.assertEqual(rows[0]["userId"], self.user_ids[1])
+        self.add_ranked_match(
+            self.user_ids[0], date, score=50, accuracy=97, time_ms=20000
+        )
+        rows = self.client.get(path, headers=self.headers).json()["entries"]
+        self.assertEqual(rows[0]["userId"], self.user_ids[0])
+        self.add_ranked_match(
+            self.user_ids[1],
+            date - timedelta(seconds=1),
+            score=50,
+            accuracy=97,
+            time_ms=20000,
+        )
+        rows = self.client.get(path, headers=self.headers).json()["entries"]
+        self.assertEqual(rows[0]["userId"], self.user_ids[1])
+
+    def test_monthly_ranking_validates_queries_and_requires_auth(self):
+        path = "/api/v1/matches/leaderboard"
+        self.assertIn(self.client.get(path).status_code, (401, 403))
+        for query in (
+            "month=2026-13",
+            "month=0000-01",
+            "month=9999-12",
+            "month=bad",
+            "difficulty=invalid",
+            "limit=101",
+        ):
+            with self.subTest(query=query):
+                response = self.client.get(f"{path}?{query}", headers=self.headers)
+                self.assertEqual(response.status_code, 422, response.text)
+        response = self.client.get(path, headers=self.headers)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["entries"], [])
 
 
 if __name__ == "__main__":

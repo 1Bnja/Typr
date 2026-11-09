@@ -111,3 +111,40 @@ test('an invalid success response is reported as a save error', async (context) 
     /Could not read the saved match/,
   )
 })
+
+test('saving keeps the chosen practice difficulty', async (context) => {
+  const { savePracticeMatch } = await import('../src/features/practice/services/practice-service.js')
+  const fetchMock = context.mock.method(globalThis, 'fetch', async () => ({
+    ok: true, json: async () => ({ id: 5, textId: 7, difficulty: 'easy' }),
+  }))
+  await savePracticeMatch('token', {
+    text: { content: 'casa mesa gato', language: 'spa' }, difficulty: 'easy',
+    timeMs: 30000, ppm: 30, precisionPct: 95, progress: 1,
+  })
+  assert.equal(JSON.parse(fetchMock.mock.calls[0].arguments[1].body).difficulty, 'easy')
+})
+
+test('history and ranking requests carry filters, authentication and cancellation', async (context) => {
+  const { getPracticeHistory, getMonthlyLeaderboard } = await import('../src/features/practice/services/practice-service.js')
+  const fetchMock = context.mock.method(globalThis, 'fetch', async () => ({ ok: true, json: async () => [] }))
+  const controller = new AbortController()
+  await getPracticeHistory('token', { difficulty: 'advanced', language: 'eng', offset: 10, limit: 11 }, controller.signal)
+  await getMonthlyLeaderboard('token', { difficulty: 'easy', month: '2026-11', language: 'spa' }, controller.signal)
+  const [historyUrl, request] = fetchMock.mock.calls[0].arguments
+  const historyParams = new URL(historyUrl, 'http://localhost').searchParams
+  assert.equal(historyParams.get('difficulty'), 'advanced')
+  assert.equal(historyParams.get('offset'), '10')
+  assert.equal(historyParams.get('limit'), '11')
+  assert.equal(request.headers.Authorization, 'Bearer token')
+  assert.equal(request.signal, controller.signal)
+  const rankingUrl = new URL(fetchMock.mock.calls[1].arguments[0], 'http://localhost')
+  assert.equal(rankingUrl.pathname, '/api/v1/matches/leaderboard')
+  assert.equal(rankingUrl.searchParams.get('month'), '2026-11')
+  assert.equal(rankingUrl.searchParams.get('language'), 'spa')
+})
+
+test('record requests propagate failures for the retry state', async (context) => {
+  const { getPracticeHistory } = await import('../src/features/practice/services/practice-service.js')
+  context.mock.method(globalThis, 'fetch', async () => ({ ok: false }))
+  await assert.rejects(getPracticeHistory('token', {}), /Could not load/)
+})

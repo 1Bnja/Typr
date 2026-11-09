@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../auth'
 import PracticeSetup from '../components/practice-setup'
 import TypingTest from '../components/typing-test'
 import TestResults from '../components/test-results'
 import TypingReference from '../components/typing-reference'
+import PracticeNav from '../components/practice-nav'
 import { getRandomText, savePracticeMatch } from '../services/practice-service'
 import { DIFFICULTIES, LANGUAGES } from '../constants'
 import '../practice.css'
+import '../records.css'
 
 const titles = {
   setup: 'Practice test',
@@ -17,10 +19,11 @@ const titles = {
 
 const Practice = () => {
   const { status, token } = useAuth()
+  const [searchParams] = useSearchParams()
 
   const [phase, setPhase] = useState('setup')
-  const [language, setLanguage] = useState('spa')
-  const [difficulty, setDifficulty] = useState('easy')
+  const [language, setLanguage] = useState(() => LANGUAGES.some((option) => option.value === searchParams.get('language')) ? searchParams.get('language') : 'spa')
+  const [difficulty, setDifficulty] = useState(() => DIFFICULTIES.some((option) => option.value === searchParams.get('difficulty')) ? searchParams.get('difficulty') : 'easy')
   const [text, setText] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [result, setResult] = useState(null)
@@ -69,7 +72,7 @@ const Practice = () => {
       const textData = text.id == null
         ? { text: { content: text.content, language: text.language } }
         : { textId: text.id }
-      const saved = await savePracticeMatch(token, { ...textData, ...testResult })
+      const saved = await savePracticeMatch(token, { ...textData, difficulty: text.difficulty, ...testResult })
       if (saved?.score != null) {
         setResult({ ...testResult, score: saved.score })
       }
@@ -82,6 +85,7 @@ const Practice = () => {
 
   return (
     <section className={`practice practice--${phase}`}>
+      {phase !== 'typing' && <PracticeNav />}
       <header className="practice-header">
         <h1 className={phase === 'typing' ? 'sr-only' : ''}>{titles[phase]}</h1>
         <p>

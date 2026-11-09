@@ -97,6 +97,39 @@ class PostgreSQLPracticeTests(unittest.TestCase):
         self.assertEqual(history.status_code, 200, history.text)
         self.assertEqual(history.json()[0]["id"], second.json()["id"])
 
+    def test_selected_level_and_monthly_ranking_on_postgresql(self):
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        from app.models import Game
+
+        payload = {**self.payload, "difficulty": "easy"}
+        first = self.client.post(
+            "/api/v1/matches/practice", json=payload, headers=self.headers
+        )
+        self.assertEqual(first.status_code, 201, first.text)
+        second = self.client.post(
+            "/api/v1/matches/practice",
+            json={**payload, "ppm": 60},
+            headers=self.headers,
+        )
+        self.assertEqual(second.status_code, 201, second.text)
+        with self.sessions() as db:
+            for saved in (first.json(), second.json()):
+                db.get(Game, saved["id"]).finished_at = datetime(
+                    2026, 11, 10, 12, tzinfo=ZoneInfo("America/Santiago")
+                )
+            db.commit()
+        ranking = self.client.get(
+            "/api/v1/matches/leaderboard?month=2026-11&difficulty=easy&language=spa",
+            headers=self.headers,
+        )
+        self.assertEqual(ranking.status_code, 200, ranking.text)
+        entries = ranking.json()["entries"]
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["userId"], self.user_id)
+        self.assertEqual(entries[0]["score"], second.json()["score"])
+        self.assertEqual(entries[0]["position"], 1)
+
     def test_participant_failure_rolls_back_new_text_and_game_in_postgresql(self):
         from sqlalchemy import func, select
         from app.models import Game, GameParticipant, Text
