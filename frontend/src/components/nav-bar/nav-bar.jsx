@@ -6,6 +6,7 @@ import { useAuth } from '../../features/auth/context/auth-provider'
 
 const links = [
   { to: '/', label: 'Home' },
+  { to: '/practice', label: 'Practice' },
   { to: '/about', label: 'About' },
   { to: '/contact', label: 'Contact' },
 ]
@@ -79,7 +80,6 @@ const Navbar = () => {
 
   const close = () => setOpen(false)
 
-  // Sombra / blur al hacer scroll
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
     onScroll()
@@ -87,13 +87,11 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Cierra los menús al cambiar de ruta (incluye atrás/adelante del navegador)
   useEffect(() => {
     setOpen(false)
     setUserMenuOpen(false)
   }, [pathname])
 
-  // Cierra el menú móvil al pasar a escritorio
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 768px)')
     const onChange = (event) => {
@@ -103,7 +101,6 @@ const Navbar = () => {
     return () => mq.removeEventListener('change', onChange)
   }, [])
 
-  // Bloquea el scroll del body con el menú móvil abierto
   useEffect(() => {
     if (!open) return
     const { overflow } = document.body.style
@@ -113,7 +110,6 @@ const Navbar = () => {
     }
   }, [open])
 
-  // Escape cierra cualquier menú abierto
   useEffect(() => {
     if (!open && !userMenuOpen) return
     const onKey = (event) => {
@@ -128,7 +124,6 @@ const Navbar = () => {
     return () => window.removeEventListener('keydown', onKey)
   }, [open, userMenuOpen])
 
-  // Click fuera cierra el menú de usuario
   useEffect(() => {
     if (!userMenuOpen) return
     const onPointerDown = (event) => {
@@ -160,7 +155,6 @@ const Navbar = () => {
           aria-label="Principal"
           className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 md:grid md:grid-cols-[1fr_auto_1fr]"
         >
-          {/* Logo */}
           <Link
             to="/"
             onClick={close}
@@ -170,7 +164,6 @@ const Navbar = () => {
             <span className="text-xl font-extrabold tracking-tight text-charcoal">Typr</span>
           </Link>
 
-          {/* Links escritorio (centrados) */}
           <ul className="hidden items-center gap-1 md:flex">
             {links.map((link) => (
               <li key={link.to}>
@@ -181,7 +174,6 @@ const Navbar = () => {
             ))}
           </ul>
 
-          {/* Acciones escritorio */}
           <div className="hidden items-center gap-2 justify-self-end md:flex">
             {user ? (
               <div className="relative" ref={userMenuRef}>
@@ -230,7 +222,6 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Toggle móvil */}
           <button
             ref={toggleRef}
             type="button"
@@ -245,14 +236,12 @@ const Navbar = () => {
         </nav>
       </header>
 
-      {/* Fondo oscurecido (móvil) */}
       <div
         aria-hidden="true"
         onClick={close}
         className={`fixed inset-0 top-16 z-30 bg-charcoal/20 backdrop-blur-sm transition-opacity duration-300 md:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
       />
 
-      {/* Panel móvil */}
       <div
         id="mobile-menu"
         className={[
