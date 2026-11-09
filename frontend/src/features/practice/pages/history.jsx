@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../../auth'
 import Button from '../../../components/button'
+import Select from '../../../components/select/select'
 import PracticeNav from '../components/practice-nav'
 import { LANGUAGES } from '../constants'
 import { getPracticeHistory } from '../services/practice-service'
@@ -60,18 +61,8 @@ const History = () => {
 
       <div className="records-toolbar">
         <div className="records-filters">
-          <label>Difficulty
-            <select value={difficulty} onChange={(event) => changeFilter(setDifficulty, event.target.value)}>
-              <option value="">All difficulties</option>
-              {RECORD_DIFFICULTIES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>
-          <label>Language
-            <select value={language} onChange={(event) => changeFilter(setLanguage, event.target.value)}>
-              <option value="">All languages</option>
-              {LANGUAGES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>
+          <Select label="Difficulty" value={difficulty} options={[{ value: '', label: 'All difficulties' }, ...RECORD_DIFFICULTIES]} onChange={(value) => changeFilter(setDifficulty, value)} />
+          <Select label="Language" value={language} options={[{ value: '', label: 'All languages' }, ...LANGUAGES]} onChange={(value) => changeFilter(setLanguage, value)} />
         </div>
         <Link to="/practice" className="button button--primary">New test</Link>
       </div>
@@ -92,7 +83,7 @@ const History = () => {
           </div>
         )}
         {status === 'ready' && rows.length > 0 && (
-          <div className="records-table-scroll" role="region" aria-label="Saved practice tests" tabIndex={0}>
+          <div className="records-table-scroll styled-scrollbar" role="region" aria-label="Saved practice tests" tabIndex={0}>
             <table className="records-table">
               <caption className="sr-only">Your saved tests, newest first</caption>
               <thead><tr><th scope="col">Played</th><th scope="col">Difficulty</th><th scope="col">Speed</th><th scope="col">Accuracy</th><th scope="col">Time</th><th scope="col">Score</th></tr></thead>

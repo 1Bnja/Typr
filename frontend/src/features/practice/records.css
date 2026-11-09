@@ -54,54 +54,15 @@
   gap: 16px;
 }
 
-.records-filters label {
-  display: grid;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.records-filters select,
-.records-filters input {
-  min-height: 44px;
-  min-width: 160px;
-  max-width: 100%;
-  padding: 10px 14px;
-  border: 1px solid #d4d5cb;
-  border-radius: 10px;
-  background: #fff;
-  color: #232320;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 400;
-}
-
-.records-filters input {
-  color-scheme: light;
-}
-
 .records-levels {
   display: flex;
   gap: 6px;
   margin: 4px 0 32px;
 }
 
-.records-levels button {
+.records-levels .button {
   min-height: 44px;
-  padding: 10px 20px;
-  border-radius: 10px;
-  color: var(--practice-muted);
-  font-size: 14px;
-}
-
-.records-levels button:hover {
-  background: #e9e8e1;
-}
-
-.records-levels button[aria-pressed='true'] {
-  background: #dbf1e7;
-  color: #005e4c;
-  font-weight: 600;
+  min-width: 96px;
 }
 
 .records-section-heading {
@@ -127,8 +88,58 @@
 
 .records-table-scroll {
   overflow-x: auto;
-  scrollbar-color: #aaaca0 transparent;
-  scrollbar-width: thin;
+}
+
+.month-picker-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 10px);
+  left: 0;
+  width: 272px;
+  max-width: calc(100vw - 32px);
+  padding: 12px;
+  border: 1px solid #e1e2dc;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 3px 0 #e1e2dc;
+}
+
+.month-picker-year {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.month-picker-year .button {
+  min-height: 36px;
+  padding: 8px;
+}
+
+.month-picker-year svg {
+  width: 20px;
+  height: 20px;
+}
+
+.month-picker-previous {
+  transform: rotate(90deg);
+}
+
+.month-picker-next {
+  transform: rotate(-90deg);
+}
+
+.month-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.month-picker-grid .button {
+  min-height: 40px;
 }
 
 .records-table {
@@ -285,9 +296,6 @@
 }
 
 .practice-nav a:focus-visible,
-.records-filters select:focus-visible,
-.records-filters input:focus-visible,
-.records-levels button:focus-visible,
 .records-text-link:focus-visible,
 .records-table-scroll:focus-visible {
   outline: 2px solid var(--practice-green);
@@ -312,19 +320,13 @@
     gap: 12px;
   }
 
-  .records-filters label {
-    flex: 1 1 130px;
+  .records-filters > .select-field {
+    flex: 1 1 160px;
     min-width: 0;
   }
 
-  .records-filters label:has(input[type='month']) {
+  .records-filters > .month-picker {
     flex-basis: 100%;
-  }
-
-  .records-filters select,
-  .records-filters input {
-    width: 100%;
-    min-width: 0;
   }
 
   .records-toolbar > .button {
@@ -336,8 +338,9 @@
     gap: 4px;
   }
 
-  .records-levels button {
+  .records-levels .button {
     flex: 1;
+    min-width: 0;
     padding: 10px;
     font-size: 13px;
   }

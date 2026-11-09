@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../../auth'
 import Button from '../../../components/button'
+import Select from '../../../components/select/select'
+import MonthPicker from '../components/month-picker'
 import PracticeNav from '../components/practice-nav'
 import { DIFFICULTIES, LANGUAGES } from '../constants'
 import { getMonthlyLeaderboard } from '../services/practice-service'
@@ -52,24 +54,17 @@ const Leaderboard = () => {
 
       <div className="records-toolbar">
         <div className="records-filters">
-          <label>Month
-            <input type="month" value={month} max={getCurrentMonth()} required onChange={(event) => { if (event.target.value) changeFilter(setMonth, event.target.value) }} />
-          </label>
-          <label>Language
-            <select value={language} onChange={(event) => changeFilter(setLanguage, event.target.value)}>
-              <option value="">All languages</option>
-              {LANGUAGES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>
+          <MonthPicker value={month} onChange={(value) => changeFilter(setMonth, value)} />
+          <Select label="Language" value={language} options={[{ value: '', label: 'All languages' }, ...LANGUAGES]} onChange={(value) => changeFilter(setLanguage, value)} />
         </div>
         <Link to={`/practice?difficulty=${difficulty}&language=${language || 'spa'}`} className="button button--primary">Take a test</Link>
       </div>
 
       <div className="records-levels" aria-label="Leaderboard difficulty">
         {DIFFICULTIES.map((option) => (
-          <button key={option.value} type="button" aria-pressed={difficulty === option.value} onClick={() => { if (difficulty !== option.value) changeFilter(setDifficulty, option.value) }}>
+          <Button key={option.value} variant={difficulty === option.value ? 'primary' : 'ghost'} aria-pressed={difficulty === option.value} onClick={() => { if (difficulty !== option.value) changeFilter(setDifficulty, option.value) }}>
             {option.label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -93,7 +88,7 @@ const Leaderboard = () => {
           </div>
         )}
         {status === 'ready' && ranking.entries.length > 0 && (
-          <div className="records-table-scroll" role="region" aria-label="Monthly practice ranking" tabIndex={0}>
+          <div className="records-table-scroll styled-scrollbar" role="region" aria-label="Monthly practice ranking" tabIndex={0}>
             <table className="records-table records-leaderboard">
               <caption className="sr-only">Best completed test for each typist in {formatMonth(month)}</caption>
               <thead><tr><th scope="col">Rank</th><th scope="col">Typist</th><th scope="col">Score</th><th scope="col">Speed</th><th scope="col">Accuracy</th><th scope="col">Time</th></tr></thead>
