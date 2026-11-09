@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/auth-provider'
+import { useAuth } from '../context/auth-context'
 import Button from '../../../components/button'
 import authService from '../services/authService'
 
@@ -76,7 +76,12 @@ const LoginForm = ({ isRegistering }) => {
                     placeholder="At least 8 characters"
                 />
             </label>
-            <Button className="mt-2 w-full" type="submit" variant="primary">
+            {error && (
+                <p className="text-sm font-semibold text-red-600" role="alert">
+                    {error}
+                </p>
+            )}
+            <Button className="mt-2 w-full" type="submit" variant="primary" isLoading={pending}>
                 {isRegistering ? 'Create account' : 'Sign in'}
             </Button>
         </form>
