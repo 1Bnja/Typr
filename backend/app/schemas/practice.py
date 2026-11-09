@@ -1,0 +1,40 @@
+from datetime import datetime
+
+from pydantic import ConfigDict, Field, model_validator
+
+from app.schemas.base import CamelModel
+from app.schemas.game import GameParticipantResult
+from app.text_constants import MAX_CONTENT_LENGTH
+from app.text_enums import Difficulty, Language
+
+
+class PracticeTextInput(CamelModel):
+    model_config = ConfigDict(extra="forbid")
+
+    content: str = Field(min_length=1, max_length=MAX_CONTENT_LENGTH)
+    language: Language
+
+
+class PracticeMatchCreate(GameParticipantResult):
+    model_config = ConfigDict(extra="forbid")
+
+    text_id: int | None = Field(default=None, gt=0)
+    text: PracticeTextInput | None = None
+    time_ms: int = Field(gt=0, le=2_147_483_647)
+    ppm: int = Field(ge=0, le=2_147_483_647)
+
+    @model_validator(mode="after")
+    def require_one_text(self):
+        if (self.text_id is None) == (self.text is None):
+            raise ValueError("Envía textId o text, pero no ambos.")
+        return self
+
+
+class PracticeMatchPublic(GameParticipantResult):
+    id: int
+    text_id: int
+    language: Language
+    difficulty: Difficulty
+    score: int
+    started_at: datetime
+    finished_at: datetime
