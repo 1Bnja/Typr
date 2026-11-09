@@ -73,7 +73,7 @@ const TypingTest = ({ text, onFinish, onCancel }) => {
     const isFinished = value.length === content.length && !e.nativeEvent.isComposing
     if (isFinished) {
       finishedRef.current = true
-      const timeMs = time - start
+      const timeMs = Math.max(1, time - start)
       const finalPpm = calculatePpm(countCorrectChars(value, content), timeMs)
       const finalPrecision = calculatePrecision(newKeystrokes, newErrors)
       onFinish({

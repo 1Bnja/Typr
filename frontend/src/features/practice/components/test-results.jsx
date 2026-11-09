@@ -6,7 +6,6 @@ const saveMessages = {
   saving: 'Saving your match…',
   saved: 'Match saved in your history.',
   error: 'We could not save this match.',
-  skipped: 'Test complete. You can retry these words or generate a new set.',
 }
 
 const TestResults = ({ result, saveStatus, onRetry, onNewText, onChangeSettings, isLoading, error }) => {

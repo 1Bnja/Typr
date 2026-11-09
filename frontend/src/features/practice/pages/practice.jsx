@@ -64,17 +64,16 @@ const Practice = () => {
     setResult(testResult)
     setPhase('results')
 
-    if (text.id === null) {
-      setSaveStatus('skipped')
-      return
-    }
-
     setSaveStatus('saving')
     try {
-      const saved = await savePracticeMatch(token, { textId: text.id, ...testResult })
+      const textData = text.id == null
+        ? { text: { content: text.content, language: text.language } }
+        : { textId: text.id }
+      const saved = await savePracticeMatch(token, { ...textData, ...testResult })
       if (saved?.score != null) {
         setResult({ ...testResult, score: saved.score })
       }
+      setText((current) => ({ ...current, id: saved.textId }))
       setSaveStatus('saved')
     } catch {
       setSaveStatus('error')

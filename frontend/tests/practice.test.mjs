@@ -62,3 +62,52 @@ test('metrics include corrected mistakes and handle an idle timer', () => {
   assert.equal(calculatePrecision(11, 1), 90.9)
   assert.equal(calculateScore(50, 90), 45)
 })
+
+test('saving a local result sends the text, metrics and bearer token', async (context) => {
+  const { savePracticeMatch } = await import('../src/features/practice/services/practice-service.js')
+  const saved = { id: 7, textId: 11, score: 38 }
+  const fetchMock = context.mock.method(globalThis, 'fetch', async () => ({
+    ok: true,
+    json: async () => saved,
+  }))
+  const result = await savePracticeMatch('test-token', {
+    text: { content: 'casa mesa gato', language: 'spa' },
+    timeMs: 30000, ppm: 40, precisionPct: 95, progress: 1, score: 999,
+  })
+  const [url, request] = fetchMock.mock.calls[0].arguments
+  assert.equal(url, '/api/v1/matches/practice')
+  assert.equal(request.method, 'POST')
+  assert.equal(request.headers.Authorization, 'Bearer test-token')
+  assert.deepEqual(JSON.parse(request.body), {
+    text: { content: 'casa mesa gato', language: 'spa' },
+    timeMs: 30000, ppm: 40, precisionPct: 95, progress: 1,
+  })
+  assert.deepEqual(result, saved)
+})
+
+test('saving with an existing text sends its ID and propagates API errors', async (context) => {
+  const { savePracticeMatch } = await import('../src/features/practice/services/practice-service.js')
+  const fetchMock = context.mock.method(globalThis, 'fetch', async () => ({
+    ok: false,
+    json: async () => ({ detail: 'El texto no existe.' }),
+  }))
+  await assert.rejects(
+    savePracticeMatch('test-token', { textId: 9, timeMs: 1000, ppm: 40, precisionPct: 95, progress: 1 }),
+    /El texto no existe\./,
+  )
+  const payload = JSON.parse(fetchMock.mock.calls[0].arguments[1].body)
+  assert.equal(payload.textId, 9)
+  assert.equal('text' in payload, false)
+})
+
+test('an invalid success response is reported as a save error', async (context) => {
+  const { savePracticeMatch } = await import('../src/features/practice/services/practice-service.js')
+  context.mock.method(globalThis, 'fetch', async () => ({
+    ok: true,
+    json: async () => null,
+  }))
+  await assert.rejects(
+    savePracticeMatch('test-token', { textId: 9, timeMs: 1000, ppm: 40, precisionPct: 95, progress: 1 }),
+    /Could not read the saved match/,
+  )
+})
