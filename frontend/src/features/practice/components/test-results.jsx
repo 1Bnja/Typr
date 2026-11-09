@@ -8,7 +8,7 @@ const saveMessages = {
   error: 'We could not save this match.',
 }
 
-const TestResults = ({ result, saveStatus, onRetry, onNewText, onChangeSettings, isLoading, error }) => {
+const TestResults = ({ result, saveStatus, onNewText, onChangeSettings, isLoading, error }) => {
   const isSaving = saveStatus === 'saving'
   return (
     <div className="practice-results">
@@ -32,9 +32,6 @@ const TestResults = ({ result, saveStatus, onRetry, onNewText, onChangeSettings,
       <div className="practice-result-actions">
         <Button variant="primary" onClick={onNewText} isLoading={isLoading} disabled={isSaving}>
           {isLoading ? 'Preparing text…' : 'New text'}
-        </Button>
-        <Button variant="secondary" onClick={onRetry} disabled={isLoading || isSaving}>
-          Retry same text
         </Button>
         <Button variant="ghost" onClick={onChangeSettings} disabled={isLoading || isSaving}>
           Change settings

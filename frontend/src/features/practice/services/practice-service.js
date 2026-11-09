@@ -1,8 +1,8 @@
 import { USE_LOCAL_TEXTS } from '../constants.js'
 import { generatePracticeText } from '../utils/generate-text.js'
 
-export async function getRandomText({ language, difficulty }) {
-  if (USE_LOCAL_TEXTS) return generatePracticeText(language, difficulty)
+export async function getRandomText({ language, difficulty, previousContent }) {
+  if (USE_LOCAL_TEXTS) return generatePracticeText(language, difficulty, previousContent)
 
   const params = new URLSearchParams({ language, difficulty })
   try {
@@ -10,9 +10,10 @@ export async function getRandomText({ language, difficulty }) {
     if (!response.ok) throw new Error('Text not available')
     const text = await response.json()
     if (!text?.content?.trim()) throw new Error('Text is empty')
+    if (text.content.trim() === previousContent?.trim()) throw new Error('Text was already used')
     return text
   } catch {
-    return generatePracticeText(language, difficulty)
+    return generatePracticeText(language, difficulty, previousContent)
   }
 }
 

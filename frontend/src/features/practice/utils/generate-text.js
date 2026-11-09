@@ -1,7 +1,7 @@
 import { DIFFICULTIES } from '../constants.js'
 import { WORD_LISTS } from '../data/word-lists.js'
 
-export function generatePracticeText(language, difficulty) {
+export function generatePracticeText(language, difficulty, previousContent = '') {
   const selectedLanguage = WORD_LISTS[language] ? language : 'spa'
   const level = DIFFICULTIES.find((option) => option.value === difficulty) ?? DIFFICULTIES[0]
   const words = [...WORD_LISTS[selectedLanguage][level.value]]
@@ -14,6 +14,12 @@ export function generatePracticeText(language, difficulty) {
   }
 
   const selectedWords = words.slice(0, level.wordCount).map((word) => word.toLowerCase())
+
+  if (selectedWords.join(' ') === previousContent.toLowerCase().replace(/[,.]/g, '')) {
+    const firstWord = selectedWords[0]
+    selectedWords[0] = selectedWords[1]
+    selectedWords[1] = firstWord
+  }
 
   if (level.value === 'advanced') {
     for (let i = 0; i < selectedWords.length; i++) {

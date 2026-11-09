@@ -260,19 +260,9 @@
 }
 
 .records-rank {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
   color: var(--practice-muted);
-}
-
-.records-rank--first {
-  border-radius: 8px;
-  background: #f2c21a;
-  color: #5a4700;
-  box-shadow: 0 2px 0 #c49a0f;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .records-typist {

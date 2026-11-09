@@ -42,7 +42,7 @@ const Practice = () => {
     setIsLoading(true)
     setError('')
     try {
-      const newText = await getRandomText({ language, difficulty })
+      const newText = await getRandomText({ language, difficulty, previousContent: text?.content })
       setText(newText)
       setResult(null)
       setSaveStatus('idle')
@@ -53,14 +53,6 @@ const Practice = () => {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const retrySameText = () => {
-    setResult(null)
-    setSaveStatus('idle')
-    setError('')
-    setAttempt((current) => current + 1)
-    setPhase('typing')
   }
 
   const handleFinish = async (testResult) => {
@@ -120,7 +112,6 @@ const Practice = () => {
         <TestResults
           result={result}
           saveStatus={saveStatus}
-          onRetry={retrySameText}
           onNewText={startWithNewText}
           onChangeSettings={() => setPhase('setup')}
           isLoading={isLoading}

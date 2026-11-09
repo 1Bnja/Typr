@@ -46,6 +46,26 @@ test('consecutive tests generate different word orders', () => {
   assert.ok(texts.size > 1)
 })
 
+test('a repeated random order is replaced without losing the difficulty format', async (context) => {
+  context.mock.method(Math, 'random', () => 0.5)
+  for (const { value: language } of LANGUAGES) {
+    for (const { value: difficulty, wordCount } of DIFFICULTIES) {
+      const previous = await getRandomText({ language, difficulty })
+      const next = await getRandomText({ language, difficulty, previousContent: previous.content })
+      assert.notEqual(next.content, previous.content)
+      assert.equal(next.content.split(' ').length, wordCount)
+      assert.equal(next.language, language)
+      assert.equal(next.difficulty, difficulty)
+      if (difficulty === 'advanced') {
+        const words = next.content.split(' ')
+        assert.equal(words.filter((word) => /^[A-ZÁÉÍÓÚÑ]/.test(word)).length, 4)
+        assert.equal(words.filter((word) => word.endsWith(',')).length, 4)
+        assert.equal(words.filter((word) => word.endsWith('.')).length, 4)
+      }
+    }
+  }
+})
+
 test('local mode works without requesting the API', async (context) => {
   const fetchMock = context.mock.method(globalThis, 'fetch', () => {
     throw new Error('The local mode must not request the API')
