@@ -3,10 +3,9 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../../auth'
 import Button from '../../../components/button'
 import Select from '../../../components/select/select'
-import PracticeNav from '../components/practice-nav'
 import { LANGUAGES } from '../constants'
 import { getPracticeHistory } from '../services/practice-service'
-import { formatTime } from '../utils/metrics'
+import { formatTime, getSpeedUnit } from '../utils/metrics'
 import { formatMatchDate, getDifficultyLabel, RECORD_DIFFICULTIES } from '../utils/records'
 import '../practice.css'
 import '../records.css'
@@ -53,7 +52,6 @@ const History = () => {
 
   return (
     <section className="practice practice-records">
-      <PracticeNav />
       <header className="practice-header">
         <h1>Your typing history</h1>
         <p>Every saved test, with your speed, accuracy and score.</p>
@@ -93,7 +91,7 @@ const History = () => {
                   <tr key={match.id}>
                     <th scope="row"><time dateTime={match.finishedAt}>{formatMatchDate(match.finishedAt)}</time><span className="records-secondary">{LANGUAGES.find((option) => option.value === match.language)?.label}</span></th>
                     <td><span className={`records-difficulty records-difficulty--${match.difficulty}`}>{getDifficultyLabel(match.difficulty)}</span></td>
-                    <td className="records-speed"><strong>{match.ppm}</strong> <span className="records-unit">PPM</span></td>
+                    <td className="records-speed"><strong>{match.ppm}</strong> <span className="records-unit">{getSpeedUnit(match.language)}</span></td>
                     <td>{Number(match.precisionPct.toFixed(1))}%</td>
                     <td>{formatTime(match.timeMs)}</td>
                     <td className="records-score">{match.score}</td>

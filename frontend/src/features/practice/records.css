@@ -1,31 +1,5 @@
-.practice-nav {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 24px;
-  margin-bottom: 36px;
-  font-size: 13px;
-  color: var(--practice-muted);
-}
-
-.practice-nav a {
-  padding: 8px 0;
-  border-bottom: 2px solid transparent;
-}
-
-.practice-nav a:hover,
-.practice-nav a[aria-current='page'] {
-  color: var(--practice-green);
-}
-
-.practice-nav a[aria-current='page'] {
-  border-color: #18a98a;
-  font-weight: 600;
-}
-
 .practice-records {
   max-width: 1120px;
-  padding-top: 24px;
 }
 
 .practice-records .practice-header h1 {
@@ -44,8 +18,15 @@
 }
 
 .records-toolbar {
+  --records-control-height: 46px;
   margin: 40px 0 28px;
   align-items: end;
+}
+
+.records-toolbar .select-trigger,
+.records-toolbar > .button {
+  min-height: var(--records-control-height);
+  font-size: 14px;
 }
 
 .records-filters {
@@ -260,9 +241,17 @@
 }
 
 .records-rank {
+  display: inline-flex;
+  align-items: center;
   color: var(--practice-muted);
   font-size: 13px;
   font-weight: 500;
+}
+
+.records-crown {
+  width: 18px;
+  height: 18px;
+  color: #8a6900;
 }
 
 .records-typist {
@@ -344,7 +333,6 @@
   text-underline-offset: 4px;
 }
 
-.practice-nav a:focus-visible,
 .records-text-link:focus-visible,
 .records-table-scroll:focus-visible {
   outline: 2px solid var(--practice-green);
@@ -352,12 +340,6 @@
 }
 
 @media (max-width: 640px) {
-  .practice-nav {
-    gap: 16px;
-    margin-bottom: 28px;
-    font-size: 12px;
-  }
-
   .records-toolbar {
     align-items: stretch;
     flex-direction: column;

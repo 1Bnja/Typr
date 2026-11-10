@@ -1,3 +1,5 @@
+import { getSpeedUnit } from '../utils/metrics'
+
 const speedRanges = [
   {
     min: 0,
@@ -50,7 +52,8 @@ const speedRanges = [
   },
 ]
 
-const TypingReference = ({ ppm }) => {
+const TypingReference = ({ ppm, language = 'spa' }) => {
+  const speedUnit = getSpeedUnit(language)
   return (
     <section className="practice-reference" aria-labelledby="typing-reference-title">
       <div className="practice-reference-heading">
@@ -59,7 +62,7 @@ const TypingReference = ({ ppm }) => {
           <p className="practice-reference-intro">Small improvements add up. Here is a little context for your next test.</p>
         </div>
         <div className="practice-reference-study">
-          <p className="practice-reference-average"><strong>52</strong> <span>PPM</span> <span className="practice-reference-average-label">study average</span></p>
+          <p className="practice-reference-average"><strong>52</strong> <span>WPM</span> <span className="practice-reference-average-label">study average</span></p>
           <p className="practice-reference-source">
             168,000 volunteers · <a href="https://www.aalto.fi/en/news/the-traits-of-fast-typists-discovered-by-analysing-136-million-keystrokes" target="_blank" rel="noreferrer">Aalto & Cambridge, 2018</a>
           </p>
@@ -73,12 +76,12 @@ const TypingReference = ({ ppm }) => {
             return (
               <div key={level.label} className="practice-speed-range" data-current={isCurrent}>
                 <dt>
-                  <span className="practice-speed-range-value">{level.range} <span>PPM</span></span>
+                  <span className="practice-speed-range-value">{level.range} <span>{speedUnit}</span></span>
                   <span className="practice-speed-range-name">{level.label}</span>
                 </dt>
                 <dd>
                   <p>{level.description}</p>
-                  {isCurrent && <span className="practice-your-pace">Your pace · {ppm} PPM</span>}
+                  {isCurrent && <span className="practice-your-pace">Your pace · {ppm} {speedUnit}</span>}
                 </dd>
               </div>
             )

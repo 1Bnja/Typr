@@ -1,6 +1,7 @@
 import Button from '../../../components/button'
 import Stat from './stat'
-import { formatTime } from '../utils/metrics'
+import SpeedChart from './speed-chart'
+import { formatTime, getSpeedUnit } from '../utils/metrics'
 
 const saveMessages = {
   saving: 'Saving your match…',
@@ -8,12 +9,12 @@ const saveMessages = {
   error: 'We could not save this match.',
 }
 
-const TestResults = ({ result, saveStatus, onNewText, onChangeSettings, isLoading, error }) => {
+const TestResults = ({ result, language, saveStatus, onNewText, onChangeSettings, isLoading, error }) => {
   const isSaving = saveStatus === 'saving'
   return (
     <div className="practice-results">
       <div className="practice-results-stats">
-        <Stat label="PPM" value={result.ppm} large />
+        <Stat label={getSpeedUnit(language)} value={result.ppm} large />
         <Stat label="Accuracy" value={`${result.precisionPct}%`} large />
         <Stat label="Score" value={result.score} large />
         <Stat label="Time" value={formatTime(result.timeMs)} large />
@@ -21,6 +22,9 @@ const TestResults = ({ result, saveStatus, onNewText, onChangeSettings, isLoadin
       <p className="practice-results-explanation">
         Speed uses five characters per word. Accuracy includes corrected mistakes.
       </p>
+      {result.speedHistory?.length > 0 && (
+        <SpeedChart samples={result.speedHistory} average={result.ppm} language={language} />
+      )}
       {saveMessages[saveStatus] && (
         <p role="status" className={`practice-result-status ${saveStatus === 'error' ? 'practice-error' : ''}`}>
           {saveMessages[saveStatus]}

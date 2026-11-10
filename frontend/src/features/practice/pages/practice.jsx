@@ -5,11 +5,9 @@ import PracticeSetup from '../components/practice-setup'
 import TypingTest from '../components/typing-test'
 import TestResults from '../components/test-results'
 import TypingReference from '../components/typing-reference'
-import PracticeNav from '../components/practice-nav'
 import { getRandomText, savePracticeMatch } from '../services/practice-service'
 import { DIFFICULTIES, LANGUAGES } from '../constants'
 import '../practice.css'
-import '../records.css'
 
 const titles = {
   setup: 'Practice test',
@@ -17,7 +15,7 @@ const titles = {
   results: 'Your results',
 }
 
-const Practice = () => {
+const Practice = ({ focusMode = false, onFocusChange }) => {
   const { status, token } = useAuth()
   const [searchParams] = useSearchParams()
 
@@ -76,9 +74,8 @@ const Practice = () => {
   }
 
   return (
-    <section className={`practice practice--${phase}`}>
-      {phase !== 'typing' && <PracticeNav />}
-      <header className="practice-header">
+    <section className={`practice practice--${phase} ${focusMode ? 'practice--focus' : ''}`}>
+      <header className="practice-header practice-focus-fade" aria-hidden={focusMode || undefined}>
         <h1 className={phase === 'typing' ? 'sr-only' : ''}>{titles[phase]}</h1>
         <p>
           {phase === 'setup'
@@ -104,6 +101,7 @@ const Practice = () => {
           key={attempt}
           text={text}
           onFinish={handleFinish}
+          onFocusChange={onFocusChange}
           onCancel={() => setPhase('setup')}
         />
       )}
@@ -111,6 +109,7 @@ const Practice = () => {
       {phase === 'results' && (
         <TestResults
           result={result}
+          language={text.language}
           saveStatus={saveStatus}
           onNewText={startWithNewText}
           onChangeSettings={() => setPhase('setup')}
@@ -119,7 +118,7 @@ const Practice = () => {
         />
       )}
 
-      {phase !== 'typing' && <TypingReference ppm={phase === 'results' ? result.ppm : null} />}
+      {phase !== 'typing' && <TypingReference language={phase === 'results' ? text.language : language} ppm={phase === 'results' ? result.ppm : null} />}
     </section>
   )
 }

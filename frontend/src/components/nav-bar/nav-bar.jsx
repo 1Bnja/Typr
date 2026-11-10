@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import Button from '../button/button'
 import ChevronDown from '../icons/chevron-down'
+import PracticeMenu from './practice-menu'
 import logo from '../../assets/logo.svg'
 import { useAuth } from '../../features/auth/context/auth-context'
+import './nav-bar.css'
 
 const links = [
   { to: '/', label: 'Home' },
@@ -57,7 +59,7 @@ const MenuIcon = ({ open }) => (
   </span>
 )
 
-const Navbar = () => {
+const Navbar = ({ focusMode = false }) => {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { user, signOut } = useAuth()
@@ -137,8 +139,11 @@ const Navbar = () => {
   return (
     <>
       <header
+        inert={focusMode}
+        aria-hidden={focusMode || undefined}
         className={[
-          'sticky top-0 z-40 border-b transition-[background-color,border-color,box-shadow] duration-300',
+          'site-header sticky top-0 z-40 border-b',
+          focusMode ? 'site-header--focused' : '',
           elevated
             ? 'border-neutral-200/80 bg-canvas/80 shadow-sm backdrop-blur-md'
             : 'border-transparent bg-canvas',
@@ -160,9 +165,11 @@ const Navbar = () => {
           <ul className="hidden items-center gap-1 md:flex">
             {links.map((link) => (
               <li key={link.to}>
-                <NavLink to={link.to} className={desktopLinkClass} end={link.to === '/'}>
+                {link.to === '/practice' && user ? (
+                  <PracticeMenu className={desktopLinkClass({ isActive: pathname === '/practice' || pathname.startsWith('/practice/') })} />
+                ) : <NavLink to={link.to} className={desktopLinkClass} end={link.to === '/'}>
                   {link.label}
-                </NavLink>
+                </NavLink>}
               </li>
             ))}
           </ul>
@@ -196,8 +203,6 @@ const Navbar = () => {
                     <p className="truncate text-sm font-semibold text-charcoal">{user.username}</p>
                   </div>
                   <div className="my-1 h-px bg-neutral-200" />
-                  <Link to="/practice/history" onClick={close} className={`block rounded-lg px-3 py-2 text-sm text-charcoal hover:bg-neutral-100 ${focusRing}`}>History</Link>
-                  <Link to="/practice/leaderboard" onClick={close} className={`block rounded-lg px-3 py-2 text-sm text-charcoal hover:bg-neutral-100 ${focusRing}`}>Monthly leaderboard</Link>
                   <button
                     type="button"
                     onClick={handleSignOut}
@@ -240,7 +245,7 @@ const Navbar = () => {
       <div
         id="mobile-menu"
         className={[
-          'fixed inset-x-0 top-16 z-30 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-neutral-200 bg-canvas px-4 pb-6 pt-4 shadow-lg transition-all duration-300 ease-out sm:px-6 md:hidden',
+          'styled-scrollbar fixed inset-x-0 top-16 z-30 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-neutral-200 bg-canvas px-4 pb-6 pt-4 shadow-lg transition-all duration-300 ease-out sm:px-6 md:hidden',
           open ? 'visible translate-y-0 opacity-100' : 'invisible -translate-y-2 opacity-0',
         ].join(' ')}
       >
@@ -257,9 +262,11 @@ const Navbar = () => {
         <ul className="flex flex-col gap-1">
           {links.map((link) => (
             <li key={link.to}>
-              <NavLink to={link.to} className={mobileLinkClass} end={link.to === '/'} onClick={close}>
+              {link.to === '/practice' && user ? (
+                <PracticeMenu mobile className={mobileLinkClass({ isActive: pathname === '/practice' || pathname.startsWith('/practice/') })} onNavigate={close} />
+              ) : <NavLink to={link.to} className={mobileLinkClass} end={link.to === '/'} onClick={close}>
                 {link.label}
-              </NavLink>
+              </NavLink>}
             </li>
           ))}
         </ul>
@@ -267,8 +274,6 @@ const Navbar = () => {
         <div className="mt-6 border-t border-neutral-200 pt-4">
           {user ? (
             <div className="flex flex-col">
-              <NavLink to="/practice/history" className={mobileLinkClass} onClick={close}>History</NavLink>
-              <NavLink to="/practice/leaderboard" className={mobileLinkClass} onClick={close}>Monthly leaderboard</NavLink>
               <Button variant="ghost" onClick={handleSignOut}>Sign out</Button>
             </div>
           ) : (
