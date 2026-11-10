@@ -15,19 +15,24 @@ class PracticeTextInput(CamelModel):
     language: Language
 
 
-class PracticeMatchCreate(GameParticipantResult):
+class PracticeMatchCreate(CamelModel):
     model_config = ConfigDict(extra="forbid")
 
     text_id: int | None = Field(default=None, gt=0)
     text: PracticeTextInput | None = None
     difficulty: Difficulty | None = None
     time_ms: int = Field(gt=0, le=2_147_483_647)
-    ppm: int = Field(ge=0, le=2_147_483_647)
+    # Señales crudas: el servidor calcula PPM, precisión, progreso y puntaje.
+    typed: str = Field(min_length=1, max_length=MAX_CONTENT_LENGTH)
+    keystrokes: int = Field(gt=0, le=2_147_483_647)
+    errors: int = Field(ge=0, le=2_147_483_647)
 
     @model_validator(mode="after")
-    def require_one_text(self):
+    def validate_request(self):
         if (self.text_id is None) == (self.text is None):
             raise ValueError("Envía textId o text, pero no ambos.")
+        if self.errors > self.keystrokes:
+            raise ValueError("errors no puede superar keystrokes.")
         return self
 
 

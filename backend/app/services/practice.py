@@ -1,5 +1,5 @@
+import unicodedata
 from datetime import datetime, timedelta, timezone
-from math import floor
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, select
@@ -12,6 +12,12 @@ from app.schemas.practice import (
     MonthlyLeaderboard,
     PracticeMatchCreate,
     PracticeMatchPublic,
+)
+from app.services.metrics import (
+    calculate_ppm,
+    calculate_precision,
+    calculate_score,
+    count_correct_chars,
 )
 from app.services.texts_handler import TextFacade
 from app.text_enums import Difficulty, Language
@@ -83,6 +89,17 @@ def save_practice_match(
 ) -> PracticeMatchPublic:
     try:
         text = get_practice_text(db, data)
+        # El usuario tipeó contra el contenido que vio: el crudo del modo local
+        # (que recién al guardar se normaliza) o el texto almacenado por id.
+        shown = data.text.content if data.text is not None else text.content
+        reference = unicodedata.normalize("NFC", shown)
+        typed = unicodedata.normalize("NFC", data.typed)
+        correct_chars = count_correct_chars(typed, reference)
+        ppm = calculate_ppm(correct_chars, data.time_ms)
+        precision_pct = calculate_precision(data.keystrokes, data.errors)
+        score = calculate_score(ppm, precision_pct)
+        progress = min(len(typed) / len(reference), 1.0) if reference else 0.0
+
         finished_at = datetime.now(timezone.utc)
         game = Game(
             text=text,
@@ -96,11 +113,11 @@ def save_practice_match(
             game_id=game.id,
             user_id=user_id,
             time_ms=data.time_ms,
-            ppm=data.ppm,
-            precision_pct=data.precision_pct,
-            progress=data.progress,
-            position=1 if data.progress == 1 else None,
-            score=floor(data.ppm * (data.precision_pct / 100) + 0.5),
+            ppm=ppm,
+            precision_pct=precision_pct,
+            progress=progress,
+            position=1 if progress == 1 else None,
+            score=score,
         )
         db.add(participant)
         result = match_public(game, participant, text)
