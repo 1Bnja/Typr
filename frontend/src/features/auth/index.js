@@ -1,2 +1,2 @@
-// Public API of the auth feature.
-// Import from '@/features/auth' (or this file) — never from nested paths.
+export { AuthProvider } from './context/auth-provider'
+export { useAuth } from './context/auth-context'
