@@ -22,7 +22,9 @@ class GenerationTests(unittest.TestCase):
     def setUp(self):
         self.config = ModuleType("app.config")
         self.config.settings = SimpleNamespace(
-            gemini_api_key="test-only-key", gemini_model="test-only-model"
+            gemini_api_key="test-only-key",
+            gemini_model="test-only-model",
+            database_url="sqlite:///:memory:",
         )
         self.google = ModuleType("google")
         self.google.genai = ModuleType("google.genai")
