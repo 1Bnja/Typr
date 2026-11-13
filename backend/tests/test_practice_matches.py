@@ -16,6 +16,10 @@ from app.main import app
 from app.models import Difficulty, Game, GameParticipant, Language, Text, User
 from app.security import create_access_token
 
+SPANISH_PHRASE = "La práctica diaria mejora la velocidad al escribir con cuidado."
+SECOND_SPANISH_PHRASE = "Cada mañana escribimos frases nuevas para mejorar nuestra precisión."
+ENGLISH_ROLLBACK_PHRASE = "Rollback probe. Daily typing practice improves speed and accuracy."
+
 
 class PracticeMatchTests(unittest.TestCase):
     def setUp(self):
@@ -113,7 +117,7 @@ class PracticeMatchTests(unittest.TestCase):
 
     def test_local_text_is_normalized_classified_and_reused(self):
         payload = {key: value for key, value in self.payload.items() if key != "textId"}
-        payload["text"] = {"content": "  casa   mesa gato  ", "language": "spa"}
+        payload["text"] = {"content": "  La práctica   diaria mejora la velocidad al escribir con cuidado.  ", "language": "spa"}
         first = self.save(payload)
         self.assertEqual(first.status_code, 201, first.text)
         second = self.save(payload)
@@ -124,7 +128,7 @@ class PracticeMatchTests(unittest.TestCase):
         self.assertEqual(self.count(Game), 2)
         with self.sessions() as db:
             stored = db.get(Text, first.json()["textId"])
-            self.assertEqual(stored.content, "casa mesa gato")
+            self.assertEqual(stored.content, SPANISH_PHRASE)
             self.assertEqual(stored.language.value, "spa")
             self.assertIn(
                 stored.difficulty.value, [level.value for level in Difficulty]
@@ -215,7 +219,7 @@ class PracticeMatchTests(unittest.TestCase):
                 BEGIN SELECT RAISE(ABORT, 'deliberate test failure'); END""")
             )
         payload = {key: value for key, value in self.payload.items() if key != "textId"}
-        payload["text"] = {"content": "Rollback probe.", "language": "eng"}
+        payload["text"] = {"content": ENGLISH_ROLLBACK_PHRASE, "language": "eng"}
         response = self.save(payload)
         self.assertEqual(response.status_code, 503, response.text)
         self.assertNotIn("deliberate test failure", response.text)
@@ -228,9 +232,13 @@ class PracticeMatchTests(unittest.TestCase):
 
     def test_selected_level_is_saved_and_history_filters_it(self):
         payload = {key: value for key, value in self.payload.items() if key != "textId"}
-        payload["text"] = {"content": "casa mesa gato", "language": "spa"}
+        payload["text"] = {"content": SPANISH_PHRASE, "language": "spa"}
         easy = self.save({**payload, "difficulty": "easy"})
-        medium = self.save({**payload, "difficulty": "medium"})
+        medium = self.save({
+            **payload,
+            "text": {"content": SECOND_SPANISH_PHRASE, "language": "spa"},
+            "difficulty": "medium",
+        })
         self.assertEqual(easy.status_code, 201, easy.text)
         self.assertEqual(medium.status_code, 201, medium.text)
         self.assertEqual(easy.json()["difficulty"], "easy")
@@ -262,9 +270,12 @@ class PracticeMatchTests(unittest.TestCase):
         progress=1,
     ):
         with self.sessions() as db:
-            stored_text = Text(
-                content="ranking words", language=language, difficulty=difficulty
+            content = f"Ranking reference for {language.value} {difficulty.value} practice sessions."
+            stored_text = db.scalar(
+                select(Text).where(Text.content == content).limit(1)
             )
+            if stored_text is None:
+                stored_text = Text(content=content, language=language, difficulty=difficulty)
             game = Game(
                 text=stored_text,
                 mode="singleplayer",

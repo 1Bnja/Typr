@@ -19,12 +19,15 @@ from app.services.texts_handler.processing.persist import INSERT_SQL, PersistedT
 from app.text_enums import Difficulty, Language
 
 SESSION_METHODS = ("connection", "commit", "rollback", "close")
+ENGLISH_SUFFIX = " Steady typing practice improves speed each day."
+SPANISH_SUFFIX = " Practicar cada día mejora la velocidad al escribir."
+ENGLISH_PHRASE = "Hello, world." + ENGLISH_SUFFIX
 
 
 def connector_function():
     """Load only the actual connector function, never settings or engine setup."""
     source = Path(__file__).resolve().parents[3] / "app/database.py"
-    tree = ast.parse(source.read_text())
+    tree = ast.parse(source.read_text(encoding="utf-8"))
     function = next(
         node
         for node in tree.body
@@ -61,9 +64,9 @@ class PersistenceTests(unittest.TestCase):
         self.insert = Mock(name="insert_result")
         self.row = {
             "id": 42,
-            "content": "Hello, world.",
+            "content": ENGLISH_PHRASE,
             "language": "eng",
-            "difficulty": TextFacade().process("Hello, world.", "eng").difficulty.value,
+            "difficulty": TextFacade().process(ENGLISH_PHRASE, "eng").difficulty.value,
             "ideal_time_ms": None,
             "record_user_id": None,
         }
@@ -86,12 +89,12 @@ class PersistenceTests(unittest.TestCase):
         )
         return duplicate, persist
 
-    def create(self, content=" Hello ,world. ", language="eng"):
+    def create(self, content=" Hello ,world. Steady typing practice improves speed each day. ", language="eng"):
         return TextFacade(self.db).create(content, language)
 
     def checked_context(self):
         duplicate, _ = self.handlers()
-        context = TextFacade().process("Hello.", "eng")
+        context = TextFacade().process(ENGLISH_PHRASE, "eng")
         duplicate.CheckDuplicateTextStep(self.db).handle(context)
         return context
 
@@ -99,7 +102,7 @@ class PersistenceTests(unittest.TestCase):
         result = self.create()
         self.assertIsInstance(result, PersistedText)
         self.assertEqual(result.id, 42)
-        self.assertEqual(result.content, "Hello, world.")
+        self.assertEqual(result.content, ENGLISH_PHRASE)
         self.assertEqual(result.language, Language.ENG)
         self.assertEqual(result.difficulty.value, self.row["difficulty"])
         self.assertIsNone(result.ideal_time_ms)
@@ -109,13 +112,13 @@ class PersistenceTests(unittest.TestCase):
             [
                 call.connection(),
                 call.connection().exec_driver_sql(
-                    DUPLICATE_SQL, {"content": "Hello, world."}
+                    DUPLICATE_SQL, {"content": ENGLISH_PHRASE}
                 ),
                 call.connection(),
                 call.connection().exec_driver_sql(
                     INSERT_SQL,
                     {
-                        "content": "Hello, world.",
+                        "content": ENGLISH_PHRASE,
                         "language": "eng",
                         "difficulty": self.row["difficulty"],
                     },
@@ -161,9 +164,9 @@ class PersistenceTests(unittest.TestCase):
 
     def test_canonical_comparison_keeps_case_and_has_no_language_argument(self):
         for content, language, expected in (
-            (" Hola   mundo. ", "spa", "Hola mundo."),
-            ("hola mundo.", "eng", "hola mundo."),
-            (" ‘Hola’ ", "spa", "'Hola'"),
+            (" Hola   mundo." + SPANISH_SUFFIX + " ", "spa", "Hola mundo." + SPANISH_SUFFIX),
+            ("hola mundo." + ENGLISH_SUFFIX, "eng", "hola mundo." + ENGLISH_SUFFIX),
+            (" ‘Hola’ " + SPANISH_SUFFIX, "spa", "'Hola'" + SPANISH_SUFFIX),
         ):
             with self.subTest(content=content):
                 self.connection.exec_driver_sql.reset_mock()
@@ -190,7 +193,7 @@ class PersistenceTests(unittest.TestCase):
         with patch.object(
             facade.creation_chain, "handle", side_effect=complete
         ) as first:
-            self.assertIs(facade.create("Hello.", "eng"), result)
+            self.assertIs(facade.create(ENGLISH_PHRASE, "eng"), result)
         first.assert_called_once()
         self.assertEqual(self.db.mock_calls, [])
 
@@ -201,10 +204,10 @@ class PersistenceTests(unittest.TestCase):
                 self.lookup.scalar.return_value = identifier
                 with patch.object(ClassifyTextStep, "handle") as classify:
                     with self.assertRaises(TextValidationError) as caught:
-                        self.create(" Hello   world. ", "eng")
+                        self.create(" Hello   world." + ENGLISH_SUFFIX + " ", "eng")
                 self.assertEqual(caught.exception.code, "duplicate_content")
                 self.connection.exec_driver_sql.assert_called_once_with(
-                    DUPLICATE_SQL, {"content": "Hello world."}
+                    DUPLICATE_SQL, {"content": "Hello world." + ENGLISH_SUFFIX}
                 )
                 classify.assert_not_called()
                 self.db.commit.assert_not_called()
@@ -264,7 +267,7 @@ class PersistenceTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, "database_error")
 
     def test_injection_like_content_is_never_interpolated_into_sql(self):
-        content = "Don't; DROP TABLE texts;"
+        content = "Don't; DROP TABLE texts; Steady typing practice improves speed each day."
         self.create(content)
         calls = self.connection.exec_driver_sql.call_args_list
         self.assertEqual(
@@ -300,7 +303,7 @@ class PersistenceTests(unittest.TestCase):
         raw = TextContext("Hello.", "eng")
         with self.assertRaises(TextValidationError):
             duplicate.CheckDuplicateTextStep(self.db).handle(raw)
-        classified = TextFacade().process("Hello.", "eng")
+        classified = TextFacade().process(ENGLISH_PHRASE, "eng")
         with self.assertRaises(TextValidationError):
             persist.PersistTextStep(self.db).handle(classified)
         self.assertEqual(self.db.mock_calls, [])
@@ -352,10 +355,10 @@ class PersistenceTests(unittest.TestCase):
         facade = TextFacade(self.db)
         with patch.object(facade.creation_chain, "handle"):
             with self.assertRaisesRegex(RuntimeError, "persisted result"):
-                facade.create("Hello.", "eng")
+                facade.create(ENGLISH_PHRASE, "eng")
 
     def test_process_ignores_injected_session(self):
-        context = TextFacade(self.db).process("Hello.", "eng")
+        context = TextFacade(self.db).process(ENGLISH_PHRASE, "eng")
         self.assertIsNotNone(context.difficulty)
         self.assertEqual(self.db.mock_calls, [])
 
@@ -365,7 +368,7 @@ import socket, sys
 from unittest.mock import patch
 with patch.object(socket.socket, 'connect', side_effect=AssertionError('No network')):
     from app.services.texts_handler import TextFacade
-    assert TextFacade().process('Hello.', 'eng').classification is not None
+    assert TextFacade().process('Hello, world. Steady typing practice improves speed each day.', 'eng').classification is not None
 assert 'app.database' not in sys.modules
 assert 'app.config' not in sys.modules
 assert 'app.models' not in sys.modules

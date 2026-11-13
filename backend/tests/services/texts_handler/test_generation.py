@@ -14,6 +14,8 @@ from app.services.texts_handler import TextFacade
 
 
 class GenerationTests(unittest.TestCase):
+    PHRASE = "Hola, mundo. Practicar cada día mejora la velocidad al escribir."
+
     def setUp(self):
         self.config = ModuleType("app.config")
         self.config.settings = SimpleNamespace(
@@ -100,17 +102,17 @@ class GenerationTests(unittest.TestCase):
         self.assertIs(exit_args[1], failure)
 
     def test_generated_text_can_be_explicitly_processed(self):
-        self.client.interactions.create.return_value.output_text = " Hola ,mundo. "
+        self.client.interactions.create.return_value.output_text = " Hola ,mundo. Practicar cada día mejora la velocidad al escribir. "
         facade = TextFacade()
         raw = facade.generate()
         context = facade.process(raw, "spa")
-        self.assertEqual(raw, " Hola ,mundo. ")
-        self.assertEqual(context.content, "Hola, mundo.")
+        self.assertEqual(raw, " Hola ,mundo. Practicar cada día mejora la velocidad al escribir. ")
+        self.assertEqual(context.content, self.PHRASE)
         self.assertIsNotNone(context.classification)
 
     def test_generated_text_can_be_explicitly_persisted(self):
-        self.client.interactions.create.return_value.output_text = " Hola ,mundo. "
-        expected = TextFacade().process("Hola, mundo.", "spa")
+        self.client.interactions.create.return_value.output_text = " Hola ,mundo. Practicar cada día mejora la velocidad al escribir. "
+        expected = TextFacade().process(self.PHRASE, "spa")
         duplicate = Mock()
         duplicate.scalar.return_value = None
         insert = Mock()
@@ -148,7 +150,7 @@ sys.meta_path.insert(0, BlockExternalImports())
 from app.services.texts_handler import TextFacade
 from app.services.texts_handler import generator
 assert callable(generator.generate_text)
-assert TextFacade().process('Hola.', 'spa').classification is not None
+assert TextFacade().process('Hola, mundo. Practicar cada día mejora la velocidad al escribir.', 'spa').classification is not None
 assert 'app.config' not in sys.modules
 assert 'app.database' not in sys.modules
 assert 'google' not in sys.modules

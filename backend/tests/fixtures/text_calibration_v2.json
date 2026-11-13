@@ -1,0 +1,202 @@
+{
+  "version": "text-difficulty-v2",
+  "bands": {
+    "easy": "[0,38)",
+    "medium": "[38,52)",
+    "advanced": "[52,100]"
+  },
+  "results": [
+    {
+      "id": "SPA-EASY",
+      "language": "spa",
+      "content": "'La casa' de mama queda cerca de la plaza.",
+      "nonspace_characters": 34,
+      "unique_characters": 15,
+      "word_count": 9,
+      "entropy_bits": 3.4189611955679697,
+      "mean_word_length": 3.4444444444444446,
+      "max_word_length": 5,
+      "mean_key_cost": 1.6086927881794773,
+      "normalized": {
+        "entropy": 0.5266541224571089,
+        "effort": 0.30463186932673164,
+        "mean_length": 0.28703703703703703,
+        "variety": 0.16666666666666666,
+        "max_length": 0.20833333333333334,
+        "length": 0.01818181818181818,
+        "symbols": 0.25
+      },
+      "contributions": {
+        "entropy": 12.639698938970612,
+        "effort": 6.701901125188096,
+        "mean_length": 3.4444444444444446,
+        "variety": 1.3333333333333333,
+        "max_length": 1.6666666666666667,
+        "length": 0.36363636363636365,
+        "symbols": 1.5
+      },
+      "score": 27.649680872239518,
+      "difficulty": "easy"
+    },
+    {
+      "id": "SPA-MEDIUM",
+      "language": "spa",
+      "content": "El equipo revisó los resultados, comparó las cifras y explicó cada cambio.",
+      "nonspace_characters": 63,
+      "unique_characters": 23,
+      "word_count": 12,
+      "entropy_bits": 4.18188950507445,
+      "mean_word_length": 5.083333333333333,
+      "max_word_length": 10,
+      "mean_key_cost": 1.8422804754390902,
+      "normalized": {
+        "entropy": 0.6441750056603687,
+        "effort": 0.3488654572090594,
+        "mean_length": 0.4236111111111111,
+        "variety": 0.25555555555555554,
+        "max_length": 0.4166666666666667,
+        "length": 0.3090909090909091,
+        "symbols": 0.16666666666666666
+      },
+      "contributions": {
+        "entropy": 15.460200135848847,
+        "effort": 7.675040058599308,
+        "mean_length": 5.083333333333333,
+        "variety": 2.0444444444444443,
+        "max_length": 3.3333333333333335,
+        "length": 6.181818181818182,
+        "symbols": 1.0
+      },
+      "score": 40.77816948737745,
+      "difficulty": "medium"
+    },
+    {
+      "id": "SPA-ADVANCED",
+      "language": "spa",
+      "content": "Durante 2026, el comité evaluó 14 propuestas; sin embargo, ¿cuáles cumplían los criterios técnicos y éticos?",
+      "nonspace_characters": 93,
+      "unique_characters": 31,
+      "word_count": 16,
+      "entropy_bits": 4.53187679201017,
+      "mean_word_length": 5.5,
+      "max_word_length": 10,
+      "mean_key_cost": 2.1136235356431077,
+      "normalized": {
+        "entropy": 0.6980867750338305,
+        "effort": 0.4002486325836006,
+        "mean_length": 0.4583333333333333,
+        "variety": 0.34444444444444444,
+        "max_length": 0.4166666666666667,
+        "length": 0.6181818181818182,
+        "symbols": 1
+      },
+      "contributions": {
+        "entropy": 16.754082600811934,
+        "effort": 8.805469916839213,
+        "mean_length": 5.5,
+        "variety": 2.7555555555555555,
+        "max_length": 3.3333333333333335,
+        "length": 12.363636363636363,
+        "symbols": 6.0
+      },
+      "score": 55.512077770176404,
+      "difficulty": "advanced"
+    },
+    {
+      "id": "ENG-EASY",
+      "language": "eng",
+      "content": "the dog sits by the door and waits for food.",
+      "nonspace_characters": 35,
+      "unique_characters": 16,
+      "word_count": 10,
+      "entropy_bits": 3.750292659616668,
+      "mean_word_length": 3.4,
+      "max_word_length": 5,
+      "mean_key_cost": 1.772563370224211,
+      "normalized": {
+        "entropy": 0.6039650253878353,
+        "effort": 0.49769397321565284,
+        "mean_length": 0.2833333333333333,
+        "variety": 0.21621621621621623,
+        "max_length": 0.20833333333333334,
+        "length": 0.03636363636363636,
+        "symbols": 0.08333333333333333
+      },
+      "contributions": {
+        "entropy": 14.495160609308046,
+        "effort": 10.949267410744362,
+        "mean_length": 3.4,
+        "variety": 1.7297297297297298,
+        "max_length": 1.6666666666666667,
+        "length": 0.7272727272727273,
+        "symbols": 0.5
+      },
+      "score": 33.46809714372153,
+      "difficulty": "easy"
+    },
+    {
+      "id": "ENG-MEDIUM",
+      "language": "eng",
+      "content": "The little dog waits by the door while the family cooks dinner.",
+      "nonspace_characters": 52,
+      "unique_characters": 21,
+      "word_count": 12,
+      "entropy_bits": 4.102486181029536,
+      "mean_word_length": 4.25,
+      "max_word_length": 6,
+      "mean_key_cost": 1.8501929966978117,
+      "normalized": {
+        "entropy": 0.660683950657869,
+        "effort": 0.5194905407674275,
+        "mean_length": 0.3541666666666667,
+        "variety": 0.28378378378378377,
+        "max_length": 0.25,
+        "length": 0.20909090909090908,
+        "symbols": 0.08333333333333333
+      },
+      "contributions": {
+        "entropy": 15.856414815788856,
+        "effort": 11.428791896883405,
+        "mean_length": 4.25,
+        "variety": 2.27027027027027,
+        "max_length": 2.0,
+        "length": 4.181818181818182,
+        "symbols": 0.5
+      },
+      "score": 40.48729516476072,
+      "difficulty": "medium"
+    },
+    {
+      "id": "ENG-ADVANCED",
+      "language": "eng",
+      "content": "During 2026, the research team analyzed 14 proposals; however, several complex questions remained unanswered.",
+      "nonspace_characters": 96,
+      "unique_characters": 31,
+      "word_count": 14,
+      "entropy_bits": 4.4531034238207505,
+      "mean_word_length": 6.571428571428571,
+      "max_word_length": 10,
+      "mean_key_cost": 1.8751480539278853,
+      "normalized": {
+        "entropy": 0.717149024497054,
+        "effort": 0.5264973320581041,
+        "mean_length": 0.5476190476190476,
+        "variety": 0.4189189189189189,
+        "max_length": 0.4166666666666667,
+        "length": 0.6272727272727273,
+        "symbols": 1
+      },
+      "contributions": {
+        "entropy": 17.211576587929294,
+        "effort": 11.58294130527829,
+        "mean_length": 6.571428571428571,
+        "variety": 3.3513513513513513,
+        "max_length": 3.3333333333333335,
+        "length": 12.545454545454547,
+        "symbols": 6.0
+      },
+      "score": 60.59608569477539,
+      "difficulty": "advanced"
+    }
+  ]
+}

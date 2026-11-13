@@ -25,14 +25,18 @@ class Language(str, Enum):
 
 
 class TextProcessingTests(unittest.TestCase):
+    VALID_SUFFIX = " Steady typing practice improves speed each day."
+
     def normalize(self, content, language="spa"):
         from app.services.texts_handler.processing.normalize import NormalizeTextStep
 
-        context = TextContext(content, language)
+        # Exercise short normalization examples inside a valid phrase.
+        context = TextContext(content + self.VALID_SUFFIX, language)
         first = ValidateTextStep()
         first.set_next(NormalizeTextStep())
         first.handle(context)
-        return context.content
+        self.assertTrue(context.content.endswith(self.VALID_SUFFIX))
+        return context.content[: -len(self.VALID_SUFFIX)]
 
     def test_context_initializes_input_and_empty_difficulty(self):
         context = TextContext("Hello", "eng")
@@ -50,8 +54,9 @@ class TextProcessingTests(unittest.TestCase):
     def test_validation_preserves_raw_content_and_delegates(self):
         handler, recorder = ValidateTextStep(), Recorder()
         handler.set_next(recorder)
-        handler.handle(TextContext(" Hola\n mundo ", Language.SPA))
-        self.assertEqual(recorder.contents, [" Hola\n mundo "])
+        raw = " Hola\n mundo. Practicar cada día mejora la velocidad al escribir. "
+        handler.handle(TextContext(raw, Language.SPA))
+        self.assertEqual(recorder.contents, [raw])
 
     def test_invalid_input_stops_chain(self):
         handler, recorder = ValidateTextStep(), Recorder()
@@ -94,7 +99,7 @@ class TextProcessingTests(unittest.TestCase):
                 ValidateTextStep().handle(TextContext(content, "eng"))
 
     def test_spanish_alphabet_case_and_punctuation(self):
-        content = 'ÁÉÍÓÚáéíóúÑñÜü 0123456789. , ; : ¿? ¡! "() -'
+        content = 'ÁÉÍÓÚáéíóúÑñÜü 0123456789. , ; : ¿Una prueba? ¡Todo bien! "Texto" (con signos) y más palabras.'
         context = TextContext(content, "spa")
         ValidateTextStep().handle(context)
         self.assertEqual(context.content, content)
@@ -104,9 +109,20 @@ class TextProcessingTests(unittest.TestCase):
             self.normalize("pingu\u0308ino", "spa")
 
     def test_raw_maximum_length(self):
-        ValidateTextStep().handle(TextContext("a" * 5000, "eng"))
-        with self.assertRaises(ValueError):
-            ValidateTextStep().handle(TextContext("a" * 5001, "eng"))
+        ValidateTextStep().handle(TextContext("a " * 124 + "aa", "eng"))
+        with self.assertRaises(ValueError) as caught:
+            ValidateTextStep().handle(TextContext("a " * 125 + "a", "eng"))
+        self.assertEqual(caught.exception.code, "content_too_long")
+
+    def test_minimum_phrase_length_and_word_count(self):
+        ValidateTextStep().handle(TextContext("a " * 19 + "aa", "eng"))
+        for content, code in (
+            ("a " * 19 + "a", "content_too_short"),
+            ("word " * 3 + "a" * 25, "too_few_words"),
+        ):
+            with self.subTest(code=code), self.assertRaises(ValueError) as caught:
+                ValidateTextStep().handle(TextContext(content, "eng"))
+            self.assertEqual(caught.exception.code, code)
 
     def test_normalized_maximum_length(self):
         with self.assertRaises(ValueError):
@@ -143,9 +159,10 @@ class TextProcessingTests(unittest.TestCase):
         )
 
     def test_english_unpaired_quotes_rejected(self):
-        for content in ("'hello", "hello'", "don’t"):
+        for content in ("'hello", "hello'"):
             with self.subTest(content=content), self.assertRaises(ValueError):
                 self.normalize(content, "eng")
+        self.assertEqual(self.normalize("don’t stop", "eng"), "don't stop")
 
     def test_whitespace_and_basic_punctuation(self):
         cases = (
@@ -155,7 +172,7 @@ class TextProcessingTests(unittest.TestCase):
             ("¡ Hola !", "¡Hola!"),
             ('Dijo : " Hola ,mundo . "', 'Dijo: "Hola, mundo."'),
             ("( Hola ) . Adiós", "(Hola). Adiós"),
-            ("Hola...Adiós!?", "Hola... Adiós!?"),
+            ("¿Hola...Adiós? ¡Vamos!", "¿Hola... Adiós? ¡Vamos!"),
         )
         for raw, expected in cases:
             with self.subTest(raw=raw):
@@ -175,13 +192,13 @@ class TextProcessingTests(unittest.TestCase):
         handler.set_next(recorder)
         first = ValidateTextStep()
         first.set_next(handler)
-        first.handle(TextContext(" Hola ,mundo ", "spa"))
-        self.assertEqual(recorder.contents, ["Hola, mundo"])
+        first.handle(TextContext(" Hola ,mundo. Practicar cada día mejora la velocidad al escribir. ", "spa"))
+        self.assertEqual(recorder.contents, ["Hola, mundo. Practicar cada día mejora la velocidad al escribir."])
 
     def test_calibration_examples_unchanged(self):
         root = Path(__file__).resolve().parents[4]
         reference = root / "backend/tests/fixtures/text_calibration.json"
-        rows = json.loads(reference.read_text())["results"]
+        rows = json.loads(reference.read_text(encoding="utf-8"))["results"]
         self.assertEqual(len(rows), 16)
         for row in rows:
             with self.subTest(identifier=row["id"]):
