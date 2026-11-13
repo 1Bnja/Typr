@@ -63,8 +63,8 @@ const Practice = ({ focusMode = false, onFocusChange }) => {
         ? { text: { content: text.content, language: text.language } }
         : { textId: text.id }
       const saved = await savePracticeMatch(token, { ...textData, difficulty: text.difficulty, ...testResult })
-      if (saved?.score != null) {
-        setResult({ ...testResult, score: saved.score })
+      if (saved?.ppm != null) {
+        setResult({ ...testResult, ppm: saved.ppm, precisionPct: saved.precisionPct, score: saved.score })
       }
       setText((current) => ({ ...current, id: saved.textId }))
       setSaveStatus('saved')
