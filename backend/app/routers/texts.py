@@ -1,9 +1,12 @@
 """Authenticated phrase generation, validation and persistence endpoints."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user, get_db
+from app.models import Text
+from app.models.enums import Difficulty, Language
 from app.schemas.text import (
     TextBulkSaveRequest,
     TextGenerateResponse,
@@ -24,6 +27,27 @@ def _validation_http_error(error: TextValidationError) -> HTTPException:
         status_code=status.HTTP_409_CONFLICT if error.code == "duplicate_content" else 422,
         detail={"code": error.code, "message": str(error)},
     )
+
+
+@router.get("/random", response_model=TextPublic)
+def random_text(
+    language: Language | None = None,
+    difficulty: Difficulty | None = None,
+    db: Session = Depends(get_db),
+) -> TextPublic:
+    """Devuelve un texto al azar, filtrando opcionalmente por idioma y dificultad."""
+    stmt = select(Text)
+    if language is not None:
+        stmt = stmt.where(Text.language == language)
+    if difficulty is not None:
+        stmt = stmt.where(Text.difficulty == difficulty)
+    text = db.scalars(stmt.order_by(func.random()).limit(1)).first()
+    if text is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No hay textos para esos filtros.",
+        )
+    return TextPublic.model_validate(text)
 
 
 @router.post("/generate", response_model=TextGenerateResponse)
