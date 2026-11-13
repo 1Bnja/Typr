@@ -31,6 +31,16 @@ if TYPE_CHECKING:
 LEVELS = (Difficulty.EASY, Difficulty.MEDIUM, Difficulty.ADVANCED)
 
 
+def difficulty_for_word_count(word_count: int) -> Difficulty | None:
+    if word_count == 20:
+        return Difficulty.EASY
+    if word_count == 30:
+        return Difficulty.MEDIUM
+    if word_count == 40:
+        return Difficulty.ADVANCED
+    return None
+
+
 @dataclass(frozen=True)
 class ClassificationResult:
     version: str
@@ -146,7 +156,7 @@ def _score(values: _Measurements) -> ClassificationResult:
         normalized=MappingProxyType(values.normalized),
         contributions=MappingProxyType(contributions),
         score=score,
-        difficulty=difficulty_for_score(score),
+        difficulty=difficulty_for_word_count(values.word_count) or difficulty_for_score(score),
     )
 
 

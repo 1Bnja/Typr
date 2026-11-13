@@ -1,9 +1,14 @@
 """Authenticated phrase generation, validation and persistence endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user, get_db
+from app.models import Text
 from app.schemas.text import (
     TextBulkSaveRequest,
     TextGenerateResponse,
@@ -12,11 +17,13 @@ from app.schemas.text import (
     TextVerifyResponse,
 )
 from app.text_constants import DEFAULT_TEXT_LANGUAGE
+from app.text_enums import Difficulty, Language
 from app.services.texts_handler import TextFacade
 from app.services.texts_handler.errors import TextDatabaseError, TextValidationError
 from app.services.texts_handler.load import load_phrases
 
 router = APIRouter(tags=["texts"], dependencies=[Depends(get_current_user)])
+logger = logging.getLogger(__name__)
 
 
 def _validation_http_error(error: TextValidationError) -> HTTPException:
@@ -26,17 +33,56 @@ def _validation_http_error(error: TextValidationError) -> HTTPException:
     )
 
 
+@router.get("/random", response_model=TextPublic)
+def random_text(
+    language: Language,
+    difficulty: Difficulty,
+    exclude_id: int | None = Query(default=None, alias="excludeId", gt=0),
+    db: Session = Depends(get_db),
+) -> TextPublic:
+    base = select(Text).where(Text.language == language, Text.difficulty == difficulty)
+    try:
+        if exclude_id is not None:
+            text = db.scalar(
+                base.where(Text.id != exclude_id).order_by(func.random()).limit(1)
+            )
+            if text is not None:
+                return TextPublic.model_validate(text)
+        text = db.scalar(base.order_by(func.random()).limit(1))
+    except SQLAlchemyError as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No se pudieron consultar las frases guardadas.",
+        ) from error
+    if text is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No hay frases guardadas para este idioma y dificultad.",
+        )
+    return TextPublic.model_validate(text)
+
+
 @router.post("/generate", response_model=TextGenerateResponse)
 def generate_texts() -> TextGenerateResponse:
     try:
         phrases = TextFacade().generate_phrases()
     except Exception as error:
+        if getattr(error, "code", None) == 429:
+            logger.warning("Gemini rate limit reached during phrase generation")
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Gemini alcanzó su límite temporal de solicitudes. Espera un minuto antes de generar otro lote.",
+                headers={"Retry-After": "60"},
+            ) from error
+        logger.exception("Phrase generation failed")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="No se pudieron generar las frases. Inténtalo nuevamente.",
         ) from error
     summary = load_phrases(
-        phrases, DEFAULT_TEXT_LANGUAGE, dry_run=True, max_per_difficulty=10
+        phrases, DEFAULT_TEXT_LANGUAGE, dry_run=True, max_per_difficulty=10,
+        expected_word_ranges=((20, 20),) * 10 + ((30, 30),) * 10 + ((40, 40),) * 10,
     )
     return TextGenerateResponse(
         language=DEFAULT_TEXT_LANGUAGE,
@@ -54,7 +100,7 @@ def save_texts(data: TextBulkSaveRequest, db: Session = Depends(get_db)) -> Text
     try:
         summary = load_phrases(
             data.phrases, DEFAULT_TEXT_LANGUAGE, dry_run=False, db=db,
-            max_per_difficulty=10,
+            max_per_difficulty=10, allowed_word_counts=frozenset({20, 30, 40}),
         )
     except TextDatabaseError as error:
         raise HTTPException(

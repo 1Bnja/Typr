@@ -40,6 +40,8 @@ def load_phrases(
     dry_run: bool,
     db: Session | None = None,
     max_per_difficulty: int | None = None,
+    expected_word_ranges: tuple[tuple[int, int], ...] | None = None,
+    allowed_word_counts: frozenset[int] | None = None,
 ) -> LoadSummary:
     """Validate every phrase; only actual writes require a database session."""
     selected = Language(language)
@@ -54,13 +56,33 @@ def load_phrases(
     generated = stored = duplicates = rejected = accepted_in_dry_run = 0
     results: list[LoadedPhrase] = []
 
-    for phrase in phrases:
+    for index, phrase in enumerate(phrases):
         generated += 1
         try:
             context = preview.process(phrase, selected)
         except TextValidationError as error:
             rejected += 1
             results.append(LoadedPhrase(phrase, "rejected", reason_code=error.code))
+            continue
+        word_count = context.classification.word_count
+        expected_range = (
+            expected_word_ranges[index]
+            if expected_word_ranges is not None and index < len(expected_word_ranges)
+            else None
+        )
+        if (
+            (expected_word_ranges is not None and (
+                expected_range is None or not expected_range[0] <= word_count <= expected_range[1]
+            ))
+            or (allowed_word_counts is not None and word_count not in allowed_word_counts)
+        ):
+            rejected += 1
+            results.append(
+                LoadedPhrase(
+                    context.content, "rejected", context.difficulty,
+                    reason_code="word_count_mismatch",
+                )
+            )
             continue
         if context.content in seen:
             duplicates += 1

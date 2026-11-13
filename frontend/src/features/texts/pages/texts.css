@@ -299,6 +299,30 @@
   color: #685100;
 }
 
+.texts-word-count {
+  align-self: flex-start;
+  margin-bottom: 14px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.texts-word-count--valid {
+  background: #dbf1e7;
+  color: #005e4c;
+}
+
+.texts-word-count--invalid {
+  background: #f5e8b2;
+  color: #685100;
+}
+
+.texts-word-count span {
+  font-weight: 400;
+}
+
 .texts-content {
   flex: 1;
   font-size: 16px;

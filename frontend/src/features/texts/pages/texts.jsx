@@ -15,9 +15,13 @@ const difficultyLabels = {
 const reasonLabels = {
   difficulty_quota: 'Se alcanzó el límite de 10 frases para esta dificultad.',
   content_too_short: 'La frase debe tener al menos 40 caracteres.',
-  content_too_long: 'La frase debe tener como máximo 250 caracteres.',
+  content_too_long: 'La frase debe tener como máximo 500 caracteres.',
   too_few_words: 'La frase debe tener al menos cinco palabras.',
+  word_count_mismatch: 'La cantidad de palabras no corresponde a su grupo.',
 }
+
+const expectedWords = (index) => index < 10 ? 20 : index < 20 ? 30 : 40
+const countWords = (content) => content.trim().split(/\s+/).filter((token) => /[\p{L}\p{N}]/u.test(token)).length
 
 const filters = [
   { id: 'all', label: 'Todas' },
@@ -98,6 +102,11 @@ export default function Texts() {
     updateItem(item.key, { error: '' })
     try {
       const verified = await verifyText(draft, generation.language, token)
+      const expected = expectedWords(item.key)
+      if (countWords(verified.content) !== expected) {
+        updateItem(item.key, { error: `Esta frase debe tener exactamente ${expected} palabras.` })
+        return
+      }
       if (items.some((other) => other.key !== item.key && other.content === verified.content && other.status !== 'rejected')) {
         updateItem(item.key, { error: 'Esta frase ya aparece en el lote. Cámbiala antes de aprobarla.' })
         return
@@ -220,6 +229,9 @@ export default function Texts() {
             <ol className="texts-list">
               {visibleItems.map((item) => {
                 const reviewState = getReviewState(item)
+                const expected = expectedWords(item.key)
+                const wordCount = countWords(item.editing ? item.draft : item.content)
+                const wordCountValid = wordCount === expected
                 return (
                   <li key={item.key} className={`texts-card texts-card--${reviewState}`}>
                     <div className="texts-card-top">
@@ -229,6 +241,9 @@ export default function Texts() {
                         <span className={`texts-status texts-status--${reviewState}`}>{getStatusLabel(item)}</span>
                       </div>
                     </div>
+                    <p className={`texts-word-count ${wordCountValid ? 'texts-word-count--valid' : 'texts-word-count--invalid'}`} aria-live={item.editing ? 'polite' : undefined}>
+                      {wordCount} palabras <span>· objetivo {expected}</span>
+                    </p>
 
                     {item.editing ? (
                       <div className="texts-editor">
@@ -251,7 +266,7 @@ export default function Texts() {
                     ) : (
                       <>
                         <p className="texts-content">{item.content}</p>
-                        {item.reasonCode && <p className="texts-reason">{reasonLabels[item.reasonCode] || `Motivo: ${item.reasonCode}`}</p>}
+                        {item.reasonCode && <p className="texts-reason">{item.reasonCode === 'word_count_mismatch' ? `Esta frase debe tener exactamente ${expected} palabras.` : reasonLabels[item.reasonCode] || `Motivo: ${item.reasonCode}`}</p>}
                         {item.id != null && <p className="texts-saved-id">Guardada como frase #{item.id}</p>}
                         {item.status !== 'stored' && (
                           <div className="texts-actions">

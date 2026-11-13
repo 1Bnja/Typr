@@ -109,9 +109,9 @@ class TextProcessingTests(unittest.TestCase):
             self.normalize("pingu\u0308ino", "spa")
 
     def test_raw_maximum_length(self):
-        ValidateTextStep().handle(TextContext("a " * 124 + "aa", "eng"))
+        ValidateTextStep().handle(TextContext("a " * 249 + "aa", "eng"))
         with self.assertRaises(ValueError) as caught:
-            ValidateTextStep().handle(TextContext("a " * 125 + "a", "eng"))
+            ValidateTextStep().handle(TextContext("a " * 250 + "a", "eng"))
         self.assertEqual(caught.exception.code, "content_too_long")
 
     def test_minimum_phrase_length_and_word_count(self):

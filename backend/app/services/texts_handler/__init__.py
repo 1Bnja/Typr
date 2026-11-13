@@ -35,8 +35,84 @@ class TextFacade:
         return generate_text()
 
     def generate_phrases(self) -> list[str]:
-        """Split the original generator's response into individual phrases."""
-        return [line.strip() for line in self.generate().splitlines() if line.strip()]
+        """Generate ten validated phrases per level, retrying incomplete groups."""
+        from app.text_enums import Difficulty
+
+        from .errors import TextValidationError
+        from .generator import (
+            GROUP_TARGETS,
+            capitalize_initial,
+            generate_group_text,
+            matches_typing_difficulty,
+            revise_phrase,
+        )
+
+        phrases: list[str] = []
+        seen: set[str] = set()
+        for difficulty in (Difficulty.EASY, Difficulty.MEDIUM, Difficulty.ADVANCED):
+            minimum, maximum, _, _ = GROUP_TARGETS[difficulty]
+            group: list[str] = []
+            previous_counts: tuple[int, ...] = ()
+            repairs_remaining = 12
+            for attempt in range(8):
+                if len(group) == 10:
+                    break
+                raw = generate_group_text(
+                    difficulty, 10 - len(group), previous_counts,
+                    review_quality=attempt == 0,
+                )
+                observed_counts: list[int] = []
+                for line in raw.splitlines():
+                    candidate = capitalize_initial(line.strip())
+                    if not candidate:
+                        continue
+                    observed_counts.append(
+                        sum(any(char.isalnum() for char in token) for token in candidate.split())
+                    )
+                    try:
+                        context = self.process(candidate, "spa")
+                    except TextValidationError:
+                        continue
+                    if not minimum <= context.classification.word_count <= maximum:
+                        if repairs_remaining == 0:
+                            continue
+                        repairs_remaining -= 1
+                        revisions = revise_phrase(
+                            difficulty, context.content, context.classification.word_count
+                        )
+                        for revised in revisions:
+                            try:
+                                revised_context = self.process(capitalize_initial(revised.strip()), "spa")
+                            except TextValidationError:
+                                continue
+                            if (
+                                minimum <= revised_context.classification.word_count <= maximum
+                                and revised_context.difficulty == difficulty
+                                and matches_typing_difficulty(revised_context.content, difficulty)
+                                and revised_context.content not in seen
+                            ):
+                                context = revised_context
+                                break
+                        else:
+                            continue
+                    if (
+                        not minimum <= context.classification.word_count <= maximum
+                        or context.difficulty != difficulty
+                        or not matches_typing_difficulty(context.content, difficulty)
+                        or context.content in seen
+                    ):
+                        continue
+                    seen.add(context.content)
+                    group.append(context.content)
+                    if len(group) == 10:
+                        break
+                previous_counts = tuple(observed_counts)
+            if len(group) != 10:
+                raise RuntimeError(
+                    f"Could not generate ten valid {difficulty.value} phrases."
+                )
+            phrases.extend(group)
+        return phrases
 
     def process(self, content: str, language: Language | str) -> TextContext:
         """Validate, normalize and classify without accessing the database."""

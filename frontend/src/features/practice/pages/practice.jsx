@@ -40,14 +40,14 @@ const Practice = ({ focusMode = false, onFocusChange }) => {
     setIsLoading(true)
     setError('')
     try {
-      const newText = await getRandomText({ language, difficulty, previousContent: text?.content })
+      const newText = await getRandomText(token, { language, difficulty, previousId: text?.id })
       setText(newText)
       setResult(null)
       setSaveStatus('idle')
       setAttempt((current) => current + 1)
       setPhase('typing')
-    } catch {
-      setError('Could not prepare the text. Please try again.')
+    } catch (loadError) {
+      setError(loadError.message)
     } finally {
       setIsLoading(false)
     }
@@ -59,14 +59,10 @@ const Practice = ({ focusMode = false, onFocusChange }) => {
 
     setSaveStatus('saving')
     try {
-      const textData = text.id == null
-        ? { text: { content: text.content, language: text.language } }
-        : { textId: text.id }
-      const saved = await savePracticeMatch(token, { ...textData, difficulty: text.difficulty, ...testResult })
+      const saved = await savePracticeMatch(token, { textId: text.id, difficulty: text.difficulty, ...testResult })
       if (saved?.score != null) {
         setResult({ ...testResult, score: saved.score })
       }
-      setText((current) => ({ ...current, id: saved.textId }))
       setSaveStatus('saved')
     } catch {
       setSaveStatus('error')
