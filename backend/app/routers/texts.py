@@ -35,12 +35,17 @@ def _validation_http_error(error: TextValidationError) -> HTTPException:
 
 @router.get("/random", response_model=TextPublic)
 def random_text(
-    language: Language,
-    difficulty: Difficulty,
+    language: Language | None = None,
+    difficulty: Difficulty | None = None,
     exclude_id: int | None = Query(default=None, alias="excludeId", gt=0),
     db: Session = Depends(get_db),
 ) -> TextPublic:
-    base = select(Text).where(Text.language == language, Text.difficulty == difficulty)
+    """Return a stored text for optional filters, avoiding the previous ID when possible."""
+    base = select(Text)
+    if language is not None:
+        base = base.where(Text.language == language)
+    if difficulty is not None:
+        base = base.where(Text.difficulty == difficulty)
     try:
         if exclude_id is not None:
             text = db.scalar(

@@ -63,9 +63,9 @@ class PostgreSQLPracticeTests(unittest.TestCase):
         self.payload = {
             "text": {"content": SPANISH_PHRASE, "language": "spa"},
             "timeMs": 12000,
-            "ppm": 45,
-            "precisionPct": 96,
-            "progress": 1,
+            "typed": SPANISH_PHRASE,
+            "keystrokes": len(SPANISH_PHRASE),
+            "errors": 0,
         }
 
     def test_api_persists_local_text_metrics_and_history_in_postgresql(self):
@@ -76,7 +76,7 @@ class PostgreSQLPracticeTests(unittest.TestCase):
         )
         self.assertEqual(first.status_code, 201, first.text)
         saved = first.json()
-        self.assertEqual(saved["score"], 43)
+        self.assertEqual(saved["score"], 63)
         with self.sessions() as db:
             game = db.get(Game, saved["id"])
             self.assertEqual(game.text_id, saved["textId"])
@@ -84,8 +84,8 @@ class PostgreSQLPracticeTests(unittest.TestCase):
             self.assertEqual(db.get(Text, game.text_id).content, SPANISH_PHRASE)
             self.assertEqual(game.participants[0].user_id, self.user_id)
             self.assertIsInstance(game.participants[0], GameParticipant)
-            self.assertEqual(game.participants[0].ppm, 45)
-            self.assertAlmostEqual(game.participants[0].precision_pct, 96)
+            self.assertEqual(game.participants[0].ppm, 63)
+            self.assertAlmostEqual(game.participants[0].precision_pct, 100)
 
         retry = {key: value for key, value in self.payload.items() if key != "text"}
         retry["textId"] = saved["textId"]
@@ -112,7 +112,7 @@ class PostgreSQLPracticeTests(unittest.TestCase):
         self.assertEqual(first.status_code, 201, first.text)
         second = self.client.post(
             "/api/v1/matches/practice",
-            json={**payload, "ppm": 60},
+            json={**payload, "timeMs": 6000},
             headers=self.headers,
         )
         self.assertEqual(second.status_code, 201, second.text)

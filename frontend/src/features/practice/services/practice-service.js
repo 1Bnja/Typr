@@ -14,14 +14,15 @@ export async function getRandomText(token, { language, difficulty, previousId })
   return data
 }
 
-export async function savePracticeMatch(token, { textId, difficulty, timeMs, ppm, precisionPct, progress }) {
+export async function savePracticeMatch(token, { textId, difficulty, timeMs, typed, keystrokes, errors }) {
   const response = await fetch('/api/v1/matches/practice', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ textId, difficulty, timeMs, ppm, precisionPct, progress }),
+    // Solo señales crudas: el servidor calcula PPM, precisión y puntaje.
+    body: JSON.stringify({ textId, difficulty, timeMs, typed, keystrokes, errors }),
   })
 
   const data = await response.json().catch(() => null)

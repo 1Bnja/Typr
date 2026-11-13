@@ -69,9 +69,9 @@ class PracticeMatchTests(unittest.TestCase):
         self.payload = {
             "textId": self.text_id,
             "timeMs": 30000,
-            "ppm": 40,
-            "precisionPct": 95,
-            "progress": 1,
+            "typed": "Hello world.",
+            "keystrokes": 14,
+            "errors": 2,
         }
         self.addCleanup(self.engine.dispose)
         self.addCleanup(app.dependency_overrides.pop, get_db)
@@ -137,11 +137,11 @@ class PracticeMatchTests(unittest.TestCase):
         response = self.save()
         self.assertEqual(response.status_code, 201, response.text)
         saved = response.json()
-        self.assertEqual(saved["score"], 38)
+        self.assertEqual(saved["score"], 4)
         self.assertEqual(saved["textId"], self.text_id)
         self.assertEqual(saved["timeMs"], 30000)
-        self.assertEqual(saved["ppm"], 40)
-        self.assertEqual(saved["precisionPct"], 95)
+        self.assertEqual(saved["ppm"], 5)
+        self.assertEqual(saved["precisionPct"], 85.7)
         self.assertEqual(saved["language"], "eng")
         self.assertAlmostEqual(
             (
@@ -157,7 +157,7 @@ class PracticeMatchTests(unittest.TestCase):
             self.assertIsNone(game.room_id)
             self.assertEqual(participant.game_id, game.id)
             self.assertEqual(participant.user_id, self.user_ids[0])
-            self.assertEqual(participant.score, 38)
+            self.assertEqual(participant.score, 4)
             self.assertEqual(participant.position, 1)
 
     def test_local_text_is_normalized_classified_and_reused(self):
@@ -192,11 +192,10 @@ class PracticeMatchTests(unittest.TestCase):
         invalid = [
             {"timeMs": 0},
             {"timeMs": 2_147_483_648},
-            {"ppm": -1},
-            {"ppm": 2_147_483_648},
-            {"precisionPct": 101},
-            {"precisionPct": -1},
-            {"progress": 2},
+            {"typed": ""},
+            {"keystrokes": 0},
+            {"errors": -1},
+            {"errors": 20, "keystrokes": 10},
             {"textId": None},
             {"text": {"content": "Hola", "language": "spa"}},
             {"userId": self.user_ids[1]},
@@ -253,7 +252,10 @@ class PracticeMatchTests(unittest.TestCase):
         self.assertEqual(response.json(), [])
 
     def test_rounds_score_like_the_frontend(self):
-        response = self.save({**self.payload, "ppm": 1, "precisionPct": 50})
+        # ppm=1, precisión=50% ⇒ score=0.5, que debe redondear a 1 (no a 0).
+        response = self.save(
+            {**self.payload, "timeMs": 144000, "keystrokes": 24, "errors": 12}
+        )
         self.assertEqual(response.status_code, 201, response.text)
         self.assertEqual(response.json()["score"], 1)
 

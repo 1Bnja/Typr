@@ -60,8 +60,8 @@ const Practice = ({ focusMode = false, onFocusChange }) => {
     setSaveStatus('saving')
     try {
       const saved = await savePracticeMatch(token, { textId: text.id, difficulty: text.difficulty, ...testResult })
-      if (saved?.score != null) {
-        setResult({ ...testResult, score: saved.score })
+      if (saved?.ppm != null) {
+        setResult({ ...testResult, ppm: saved.ppm, precisionPct: saved.precisionPct, score: saved.score, progress: saved.progress })
       }
       setSaveStatus('saved')
     } catch {

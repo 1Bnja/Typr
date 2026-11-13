@@ -52,16 +52,18 @@ test('saving practice sends the existing text ID, metrics and bearer token', asy
   }))
   const result = await savePracticeMatch('test-token', {
     textId: 11,
-    timeMs: 30000, ppm: 40, precisionPct: 95, progress: 1, score: 999,
+    timeMs: 30000, typed: 'casa mesa gato', keystrokes: 16, errors: 1,
+    ppm: 40, precisionPct: 95, progress: 1, score: 999,
     speedHistory: [{ timeMs: 30000, ppm: 40, errors: 1 }],
   })
   const [url, request] = fetchMock.mock.calls[0].arguments
   assert.equal(url, '/api/v1/matches/practice')
   assert.equal(request.method, 'POST')
   assert.equal(request.headers.Authorization, 'Bearer test-token')
+  // Solo señales crudas: PPM/precisión/score/progress no se envían.
   assert.deepEqual(JSON.parse(request.body), {
     textId: 11,
-    timeMs: 30000, ppm: 40, precisionPct: 95, progress: 1,
+    timeMs: 30000, typed: 'casa mesa gato', keystrokes: 16, errors: 1,
   })
   assert.deepEqual(result, saved)
 })
@@ -72,7 +74,7 @@ test('saving with an existing text sends its ID and propagates API errors', asyn
     json: async () => ({ detail: 'El texto no existe.' }),
   }))
   await assert.rejects(
-    savePracticeMatch('test-token', { textId: 9, timeMs: 1000, ppm: 40, precisionPct: 95, progress: 1 }),
+    savePracticeMatch('test-token', { textId: 9, timeMs: 1000, typed: 'hola', keystrokes: 4, errors: 0 }),
     /El texto no existe\./,
   )
   const payload = JSON.parse(fetchMock.mock.calls[0].arguments[1].body)
@@ -86,7 +88,7 @@ test('an invalid success response is reported as a save error', async (context) 
     json: async () => null,
   }))
   await assert.rejects(
-    savePracticeMatch('test-token', { textId: 9, timeMs: 1000, ppm: 40, precisionPct: 95, progress: 1 }),
+    savePracticeMatch('test-token', { textId: 9, timeMs: 1000, typed: 'hola', keystrokes: 4, errors: 0 }),
     /Could not read the saved match/,
   )
 })
@@ -97,7 +99,7 @@ test('saving keeps the chosen practice difficulty', async (context) => {
   }))
   await savePracticeMatch('token', {
     textId: 7, difficulty: 'easy',
-    timeMs: 30000, ppm: 30, precisionPct: 95, progress: 1,
+    timeMs: 30000, typed: 'casa mesa gato', keystrokes: 14, errors: 0,
   })
   assert.equal(JSON.parse(fetchMock.mock.calls[0].arguments[1].body).difficulty, 'easy')
 })

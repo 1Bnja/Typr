@@ -98,6 +98,11 @@ const TypingTest = ({ text, onFinish, onCancel, onFocusChange }) => {
       addSpeedSample(speedHistoryRef.current, value, content, timeMs, session.errors)
       onFinish({
         timeMs,
+        typed: value,
+        keystrokes: session.keystrokes,
+        errors: session.errors,
+        // PPM/precisión/score locales solo para mostrar al instante; el
+        // servidor recalcula y sus valores reemplazan a estos al guardar.
         ppm: finalPpm,
         precisionPct: finalPrecision,
         score: calculateScore(finalPpm, finalPrecision),
