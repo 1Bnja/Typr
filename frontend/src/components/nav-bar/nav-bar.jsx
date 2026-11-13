@@ -9,7 +9,6 @@ import './nav-bar.css'
 
 const links = [
   { to: '/', label: 'Home' },
-  { to: '/texts', label: 'Frases' },
   { to: '/practice', label: 'Practice' },
   { to: '/about', label: 'About' },
   { to: '/contact', label: 'Contact' },
