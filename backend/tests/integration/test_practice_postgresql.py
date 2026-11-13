@@ -63,8 +63,8 @@ class PostgreSQLPracticeTests(unittest.TestCase):
         self.payload = {
             "text": {"content": SPANISH_PHRASE, "language": "spa"},
             "timeMs": 12000,
-            "typed": "casa mesa gato",
-            "keystrokes": 14,
+            "typed": SPANISH_PHRASE,
+            "keystrokes": len(SPANISH_PHRASE),
             "errors": 0,
         }
 
@@ -76,7 +76,7 @@ class PostgreSQLPracticeTests(unittest.TestCase):
         )
         self.assertEqual(first.status_code, 201, first.text)
         saved = first.json()
-        self.assertEqual(saved["score"], 14)
+        self.assertEqual(saved["score"], 63)
         with self.sessions() as db:
             game = db.get(Game, saved["id"])
             self.assertEqual(game.text_id, saved["textId"])
@@ -84,7 +84,7 @@ class PostgreSQLPracticeTests(unittest.TestCase):
             self.assertEqual(db.get(Text, game.text_id).content, SPANISH_PHRASE)
             self.assertEqual(game.participants[0].user_id, self.user_id)
             self.assertIsInstance(game.participants[0], GameParticipant)
-            self.assertEqual(game.participants[0].ppm, 14)
+            self.assertEqual(game.participants[0].ppm, 63)
             self.assertAlmostEqual(game.participants[0].precision_pct, 100)
 
         retry = {key: value for key, value in self.payload.items() if key != "text"}
