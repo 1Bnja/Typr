@@ -17,7 +17,7 @@ class WeightsConfigurationTests(unittest.TestCase):
         classifier = import_module("app.services.texts_handler.processing.classiffy")
         self.assertIs(classifier.WEIGHTS, weights.WEIGHTS)
         self.assertAlmostEqual(sum(weights.WEIGHTS.values()), 1, delta=1e-12)
-        self.assertEqual(weights.THRESHOLDS, (25, 50, 75))
+        self.assertEqual(weights.THRESHOLDS, (38, 52))
         self.assertEqual(weights.MEAN_WORD_LENGTH_SCALE, 12)
         self.assertEqual(weights.MAX_WORD_LENGTH_SCALE, 24)
         self.assertEqual(weights.SCORE_SCALE, 100)

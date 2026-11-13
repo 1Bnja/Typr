@@ -7,6 +7,7 @@ from app.text_constants import MAX_CONTENT_LENGTH
 from . import TextProcessingStep
 from ..errors import TextValidationError
 from ..characters import ALLOWED_CHARACTERS, LETTERS_AND_DIGITS
+from ..rules import check_phrase_size
 
 if TYPE_CHECKING:
     from ..context import TextContext
@@ -26,7 +27,7 @@ def quote_roles(content: str, language: str) -> dict[int, str]:
             and content[index + 1] in LETTERS_AND_DIGITS
         )
         if internal:
-            if language == "eng" and char == "'":
+            if language == "eng" and char in "'’":
                 roles[index] = "join"
                 continue
             raise TextValidationError(
@@ -54,6 +55,69 @@ def quote_roles(content: str, language: str) -> dict[int, str]:
     return roles
 
 
+def _check_structure(content: str, language: str) -> None:
+    parentheses = 0
+    double_quote = None
+    question_open = exclamation_open = False
+    for char in content:
+        if char == "(":
+            parentheses += 1
+        elif char == ")":
+            parentheses -= 1
+            if parentheses < 0:
+                raise TextValidationError(
+                    "unpaired_parenthesis", "Closing parenthesis has no opening parenthesis."
+                )
+        elif char in '"“”':
+            if double_quote is None:
+                if char == "”":
+                    raise TextValidationError(
+                        "unpaired_quote", "Closing quote has no opening quote."
+                    )
+                double_quote = char
+            else:
+                if (double_quote == "“" and char != "”") or (
+                    double_quote == '"' and char != '"'
+                ):
+                    raise TextValidationError(
+                        "unpaired_quote", "Double quote styles do not match."
+                    )
+                double_quote = None
+        elif language == "spa":
+            if char == "¿":
+                if question_open:
+                    raise TextValidationError(
+                        "unpaired_question", "Question marks are not paired."
+                    )
+                question_open = True
+            elif char == "?":
+                if not question_open:
+                    raise TextValidationError(
+                        "unpaired_question", "Spanish questions need an opening mark."
+                    )
+                question_open = False
+            elif char == "¡":
+                if exclamation_open:
+                    raise TextValidationError(
+                        "unpaired_exclamation", "Exclamation marks are not paired."
+                    )
+                exclamation_open = True
+            elif char == "!":
+                if not exclamation_open:
+                    raise TextValidationError(
+                        "unpaired_exclamation", "Spanish exclamations need an opening mark."
+                    )
+                exclamation_open = False
+    if parentheses:
+        raise TextValidationError("unpaired_parenthesis", "Parenthesis is not closed.")
+    if double_quote is not None:
+        raise TextValidationError("unpaired_quote", "Double quoted block is not closed.")
+    if question_open:
+        raise TextValidationError("unpaired_question", "Question is not closed.")
+    if exclamation_open:
+        raise TextValidationError("unpaired_exclamation", "Exclamation is not closed.")
+
+
 def validate_content(content: str, language: str) -> dict[int, str]:
     """Check raw input without importing ORM models or database settings."""
     if not isinstance(language, str) or language not in ALLOWED_CHARACTERS:
@@ -72,7 +136,10 @@ def validate_content(content: str, language: str) -> dict[int, str]:
         raise TextValidationError(
             "invalid_character", "Content contains an unsupported character."
         )
-    return quote_roles(content, language)
+    roles = quote_roles(content, language)
+    _check_structure(content, language)
+    check_phrase_size(" ".join(content.split()))
+    return roles
 
 
 class ValidateTextStep(TextProcessingStep):

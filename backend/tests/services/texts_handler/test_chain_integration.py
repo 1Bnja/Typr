@@ -14,6 +14,8 @@ from app.services.texts_handler.processing.validate import ValidateTextStep
 
 ROOT = Path(__file__).resolve().parents[4]
 PROCESSING = ROOT / "backend/app/services/texts_handler/processing"
+ENGLISH_PHRASE = "Daily typing practice improves speed and accuracy over time."
+QUOTED_PHRASE = "‘ Hola ’. Practicar cada día mejora la velocidad al escribir."
 
 
 class ChainIntegrationTests(unittest.TestCase):
@@ -23,8 +25,8 @@ class ChainIntegrationTests(unittest.TestCase):
         self.assertIsInstance(facade.chain.next, NormalizeTextStep)
         self.assertIsInstance(facade.chain.next.next, ClassifyTextStep)
         self.assertIsNone(facade.chain.next.next.next)
-        context = facade.process("  Hola ,mundo.Hola ", "spa")
-        self.assertEqual(context.content, "Hola, mundo. Hola")
+        context = facade.process("  Hola ,mundo.Hola otra vez mientras practicamos mecanografía. ", "spa")
+        self.assertEqual(context.content, "Hola, mundo. Hola otra vez mientras practicamos mecanografía.")
         self.assertIsNotNone(context.classification)
         self.assertEqual(context.difficulty, context.classification.difficulty)
 
@@ -45,7 +47,7 @@ class ChainIntegrationTests(unittest.TestCase):
             patch.object(classes[1], "handle", spy(classes[1])),
             patch.object(classes[2], "handle", spy(classes[2])),
         ):
-            TextFacade().process("  ‘ Hola ’. ", "spa")
+            TextFacade().process(QUOTED_PHRASE, "spa")
         self.assertEqual(calls, [cls.__name__ for cls in classes])
 
     def test_helpers_do_not_repeat_predecessor_work(self):
@@ -64,7 +66,7 @@ class ChainIntegrationTests(unittest.TestCase):
                 with patch.object(
                     classify, "classify_text", wraps=classify.classify_text
                 ) as scored:
-                    TextFacade().process("‘ hola ’", "spa")
+                    TextFacade().process(QUOTED_PHRASE, "spa")
         self.assertEqual(
             (checked.call_count, canonical.call_count, scored.call_count), (1, 1, 1)
         )
@@ -76,7 +78,7 @@ class ChainIntegrationTests(unittest.TestCase):
                 path = PROCESSING / (
                     "classiffy/__init__.py" if name == "classiffy" else f"{name}.py"
                 )
-                tree = ast.parse(path.read_text())
+                tree = ast.parse(path.read_text(encoding="utf-8"))
                 for node in ast.walk(tree):
                     if isinstance(node, ast.ImportFrom):
                         self.assertNotIn(node.module, concrete - {name})
@@ -86,18 +88,18 @@ class ChainIntegrationTests(unittest.TestCase):
                             )
 
     def test_normalizer_requires_validation_and_uses_quote_metadata(self):
-        context = TextContext("‘ hola ’", "spa")
+        context = TextContext(QUOTED_PHRASE, "spa")
         with self.assertRaises(TextValidationError) as caught:
             NormalizeTextStep().handle(context)
         self.assertEqual(caught.exception.code, "not_validated")
         ValidateTextStep().handle(context)
         NormalizeTextStep().handle(context)
-        self.assertEqual(context.content, "'hola'")
+        self.assertEqual(context.content, "'Hola'. Practicar cada día mejora la velocidad al escribir.")
 
     def test_stale_validation_is_not_reused(self):
         for attribute, replacement in (("content", "don't"), ("language", "eng")):
             with self.subTest(attribute=attribute):
-                context = TextContext("‘ hola ’", "spa")
+                context = TextContext(QUOTED_PHRASE, "spa")
                 ValidateTextStep().handle(context)
                 setattr(context, attribute, replacement)
                 with self.assertRaises(TextValidationError) as caught:
@@ -108,7 +110,7 @@ class ChainIntegrationTests(unittest.TestCase):
     def test_classifier_requires_current_normalized_input(self):
         for attribute, replacement in (("content", "🙂"), ("language", "spa")):
             with self.subTest(attribute=attribute):
-                context = TextContext("Hello.", "eng")
+                context = TextContext(ENGLISH_PHRASE, "eng")
                 ValidateTextStep().handle(context)
                 with self.assertRaises(TextValidationError) as caught:
                     ClassifyTextStep().handle(context)
@@ -135,13 +137,13 @@ class ChainIntegrationTests(unittest.TestCase):
 
     def test_process_calls_are_independent_and_create_requires_session(self):
         facade = TextFacade()
-        first = facade.process("‘ Hola ’", "spa")
-        second = facade.process("Hello.", "eng")
+        first = facade.process(QUOTED_PHRASE, "spa")
+        second = facade.process(ENGLISH_PHRASE, "eng")
         self.assertIsNot(first, second)
         self.assertIsNot(first.classification, second.classification)
-        self.assertEqual(first.content, "'Hola'")
+        self.assertEqual(first.content, "'Hola'. Practicar cada día mejora la velocidad al escribir.")
         with self.assertRaisesRegex(RuntimeError, "database session"):
-            facade.create("Hello.", "eng")
+            facade.create(ENGLISH_PHRASE, "eng")
 
 
 if __name__ == "__main__":

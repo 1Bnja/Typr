@@ -3,6 +3,9 @@ from pathlib import Path
 
 from test_text_postgresql import ENABLED, require_local_fixture
 
+SPANISH_PHRASE = "La práctica diaria mejora la velocidad al escribir con cuidado."
+ENGLISH_ROLLBACK_PHRASE = "PostgreSQL rollback probe. Daily typing practice improves speed and accuracy."
+
 
 @unittest.skipUnless(ENABLED, "Requires the isolated docker-compose.test.yml fixture.")
 class PostgreSQLPracticeTests(unittest.TestCase):
@@ -20,7 +23,7 @@ class PostgreSQLPracticeTests(unittest.TestCase):
         schema = Path(__file__).resolve().parents[3] / "supabase/db/init.sql"
         with cls.engine.begin() as connection:
             connection.exec_driver_sql("CREATE SCHEMA practice_results_test")
-            connection.exec_driver_sql(schema.read_text())
+            connection.exec_driver_sql(schema.read_text(encoding="utf-8"))
         cls.sessions = sessionmaker(bind=cls.engine)
         from app.models import User
         from app.security import create_access_token
@@ -58,7 +61,7 @@ class PostgreSQLPracticeTests(unittest.TestCase):
         self.addCleanup(app.dependency_overrides.pop, get_db)
         self.addCleanup(self.client.close)
         self.payload = {
-            "text": {"content": "casa mesa gato", "language": "spa"},
+            "text": {"content": SPANISH_PHRASE, "language": "spa"},
             "timeMs": 12000,
             "ppm": 45,
             "precisionPct": 96,
@@ -78,7 +81,7 @@ class PostgreSQLPracticeTests(unittest.TestCase):
             game = db.get(Game, saved["id"])
             self.assertEqual(game.text_id, saved["textId"])
             self.assertEqual(game.mode.value, "singleplayer")
-            self.assertEqual(db.get(Text, game.text_id).content, "casa mesa gato")
+            self.assertEqual(db.get(Text, game.text_id).content, SPANISH_PHRASE)
             self.assertEqual(game.participants[0].user_id, self.user_id)
             self.assertIsInstance(game.participants[0], GameParticipant)
             self.assertEqual(game.participants[0].ppm, 45)
@@ -150,7 +153,7 @@ class PostgreSQLPracticeTests(unittest.TestCase):
         try:
             payload = {
                 **self.payload,
-                "text": {"content": "PostgreSQL rollback probe.", "language": "eng"},
+                "text": {"content": ENGLISH_ROLLBACK_PHRASE, "language": "eng"},
             }
             response = self.client.post(
                 "/api/v1/matches/practice", json=payload, headers=self.headers

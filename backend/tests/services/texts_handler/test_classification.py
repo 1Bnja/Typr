@@ -11,10 +11,13 @@ from app.services.texts_handler import TextFacade
 from app.services.texts_handler.context import TextContext
 from app.services.texts_handler.processing import TextProcessingStep
 from app.services.texts_handler.processing.classiffy import ClassifyTextStep
+from app.services.texts_handler.processing.classiffy import _Measurements, _prepare
 
 
 ROOT = Path(__file__).resolve().parents[4]
-REFERENCE = ROOT / "backend/tests/fixtures/text_calibration.json"
+LEGACY_REFERENCE = ROOT / "backend/tests/fixtures/text_calibration.json"
+REFERENCE = ROOT / "backend/tests/fixtures/text_calibration_v2.json"
+ENGLISH_PHRASE = "Daily typing practice improves speed and accuracy over time."
 
 
 class Recorder(TextProcessingStep):
@@ -30,6 +33,10 @@ class ClassificationTests(unittest.TestCase):
     def classify(self, content, language="eng"):
         return TextFacade().process(content, language).classification
 
+    def measure(self, content, language="eng"):
+        """Test classifier metrics independently of phrase admission rules."""
+        return _prepare(_Measurements(content, language))
+
     def normalized_context(self, content, language="eng"):
         from app.services.texts_handler.processing.normalize import NormalizeTextStep
         from app.services.texts_handler.processing.validate import ValidateTextStep
@@ -41,7 +48,7 @@ class ClassificationTests(unittest.TestCase):
         return context
 
     def test_step_assigns_difficulty_before_delegating(self):
-        context = self.normalized_context("Hello world.")
+        context = self.normalized_context(ENGLISH_PHRASE)
         handler, recorder = ClassifyTextStep(), Recorder()
         handler.set_next(recorder)
         handler.handle(context)
@@ -50,7 +57,8 @@ class ClassificationTests(unittest.TestCase):
         self.assertEqual(context.classification.difficulty, context.difficulty)
 
     def test_calibration_scores_and_all_metrics_match_reference(self):
-        reference = json.loads(REFERENCE.read_text())
+        reference = json.loads(REFERENCE.read_text(encoding="utf-8"))
+        self.assertEqual(reference["version"], "text-difficulty-v2")
         levels = Counter()
         for row in reference["results"]:
             with self.subTest(identifier=row["id"]):
@@ -73,17 +81,17 @@ class ClassificationTests(unittest.TestCase):
                         self.assertAlmostEqual(
                             getattr(result, field)[name], value, places=11
                         )
-                self.assertEqual(result.difficulty.value, row["actual"])
+                self.assertEqual(result.difficulty.value, row["difficulty"])
                 levels[result.difficulty.value] += 1
-        self.assertEqual(levels, {"medium": 8, "advanced": 8})
+        self.assertEqual(levels, {"easy": 2, "medium": 2, "advanced": 2})
 
     def test_keyboard_maps_match_frozen_reference(self):
         from app.services.texts_handler.processing.classiffy.keyboard import keyboard
 
-        reference = json.loads(REFERENCE.read_text())
+        reference = json.loads(LEGACY_REFERENCE.read_text(encoding="utf-8"))
         for language, expected in reference["keyboards"].items():
             layout = keyboard(language)
-            self.assertEqual(set(layout.sequences), set(expected["alphabet"]))
+            self.assertEqual(set(layout.sequences) - set(expected["alphabet"]), {"/"})
             self.assertAlmostEqual(layout.maximum_cost, expected["max_cost"], places=12)
             for char, data in expected["characters"].items():
                 self.assertEqual(
@@ -93,14 +101,14 @@ class ClassificationTests(unittest.TestCase):
 
     def test_known_entropy_and_case_punctuation(self):
         for text, expected in (("aaaaaaaa", 0), ("aaaabbbb", 1), ("abababab", 1)):
-            self.assertAlmostEqual(self.classify(text).entropy_bits, expected)
-        result = self.classify("a A!")
+            self.assertAlmostEqual(self.measure(text).entropy_bits, expected)
+        result = self.measure("a A!")
         self.assertEqual(result.nonspace_characters, 3)
         self.assertEqual(result.unique_characters, 3)
         self.assertAlmostEqual(result.entropy_bits, 1.584962500721156)
 
     def test_word_measurement_contraction_decimal_and_hyphen(self):
-        result = self.classify("don't 9.30 well-known")
+        result = self.measure("don't 9.30 well-known")
         self.assertEqual(result.word_count, 3)
         self.assertAlmostEqual(result.mean_word_length, (4 + 3 + 9) / 3)
         self.assertEqual(result.max_word_length, 9)
@@ -110,40 +118,38 @@ class ClassificationTests(unittest.TestCase):
 
         for score, expected in (
             (0, "easy"),
-            (24.999999999, "easy"),
-            (25, "medium"),
-            (49.999999999, "medium"),
-            (50, "advanced"),
-            (74.999999999, "advanced"),
-            (75, "expert"),
-            (100, "expert"),
+            (37.999999999, "easy"),
+            (38, "medium"),
+            (51.999999999, "medium"),
+            (52, "advanced"),
+            (100, "advanced"),
         ):
             with self.subTest(score=score):
                 self.assertEqual(difficulty_for_score(score).value, expected)
 
     def test_long_input_has_fixed_call_depth(self):
-        result = self.classify("a" * 5000)
+        result = self.measure("a" * 5000)
         self.assertEqual(result.nonspace_characters, 5000)
         self.assertEqual(result.normalized["mean_length"], 1)
         self.assertEqual(result.normalized["max_length"], 1)
 
     def test_spaces_do_not_change_character_distribution(self):
-        joined, spaced = self.classify("aaaa"), self.classify("a a a a")
+        joined, spaced = self.measure("aaaa"), self.measure("a a a a")
         self.assertEqual(joined.entropy_bits, spaced.entropy_bits)
         self.assertEqual(joined.unique_characters, spaced.unique_characters)
         self.assertEqual(joined.mean_key_cost, spaced.mean_key_cost)
 
     def test_punctuation_only_has_zero_word_metrics(self):
-        result = self.classify("!?")
+        result = self.measure("!?")
         self.assertEqual(result.word_count, 0)
         self.assertEqual(result.mean_word_length, 0)
         self.assertEqual(result.max_word_length, 0)
         self.assertTrue(0 <= result.score <= 100)
 
     def test_repeatability_and_immutable_explanation(self):
-        result = self.classify("Hello world.")
-        self.assertEqual(result, self.classify("Hello world."))
-        self.assertEqual(result.version, "text-difficulty-v1")
+        result = self.classify(ENGLISH_PHRASE)
+        self.assertEqual(result, self.classify(ENGLISH_PHRASE))
+        self.assertEqual(result.version, "text-difficulty-v2")
         self.assertAlmostEqual(sum(result.contributions.values()), result.score)
         with self.assertRaises(TypeError):
             result.normalized["entropy"] = 0

@@ -4,10 +4,9 @@ from string import digits
 from typing import TYPE_CHECKING
 
 from . import TextProcessingStep
-from app.text_constants import MAX_CONTENT_LENGTH
 
 from ..characters import WHITESPACE
-from ..errors import TextValidationError
+from ..rules import check_phrase_size
 
 if TYPE_CHECKING:
     from ..context import TextContext
@@ -25,14 +24,15 @@ def normalize_content(context: TextContext) -> str:
         if char in "'‘’":
             role = quotes[index]
             char = "'"
-        elif char == '"':
+        elif char in '"“”':
             role = "close" if double_open else "open"
             double_open = not double_open
+            char = '"'
         elif char in "(¿¡":
             role = "open"
         elif char == ")":
             role = "close"
-        elif char in ".," and (
+        elif char in ".,:/" and (
             index > 0
             and index + 1 < len(content)
             and content[index - 1] in digits
@@ -62,10 +62,7 @@ def normalize_content(context: TextContext) -> str:
         result.append(char)
         previous = role
     normalized = "".join(result)
-    if len(normalized) > MAX_CONTENT_LENGTH:
-        raise TextValidationError(
-            "content_too_long", "Content exceeds the maximum length."
-        )
+    check_phrase_size(normalized)
     return normalized
 
 

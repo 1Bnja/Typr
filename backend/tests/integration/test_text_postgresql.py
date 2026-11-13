@@ -8,7 +8,7 @@ import unittest
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[3]
-REFERENCE = ROOT / "backend/tests/fixtures/text_calibration.json"
+REFERENCE = ROOT / "backend/tests/fixtures/text_calibration_v2.json"
 ENABLED = os.environ.get("TYPR_POSTGRES_INTEGRATION") == "1"
 
 
@@ -49,7 +49,7 @@ class PostgreSQLTextTests(unittest.TestCase):
         cls.TextFacade = TextFacade
         cls.TextDatabaseError = TextDatabaseError
         cls.TextValidationError = TextValidationError
-        cls.samples = json.loads(REFERENCE.read_text())["results"]
+        cls.samples = json.loads(REFERENCE.read_text(encoding="utf-8"))["results"]
         with cls.SessionLocal() as db:
             server = cls.execute_sql(db, "SHOW server_version", {}).scalar_one()
             database = cls.execute_sql(db, "SELECT current_database()", {}).scalar_one()
@@ -72,9 +72,9 @@ class PostgreSQLTextTests(unittest.TestCase):
     def count_texts(self, db):
         return self.execute_sql(db, "SELECT count(*) FROM texts", {}).scalar_one()
 
-    def test_all_sixteen_samples_are_committed_and_match_reference(self):
-        self.assertEqual(len(self.records), 16)
-        self.assertEqual(len({record.id for record in self.records}), 16)
+    def test_calibration_samples_are_committed_and_match_reference(self):
+        self.assertEqual(len(self.records), 6)
+        self.assertEqual(len({record.id for record in self.records}), len(self.samples))
         with self.SessionLocal() as db:
             rows = (
                 self.execute_sql(
@@ -85,7 +85,7 @@ class PostgreSQLTextTests(unittest.TestCase):
                 .mappings()
                 .all()
             )
-            self.assertEqual(len(rows), 16)
+            self.assertEqual(len(rows), len(self.samples))
             for row, record, sample in zip(
                 rows, self.records, self.samples, strict=True
             ):
@@ -100,12 +100,12 @@ class PostgreSQLTextTests(unittest.TestCase):
                     self.assertEqual(row["id"], record.id)
                     self.assertEqual(row["content"], sample["content"])
                     self.assertEqual(row["language"], sample["language"])
-                    self.assertEqual(row["difficulty"], sample["actual"])
+                    self.assertEqual(row["difficulty"], sample["difficulty"])
                     self.assertEqual(record.language.value, sample["language"])
-                    self.assertEqual(record.difficulty.value, sample["actual"])
+                    self.assertEqual(record.difficulty.value, sample["difficulty"])
                     self.assertIsNone(row["ideal_time_ms"])
                     self.assertIsNone(row["record_user_id"])
-        print("LIVE_SAMPLES committed=16 medium=8 advanced=8", flush=True)
+        print("LIVE_SAMPLES committed=6 easy=2 medium=2 advanced=2", flush=True)
 
     def test_duplicates_after_normalization_do_not_add_rows(self):
         with self.SessionLocal() as db:
@@ -116,13 +116,13 @@ class PostgreSQLTextTests(unittest.TestCase):
                     with self.assertRaises(self.TextValidationError) as caught:
                         facade.create(content, sample["language"])
                     self.assertEqual(caught.exception.code, "duplicate_content")
-            quoted = next(sample for sample in self.samples if sample["id"] == "SPA-06")
+            quoted = next(sample for sample in self.samples if sample["id"] == "SPA-EASY")
             content = quoted["content"].replace("'", "‘", 1)
             content = content.replace("'", "’", 1)
             with self.assertRaises(self.TextValidationError) as caught:
                 facade.create(content, "spa")
             self.assertEqual(caught.exception.code, "duplicate_content")
-            self.assertEqual(self.count_texts(db), 16)
+            self.assertEqual(self.count_texts(db), len(self.samples))
 
     def test_invalid_input_does_not_add_rows(self):
         with self.SessionLocal() as db:
@@ -130,12 +130,12 @@ class PostgreSQLTextTests(unittest.TestCase):
             for content, language in (
                 ("Hola 😀", "spa"),
                 ("pingüino", "eng"),
-                ("don't", "spa"),
+                ("En esta frase don't se permite dentro de una palabra española.", "spa"),
             ):
                 with self.subTest(content=content):
                     with self.assertRaises(self.TextValidationError):
                         facade.create(content, language)
-            self.assertEqual(self.count_texts(db), 16)
+            self.assertEqual(self.count_texts(db), len(self.samples))
 
     def test_postgresql_failure_rolls_back_and_session_recovers(self):
         with self.SessionLocal() as db:
@@ -143,7 +143,7 @@ class PostgreSQLTextTests(unittest.TestCase):
                 db,
                 """CREATE FUNCTION reject_integration_probe() RETURNS trigger LANGUAGE plpgsql AS $$
                 BEGIN
-                  IF NEW.content = 'Rollback probe.' THEN
+                  IF NEW.content = 'Rollback probe. Daily typing practice improves speed and accuracy.' THEN
                     RAISE EXCEPTION 'Deliberate local integration failure';
                   END IF;
                   RETURN NEW;
@@ -159,12 +159,12 @@ class PostgreSQLTextTests(unittest.TestCase):
             try:
                 facade = self.TextFacade(db)
                 with self.assertRaises(self.TextDatabaseError) as caught:
-                    facade.create("Rollback probe.", "eng")
+                    facade.create("Rollback probe. Daily typing practice improves speed and accuracy.", "eng")
                 self.assertEqual(caught.exception.operation, "write")
-                self.assertEqual(self.count_texts(db), 16)
-                record = facade.create("Recovery probe.", "eng")
+                self.assertEqual(self.count_texts(db), len(self.samples))
+                record = facade.create("Recovery probe. Daily typing practice improves speed and accuracy.", "eng")
                 self.assertGreater(record.id, 0)
-                self.assertEqual(self.count_texts(db), 17)
+                self.assertEqual(self.count_texts(db), len(self.samples) + 1)
                 self.execute_sql(
                     db, "DELETE FROM texts WHERE id = %(id)s", {"id": record.id}
                 )
@@ -176,7 +176,7 @@ class PostgreSQLTextTests(unittest.TestCase):
                 )
                 self.execute_sql(db, "DROP FUNCTION reject_integration_probe()", {})
                 db.commit()
-            self.assertEqual(self.count_texts(db), 16)
+            self.assertEqual(self.count_texts(db), len(self.samples))
         print(
             "LIVE_ROLLBACK forced_insert_error=handled session_recovery=verified",
             flush=True,

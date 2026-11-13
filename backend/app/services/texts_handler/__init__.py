@@ -34,6 +34,10 @@ class TextFacade:
 
         return generate_text()
 
+    def generate_phrases(self) -> list[str]:
+        """Split the original generator's response into individual phrases."""
+        return [line.strip() for line in self.generate().splitlines() if line.strip()]
+
     def process(self, content: str, language: Language | str) -> TextContext:
         """Validate, normalize and classify without accessing the database."""
         context = TextContext(content, language)
