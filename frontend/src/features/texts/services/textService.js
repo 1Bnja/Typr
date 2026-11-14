@@ -19,11 +19,11 @@ async function postText(path, body, token) {
   return data
 }
 
-export const generateTexts = (token) =>
-  postText('/generate', undefined, token)
+export const generateTexts = (language, token) =>
+  postText('/generate', { language }, token)
 
-export const saveTexts = (phrases, token) =>
-  postText('/save', { phrases }, token)
+export const saveTexts = (phrases, language, token) =>
+  postText('/save', { phrases, language }, token)
 
 export const verifyText = (content, language, token) =>
   postText('/verify', { content, language }, token)

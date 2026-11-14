@@ -38,6 +38,35 @@
   line-height: 1.6;
 }
 
+.texts-language-control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(100%, 240px);
+  margin-top: 20px;
+  text-align: left;
+}
+
+.texts-language-control label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.texts-language-control select {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--texts-border);
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+
+.texts-language-control select:focus-visible {
+  outline: 2px solid #18a98a;
+  outline-offset: 2px;
+}
+
 .texts-header > .button {
   min-height: 46px;
   margin-top: 24px;

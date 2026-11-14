@@ -28,6 +28,11 @@ class TextInput(CamelModel):
 
 class TextBulkSaveRequest(CamelModel):
     phrases: list[str] = Field(min_length=1, max_length=100)
+    language: Language = Language.SPA
+
+
+class TextGenerationRequest(CamelModel):
+    language: Language = Language.SPA
 
 
 class TextGenerationItem(CamelModel):
