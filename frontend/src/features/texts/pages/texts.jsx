@@ -57,6 +57,7 @@ const getStatusLabel = (item) => {
 
 export default function Texts() {
   const { token, status } = useAuth()
+  const [language, setLanguage] = useState('spa')
   const [generation, setGeneration] = useState(null)
   const [items, setItems] = useState([])
   const [filter, setFilter] = useState('all')
@@ -80,7 +81,7 @@ export default function Texts() {
     setGenerating(true)
     setMessage(null)
     try {
-      const result = await generateTexts(token)
+      const result = await generateTexts(language, token)
       setGeneration(result)
       setItems(result.phrases.map(makeReviewItem))
       setFilter('all')
@@ -136,7 +137,7 @@ export default function Texts() {
     setSaving(true)
     setMessage(null)
     try {
-      const result = await saveTexts(approved.map((item) => item.content), token)
+      const result = await saveTexts(approved.map((item) => item.content), generation.language, token)
       if (result.phrases.length !== approved.length) throw new Error('La respuesta del servidor está incompleta. Revisa las frases antes de repetir el guardado.')
       const savedByKey = new Map(approved.map((item, index) => [item.key, result.phrases[index]]))
       setItems((current) => current.map((item) => {
@@ -168,6 +169,13 @@ export default function Texts() {
       <header className="texts-header">
         <h1>Revisión de frases</h1>
         <p className="texts-intro">Genera un lote, revisa cada frase y guarda solo las que apruebes.</p>
+        <div className="texts-language-control">
+          <label htmlFor="texts-language">Idioma de las nuevas frases</label>
+          <select id="texts-language" value={language} onChange={(event) => setLanguage(event.target.value)} disabled={busy}>
+            <option value="spa">Español</option>
+            <option value="eng">Inglés</option>
+          </select>
+        </div>
         {generation && <Button onClick={generate} disabled={busy} isLoading={generating}>Generar otro lote</Button>}
       </header>
 
@@ -187,7 +195,7 @@ export default function Texts() {
           <div className="texts-overview">
             <div className="texts-overview-heading">
               <div>
-                <p className="texts-overview-label">Lote actual · {generation.language === 'spa' ? 'Español' : generation.language}</p>
+                <p className="texts-overview-label">Lote actual · {generation.language === 'spa' ? 'Español' : 'Inglés'}</p>
                 <h2>{generation.generated} frases generadas</h2>
               </div>
               <p>Aprueba las frases aptas. Las duplicadas o rechazadas pueden editarse y verificarse de nuevo.</p>

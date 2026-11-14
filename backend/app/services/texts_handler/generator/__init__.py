@@ -1,11 +1,11 @@
-"""Generate Spanish typing texts without import-time external effects."""
+"""Generate Spanish or English typing texts without import-time external effects."""
 
 import json
 from math import ceil
 import re
 import time
 
-from app.text_enums import Difficulty
+from app.text_enums import Difficulty, Language
 
 PROMPT = """
     Genera 30 frases para un juego de mecanografía: exactamente 10 de complejidad baja,
@@ -54,6 +54,29 @@ PROMPT = """
         """
 
 
+ENGLISH_PROMPT = """
+Generate 30 unique English phrases for a typing practice game: 10 easy, 10 medium,
+and 10 advanced, in that order. Count whitespace-separated words; punctuation
+attached to a word adds no word. Each phrase must be natural, grammatically correct,
+coherent, and start with a capital letter.
+
+Easy: exactly 20 words, common everyday vocabulary, at most one comma, no numbers,
+parentheses, semicolons, or questions.
+Medium: exactly 30 words, varied vocabulary, at least one comma and one more internal
+punctuation mark. Natural contractions are welcome. No numbers.
+Advanced: exactly 40 words, richer vocabulary, related clauses, one number that fits
+the topic, at least three internal punctuation marks, and a semicolon, colon, or
+balanced parentheses.
+
+Write each complete idea first, then rewrite it to reach the exact word count.
+Never add isolated words, forced adjectives, repetition, or an unrelated ending.
+Use only ordinary English letters, digits, spaces, and standard punctuation; no
+accented letters or inverted question/exclamation marks. Every phrase must end
+naturally with a period, question mark, or exclamation mark. Check each word count
+before responding. Return one phrase per line, without headings or explanations.
+"""
+
+
 GROUP_TARGETS = {
     Difficulty.EASY: (20, 20, 20, "palabras cotidianas y puntuación sencilla"),
     Difficulty.MEDIUM: (30, 30, 30, "vocabulario variado, tildes y puntuación dentro de la frase"),
@@ -61,8 +84,18 @@ GROUP_TARGETS = {
 }
 
 
-def matches_typing_difficulty(content: str, difficulty: Difficulty) -> bool:
+ENGLISH_STYLES = {
+    Difficulty.EASY: "common everyday words and simple punctuation",
+    Difficulty.MEDIUM: "varied vocabulary, a natural contraction when useful, and internal punctuation",
+    Difficulty.ADVANCED: "richer vocabulary, a natural number, and varied internal punctuation",
+}
+
+
+def matches_typing_difficulty(
+    content: str, difficulty: Difficulty, language: Language | str = Language.SPA
+) -> bool:
     """Keep the typing features of generated levels distinct from word count."""
+    language = Language(language)
     first = content.lstrip('¿¡("\'')
     if not first or not first[0].isalpha() or not first[0].isupper() or not has_complete_ending(content):
         return False
@@ -72,16 +105,16 @@ def matches_typing_difficulty(content: str, difficulty: Difficulty) -> bool:
         return not any(char.isdigit() for char in content) and marks <= 1
     if difficulty == Difficulty.MEDIUM:
         return (
-            accents >= 1
+            (accents >= 1 if language == Language.SPA else True)
             and content.count(",") >= 1
             and marks >= 2
             and not any(char.isdigit() for char in content)
         )
     return (
-        accents >= 2
+        (accents >= 2 if language == Language.SPA else True)
         and any(char.isdigit() for char in content)
         and marks >= 3
-        and any(char in ";:()¿¡" for char in content)
+        and any(char in (";:()¿¡" if language == Language.SPA else ";:()") for char in content)
     )
 
 
@@ -105,9 +138,47 @@ def capitalize_initial(content: str) -> str:
 
 
 def group_prompt(
-    difficulty: Difficulty, count: int, previous_counts: tuple[int, ...] = ()
+    difficulty: Difficulty, count: int, previous_counts: tuple[int, ...] = (),
+    language: Language | str = Language.SPA,
 ) -> str:
+    language = Language(language)
     minimum, maximum, target, style = GROUP_TARGETS[difficulty]
+    if language == Language.ENG:
+        style = ENGLISH_STYLES[difficulty]
+        structure = (
+            "Use one or two short sentences and at most one comma. Do not use numbers, "
+            "parentheses, semicolons, or questions."
+            if difficulty == Difficulty.EASY else
+            "Include at least one comma and one additional internal punctuation mark "
+            "(another comma, a colon, or a semicolon). A natural contraction is welcome. "
+            "Do not use numbers."
+            if difficulty == Difficulty.MEDIUM else
+            "Include a number that fits the topic, at least three internal punctuation "
+            "marks, and a semicolon, colon, or balanced parentheses. Combine related clauses."
+        )
+        short = sum(value < minimum for value in previous_counts)
+        long = sum(value > maximum for value in previous_counts)
+        feedback = (
+            f"Previous attempt: {short} below and {long} above {target} words. "
+            "Rewrite them to reach the exact count."
+            if previous_counts else ""
+        )
+        return f"""
+Generate exactly {count} different English phrases for a typing practice game.
+Each phrase must contain exactly {target} whitespace-separated words, without exception.
+Start every phrase with a capital letter. Punctuation attached to a word adds no word.
+Style: {style}. Every phrase must be idiomatic, grammatical, coherent, and complete.
+{structure}
+{feedback}
+Write the entire idea first, then rewrite it to reach exactly {target} words.
+Never pad a phrase with isolated words, forced adjectives, repetition, or an unrelated
+ending. The final word must complete the thought naturally. Vary the topics.
+Use only standard English letters, digits, spaces, and punctuation; no accented letters,
+inverted question or exclamation marks, Markdown, or unusual symbols. End with a period,
+question mark, or exclamation mark. Check grammar and the exact word count before replying.
+Return an array of {count} phrases; each phrase is an array of exactly {target} words,
+one whitespace-separated word per element, with punctuation attached to a word.
+"""
     structure = (
         "Usa una o dos oraciones breves, palabras comunes y como máximo una coma. "
         "No incluyas números, paréntesis, punto y coma ni preguntas."
@@ -152,7 +223,9 @@ La puntuación debe ir pegada a una palabra. Utiliza caracteres habituales del e
 """
 
 
-def generate_text(prompt: str | None = None) -> str:
+def generate_text(
+    prompt: str | None = None, *, language: Language | str = Language.SPA
+) -> str:
     """Return the provider's raw text; downstream processing is caller-owned."""
     from app.config import settings
 
@@ -166,7 +239,9 @@ def generate_text(prompt: str | None = None) -> str:
 
     with genai.Client(api_key=settings.gemini_api_key) as client:
         response = client.interactions.create(
-            model=settings.gemini_model, input=PROMPT if prompt is None else prompt
+            model=settings.gemini_model,
+            input=(ENGLISH_PROMPT if Language(language) == Language.ENG else PROMPT)
+            if prompt is None else prompt,
         )
         text = response.output_text
         if not isinstance(text, str) or not text.strip():
@@ -225,7 +300,9 @@ def _request_structured(prompt: str, schema: object) -> str | None:
                 time.sleep(delay)
 
 
-def review_phrases(phrases: list[str]) -> list[bool]:
+def review_phrases(
+    phrases: list[str], language: Language | str = Language.SPA
+) -> list[bool]:
     """Check whether complete phrases read naturally before they reach review UI."""
     if not phrases:
         return []
@@ -245,7 +322,17 @@ def review_phrases(phrases: list[str]) -> list[bool]:
             required=["apta", "motivo"],
         ),
     )
-    prompt = f"""
+    if Language(language) == Language.ENG:
+        prompt = f"""
+Review these English typing practice phrases in order. Mark apta=false for clear
+problems: filler words added to reach the count, an isolated ending, an abrupt ending,
+incoherence, incorrect punctuation, grammar errors, or non-English text.
+Mark apta=true for a complete, natural phrase. Do not reject mere style preferences.
+Do not rewrite the phrases. Give a brief reason for each decision.
+Phrases: {json.dumps(phrases, ensure_ascii=False)}
+"""
+    else:
+        prompt = f"""
 Evalúa estas frases para un juego de mecanografía en español. Responde en el mismo orden.
 Marca apta=false cuando haya un error claro: palabras sueltas añadidas para completar
 el conteo, una exclamación aislada al final, un cierre abrupto, una idea incoherente,
@@ -270,7 +357,7 @@ Frases: {json.dumps(phrases, ensure_ascii=False)}
 
 def generate_group_text(
     difficulty: Difficulty, count: int, previous_counts: tuple[int, ...] = (),
-    *, review_quality: bool = True,
+    *, review_quality: bool = True, language: Language | str = Language.SPA,
 ) -> str:
     from google.genai import types
 
@@ -294,7 +381,7 @@ def generate_group_text(
     )
     try:
         groups = json.loads(_request_structured(
-            group_prompt(difficulty, sample_count, previous_counts), schema
+            group_prompt(difficulty, sample_count, previous_counts, language), schema
         ))
     except (TypeError, ValueError) as error:
         raise ValueError("Text generation must return valid JSON word arrays.") from error
@@ -312,14 +399,27 @@ def generate_group_text(
         for phrase in phrases
     ]
     phrases = [phrase for phrase in phrases if has_complete_ending(phrase)]
-    approved = review_phrases(phrases) if review_quality else [True] * len(phrases)
+    approved = review_phrases(phrases, language) if review_quality else [True] * len(phrases)
     return "\n".join(
         phrase for phrase, accepted in zip(phrases, approved) if accepted
     )
 
 
-def revise_phrase(difficulty: Difficulty, content: str, word_count: int) -> list[str]:
+def revise_phrase(
+    difficulty: Difficulty, content: str, word_count: int,
+    language: Language | str = Language.SPA,
+) -> list[str]:
     minimum, _, target, _ = GROUP_TARGETS[difficulty]
+    if Language(language) == Language.ENG:
+        change = "Expand" if word_count < minimum else "Shorten"
+        prompt = f"""
+{change} this English phrase without changing its topic or meaning. It currently has
+{word_count} words. Each result must have exactly {target} whitespace-separated words.
+Keep the grammar natural and the idea complete. Rewrite related clauses instead of
+adding filler words. Offer six distinct versions, one per line, without numbering.
+Original phrase: {content}
+"""
+        return [line.strip() for line in generate_text(prompt).splitlines() if line.strip()]
     change = "Amplía" if word_count < minimum else "Recorta"
     prompt = f"""
 {change} la siguiente frase en español sin cambiar su tema ni su sentido.

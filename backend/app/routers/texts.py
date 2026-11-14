@@ -12,11 +12,11 @@ from app.models import Text
 from app.schemas.text import (
     TextBulkSaveRequest,
     TextGenerateResponse,
+    TextGenerationRequest,
     TextInput,
     TextPublic,
     TextVerifyResponse,
 )
-from app.text_constants import DEFAULT_TEXT_LANGUAGE
 from app.text_enums import Difficulty, Language
 from app.services.texts_handler import TextFacade
 from app.services.texts_handler.errors import TextDatabaseError, TextValidationError
@@ -69,9 +69,10 @@ def random_text(
 
 
 @router.post("/generate", response_model=TextGenerateResponse)
-def generate_texts() -> TextGenerateResponse:
+def generate_texts(data: TextGenerationRequest | None = None) -> TextGenerateResponse:
+    language = data.language if data is not None else Language.SPA
     try:
-        phrases = TextFacade().generate_phrases()
+        phrases = TextFacade().generate_phrases(language)
     except Exception as error:
         if getattr(error, "code", None) == 429:
             logger.warning("Gemini rate limit reached during phrase generation")
@@ -86,11 +87,11 @@ def generate_texts() -> TextGenerateResponse:
             detail="No se pudieron generar las frases. Inténtalo nuevamente.",
         ) from error
     summary = load_phrases(
-        phrases, DEFAULT_TEXT_LANGUAGE, dry_run=True, max_per_difficulty=10,
+        phrases, language, dry_run=True, max_per_difficulty=10,
         expected_word_ranges=((20, 20),) * 10 + ((30, 30),) * 10 + ((40, 40),) * 10,
     )
     return TextGenerateResponse(
-        language=DEFAULT_TEXT_LANGUAGE,
+        language=language,
         generated=summary.generated,
         valid=summary.accepted_in_dry_run,
         stored=summary.stored,
@@ -104,7 +105,7 @@ def generate_texts() -> TextGenerateResponse:
 def save_texts(data: TextBulkSaveRequest, db: Session = Depends(get_db)) -> TextGenerateResponse:
     try:
         summary = load_phrases(
-            data.phrases, DEFAULT_TEXT_LANGUAGE, dry_run=False, db=db,
+            data.phrases, data.language, dry_run=False, db=db,
             max_per_difficulty=10, allowed_word_counts=frozenset({20, 30, 40}),
         )
     except TextDatabaseError as error:
@@ -113,7 +114,7 @@ def save_texts(data: TextBulkSaveRequest, db: Session = Depends(get_db)) -> Text
             detail="Falló el guardado. Algunas frases anteriores pueden haberse guardado.",
         ) from error
     return TextGenerateResponse(
-        language=DEFAULT_TEXT_LANGUAGE,
+        language=data.language,
         generated=summary.generated,
         valid=0,
         stored=summary.stored,

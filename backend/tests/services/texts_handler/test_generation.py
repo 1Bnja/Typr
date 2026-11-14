@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 from app.services.texts_handler import TextFacade
 from app.services.texts_handler.load import load_phrases
-from app.text_enums import Difficulty
+from app.text_enums import Difficulty, Language
 
 
 class GenerationTests(unittest.TestCase):
@@ -96,6 +96,34 @@ class GenerationTests(unittest.TestCase):
         self.assertIn("2 por encima de 40", prompt)
         self.assertIn("Amplía las cortas y recorta las largas", prompt)
 
+    def test_english_prompts_keep_the_exact_counts_without_spanish_accents(self):
+        generator = self.generator()
+        self.assertIn("Easy: exactly 20 words", generator.ENGLISH_PROMPT)
+        self.assertIn("Medium: exactly 30 words", generator.ENGLISH_PROMPT)
+        self.assertIn("Advanced: exactly 40 words", generator.ENGLISH_PROMPT)
+        for difficulty, target in ((Difficulty.EASY, 20), (Difficulty.MEDIUM, 30), (Difficulty.ADVANCED, 40)):
+            prompt = generator.group_prompt(difficulty, 10, language=Language.ENG)
+            self.assertIn(f"exactly {target} whitespace-separated words", prompt)
+            self.assertIn("English phrases", prompt)
+            self.assertNotIn("tildes", prompt)
+
+    def test_english_generator_and_quality_review_use_english(self):
+        generator = self.generator()
+        words = ["word"] * 19 + ["finish."]
+        self.client.models.generate_content.return_value = SimpleNamespace(
+            text=json.dumps([words])
+        )
+        with patch.object(generator, "review_phrases", return_value=[True]) as review:
+            generator.generate_group_text(Difficulty.EASY, 1, language=Language.ENG)
+        review.assert_called_once_with([generator.capitalize_initial(" ".join(words))], Language.ENG)
+        self.assertIn("English phrases", self.client.models.generate_content.call_args.kwargs["contents"])
+
+        self.client.models.generate_content.return_value = SimpleNamespace(
+            text=json.dumps([{"apta": True, "motivo": "Complete idea."}])
+        )
+        self.assertEqual(generator.review_phrases(["A complete phrase."], Language.ENG), [True])
+        self.assertIn("English typing practice", self.client.models.generate_content.call_args.kwargs["contents"])
+
     def test_group_generation_uses_fixed_length_word_arrays(self):
         generator = self.generator()
         words = ["palabra"] * 39 + ["final."]
@@ -105,7 +133,7 @@ class GenerationTests(unittest.TestCase):
         with patch.object(generator, "review_phrases", return_value=[True, True]) as review:
             result = generator.generate_group_text(Difficulty.ADVANCED, 2)
         self.assertEqual([len(line.split()) for line in result.splitlines()], [40, 40])
-        review.assert_called_once_with([generator.capitalize_initial(" ".join(words))] * 2)
+        review.assert_called_once_with([generator.capitalize_initial(" ".join(words))] * 2, Language.SPA)
         call = self.client.models.generate_content.call_args.kwargs
         schema = call["config"]["response_schema"]
         self.assertEqual((schema["min_items"], schema["max_items"]), (6, 6))
@@ -149,7 +177,7 @@ class GenerationTests(unittest.TestCase):
             generator.capitalize_initial(" ".join(complete)),
             generator.capitalize_initial(" ".join(unfinished)) + ".",
             generator.capitalize_initial(" ".join(complete)),
-        ])
+        ], Language.SPA)
 
     def test_quality_review_requires_one_boolean_decision_per_phrase(self):
         generator = self.generator()
@@ -208,6 +236,34 @@ class GenerationTests(unittest.TestCase):
         self.assertIn("Espera un minuto", caught.exception.detail)
         self.assertEqual(caught.exception.headers["Retry-After"], "60")
 
+    def test_generate_endpoint_previews_the_requested_language(self):
+        from app.routers.texts import generate_texts
+        from app.schemas.text import TextGenerationRequest
+
+        phrases = [line for count in (20, 30, 40)
+                   for line in self.english_group_lines(count).splitlines()]
+        with patch.object(TextFacade, "generate_phrases", return_value=phrases) as generate:
+            response = generate_texts(TextGenerationRequest(language=Language.ENG))
+        generate.assert_called_once_with(Language.ENG)
+        self.assertEqual(response.language, Language.ENG)
+        self.assertEqual(response.generated, 30)
+        self.assertEqual(response.valid, 30)
+
+    def test_save_endpoint_passes_the_requested_language_to_loader(self):
+        from app.routers.texts import save_texts
+        from app.schemas.text import TextBulkSaveRequest
+        from app.services.texts_handler.load import LoadedPhrase, LoadSummary
+
+        phrase = self.english_group_lines(20, count=1)
+        summary = LoadSummary(1, 1, 0, 0, 0, (LoadedPhrase(phrase, "stored", Difficulty.EASY, 7),))
+        db = Mock()
+        with patch("app.routers.texts.load_phrases", return_value=summary) as load:
+            response = save_texts(TextBulkSaveRequest(phrases=[phrase], language=Language.ENG), db)
+        self.assertEqual(load.call_args.args[:2], ([phrase], Language.ENG))
+        self.assertIs(load.call_args.kwargs["db"], db)
+        self.assertEqual(response.language, Language.ENG)
+        self.assertEqual(response.stored, 1)
+
     def test_revise_phrase_requests_multiple_exact_versions(self):
         generator = self.generator()
         with patch.object(generator, "generate_text", return_value=" Frase revisada. \n Otra versión. ") as generate:
@@ -232,6 +288,33 @@ class GenerationTests(unittest.TestCase):
                 words[4:8] = ["fácil", "2025", "viaje;", "destino,"]
             lines.append(" ".join(words) + ".")
         return "\n".join(lines)
+
+    @staticmethod
+    def english_group_lines(word_count, count=10):
+        lines = []
+        for index in range(count):
+            words = ["alpha" * (index + 1), *(["word"] * (word_count - 1))]
+            if word_count >= 30:
+                words[1:3] = ["morning,", "evening,"]
+            if word_count >= 40:
+                words[3:5] = ["later;", "2026"]
+            lines.append(" ".join(words) + ".")
+        return "\n".join(lines)
+
+    def test_english_phrases_pass_generation_and_preview_in_english(self):
+        generator = self.generator()
+        outputs = [self.english_group_lines(count) for count in (20, 30, 40)]
+        with patch.object(generator, "generate_group_text", side_effect=outputs) as generate:
+            phrases = TextFacade().generate_phrases(Language.ENG)
+        self.assertEqual(len(phrases), 30)
+        self.assertTrue(all(call.kwargs["language"] == Language.ENG for call in generate.call_args_list))
+        summary = load_phrases(
+            phrases, Language.ENG, dry_run=True, max_per_difficulty=10,
+            expected_word_ranges=((20, 20),) * 10 + ((30, 30),) * 10 + ((40, 40),) * 10,
+        )
+        self.assertEqual(summary.accepted_in_dry_run, 30)
+        self.assertEqual([item.difficulty for item in summary.phrases],
+                         [Difficulty.EASY] * 10 + [Difficulty.MEDIUM] * 10 + [Difficulty.ADVANCED] * 10)
 
     def test_generated_levels_require_increasing_typing_features(self):
         matches = self.generator().matches_typing_difficulty
@@ -335,7 +418,7 @@ class GenerationTests(unittest.TestCase):
         ]
         with (
             patch.object(generator, "generate_group_text", side_effect=outputs) as generate,
-            patch.object(generator, "revise_phrase", side_effect=lambda _level, content, _count: [content]),
+            patch.object(generator, "revise_phrase", side_effect=lambda _level, content, _count, _language: [content]),
         ):
             phrases = TextFacade().generate_phrases()
         self.assertEqual(len(phrases), 30)
@@ -346,7 +429,7 @@ class GenerationTests(unittest.TestCase):
         generator = self.generator()
         with (
             patch.object(generator, "generate_group_text", return_value=self.group_lines(17)) as generate,
-            patch.object(generator, "revise_phrase", side_effect=lambda _level, content, _count: [content]),
+            patch.object(generator, "revise_phrase", side_effect=lambda _level, content, _count, _language: [content]),
         ):
             with self.assertRaisesRegex(RuntimeError, "ten valid easy phrases"):
                 TextFacade().generate_phrases()

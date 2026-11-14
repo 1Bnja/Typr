@@ -28,15 +28,19 @@ class TextFacade:
                 CheckDuplicateTextStep(db)
             ).set_next(ClassifyTextStep()).set_next(PersistTextStep(db))
 
-    def generate(self) -> str:
+    def generate(self, language: Language | str = "spa") -> str:
         """Generate raw text without running either processing chain."""
         from .generator import generate_text
 
-        return generate_text()
+        if language == "spa":
+            return generate_text()
+        return generate_text(language=language)
 
-    def generate_phrases(self) -> list[str]:
+    def generate_phrases(self, language: Language | str = "spa") -> list[str]:
         """Generate ten validated phrases per level, retrying incomplete groups."""
-        from app.text_enums import Difficulty
+        from app.text_enums import Difficulty, Language
+
+        selected = Language(language)
 
         from .errors import TextValidationError
         from .generator import (
@@ -60,6 +64,7 @@ class TextFacade:
                 raw = generate_group_text(
                     difficulty, 10 - len(group), previous_counts,
                     review_quality=attempt == 0,
+                    language=selected,
                 )
                 observed_counts: list[int] = []
                 for line in raw.splitlines():
@@ -70,7 +75,7 @@ class TextFacade:
                         sum(any(char.isalnum() for char in token) for token in candidate.split())
                     )
                     try:
-                        context = self.process(candidate, "spa")
+                        context = self.process(candidate, selected)
                     except TextValidationError:
                         continue
                     if not minimum <= context.classification.word_count <= maximum:
@@ -78,17 +83,18 @@ class TextFacade:
                             continue
                         repairs_remaining -= 1
                         revisions = revise_phrase(
-                            difficulty, context.content, context.classification.word_count
+                            difficulty, context.content, context.classification.word_count,
+                            selected,
                         )
                         for revised in revisions:
                             try:
-                                revised_context = self.process(capitalize_initial(revised.strip()), "spa")
+                                revised_context = self.process(capitalize_initial(revised.strip()), selected)
                             except TextValidationError:
                                 continue
                             if (
                                 minimum <= revised_context.classification.word_count <= maximum
                                 and revised_context.difficulty == difficulty
-                                and matches_typing_difficulty(revised_context.content, difficulty)
+                                and matches_typing_difficulty(revised_context.content, difficulty, selected)
                                 and revised_context.content not in seen
                             ):
                                 context = revised_context
@@ -98,7 +104,7 @@ class TextFacade:
                     if (
                         not minimum <= context.classification.word_count <= maximum
                         or context.difficulty != difficulty
-                        or not matches_typing_difficulty(context.content, difficulty)
+                        or not matches_typing_difficulty(context.content, difficulty, selected)
                         or context.content in seen
                     ):
                         continue
