@@ -277,6 +277,43 @@ class PracticeMatchTests(unittest.TestCase):
             connection.execute(text("DROP TRIGGER reject_participant"))
         self.assertEqual(self.save(payload).status_code, 201)
 
+    def test_completed_practice_updates_text_ideal_time_only_when_faster(self):
+        self.assertEqual(self.save().status_code, 201)
+        with self.sessions() as db:
+            stored = db.get(Text, self.text_id)
+            self.assertEqual(stored.ideal_time_ms, 30000)
+            self.assertEqual(stored.record_user_id, self.user_ids[0])
+
+        faster = self.save(
+            {**self.payload, "timeMs": 15000}, headers=self.other_headers
+        )
+        self.assertEqual(faster.status_code, 201, faster.text)
+        with self.sessions() as db:
+            stored = db.get(Text, self.text_id)
+            self.assertEqual(stored.ideal_time_ms, 15000)
+            self.assertEqual(stored.record_user_id, self.user_ids[1])
+
+        slower = self.save({**self.payload, "timeMs": 40000})
+        self.assertEqual(slower.status_code, 201, slower.text)
+        with self.sessions() as db:
+            stored = db.get(Text, self.text_id)
+            self.assertEqual(stored.ideal_time_ms, 15000)
+            self.assertEqual(stored.record_user_id, self.user_ids[1])
+
+    def test_incomplete_or_low_precision_practice_does_not_set_ideal_time(self):
+        cases = (
+            {"timeMs": 5000, "typed": "Hello"},
+            {"timeMs": 5000, "keystrokes": 10, "errors": 5},
+        )
+        for update in cases:
+            with self.subTest(update=update):
+                response = self.save({**self.payload, **update})
+                self.assertEqual(response.status_code, 201, response.text)
+                with self.sessions() as db:
+                    stored = db.get(Text, self.text_id)
+                    self.assertIsNone(stored.ideal_time_ms)
+                    self.assertIsNone(stored.record_user_id)
+
     def test_selected_level_is_saved_and_history_filters_it(self):
         payload = {key: value for key, value in self.payload.items() if key != "textId"}
         payload["text"] = {"content": SPANISH_PHRASE, "language": "spa"}
@@ -362,6 +399,23 @@ class PracticeMatchTests(unittest.TestCase):
         self.assertEqual([row["position"] for row in result["entries"]], [1, 2])
         self.assertNotIn("email", response.text)
         self.assertNotIn("hashedPassword", response.text)
+
+    def test_monthly_ranking_excludes_matches_below_75_precision(self):
+        date = datetime(2026, 11, 10, 12, tzinfo=timezone.utc)
+        # Una partida rápida pero imprecisa no puede tapar la mejor válida.
+        self.add_ranked_match(self.user_ids[0], date, score=999, accuracy=74.9)
+        self.add_ranked_match(self.user_ids[0], date, score=10, accuracy=75)
+        self.add_ranked_match(self.user_ids[1], date, score=500, accuracy=74)
+        self.add_ranked_match(self.user_ids[1], date, score=5, accuracy=76)
+        response = self.client.get(
+            "/api/v1/matches/leaderboard?month=2026-11&difficulty=easy",
+            headers=self.headers,
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        entries = response.json()["entries"]
+        self.assertEqual([row["userId"] for row in entries], self.user_ids)
+        self.assertEqual([row["score"] for row in entries], [10, 5])
+        self.assertEqual([row["position"] for row in entries], [1, 2])
 
     def test_monthly_ranking_uses_santiago_boundaries_and_filters(self):
         from datetime import timedelta

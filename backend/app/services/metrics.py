@@ -9,6 +9,8 @@ from math import floor
 
 # Una "palabra" estándar son 5 caracteres, así el PPM no depende del largo real.
 CHARS_PER_WORD = 5
+# Precisión mínima para que una partida cuente para el ranking o marque récord.
+MIN_PRECISION = 75
 
 
 def _js_round(value: float) -> int:

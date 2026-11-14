@@ -41,6 +41,12 @@ El usuario se obtiene del JWT y la puntuación se calcula en el servidor como
 Las métricas recibidas son las medidas por el cliente; este endpoint no verifica
 las pulsaciones ni certifica resultados competitivos.
 
+Si la prueba se completa y tiene precisión de al menos 75%, el servidor actualiza
+`texts.ideal_time_ms` y `texts.record_user_id` cuando el tiempo supera la marca
+anterior (o cuando el texto todavía no tenía marca). Las pruebas incompletas o con
+menos precisión no modifican el récord. La actualización es atómica: si otra
+partida guarda una marca mejor al mismo tiempo, se conserva la menor.
+
 Errores: `422` para datos inválidos, `404` si no existe `textId` y `503` ante un
 fallo de almacenamiento. La autenticación usa la dependencia existente.
 
@@ -62,9 +68,10 @@ Requiere JWT. `month` es opcional y toma el mes actual en `America/Santiago`.
 El límite predeterminado es 50 y admite hasta 100 participantes. El filtro de
 idioma es opcional.
 
-Solo cuenta prácticas terminadas (`progress = 1`). Se selecciona una mejor partida
-por usuario y se ordena por puntuación descendente, precisión descendente, menor
-tiempo y fecha de finalización más temprana. El identificador de partida resuelve
+Solo cuenta prácticas terminadas (`progress = 1`) con precisión de al menos 75%.
+Se selecciona la mejor partida por usuario y se ordena por puntuación descendente,
+precisión descendente, menor tiempo y fecha de finalización más temprana. El
+identificador de partida resuelve
 empates exactos. No se suman puntos por repetir pruebas. El período incluye el
 inicio del mes en Santiago y excluye el inicio del siguiente mes.
 
