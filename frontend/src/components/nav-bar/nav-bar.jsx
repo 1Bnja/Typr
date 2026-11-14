@@ -11,6 +11,7 @@ const links = [
   { to: '/', label: 'Home' },
   { to: '/texts', label: 'Frases' },
   { to: '/practice', label: 'Practice' },
+  { to: '/rooms', label: 'Multiplayer' },
   { to: '/about', label: 'About' },
   { to: '/contact', label: 'Contact' },
 ]
