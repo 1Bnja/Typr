@@ -2,7 +2,7 @@ import unicodedata
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -14,6 +14,7 @@ from app.schemas.practice import (
     PracticeMatchPublic,
 )
 from app.services.metrics import (
+    MIN_PRECISION,
     calculate_ppm,
     calculate_precision,
     calculate_score,
@@ -120,6 +121,19 @@ def save_practice_match(
             score=score,
         )
         db.add(participant)
+        if progress == 1 and precision_pct >= MIN_PRECISION:
+            # Solo mejora la marca: otra partida pudo superarla mientras se guardaba.
+            db.execute(
+                update(Text)
+                .where(
+                    Text.id == text.id,
+                    or_(
+                        Text.ideal_time_ms.is_(None),
+                        Text.ideal_time_ms > data.time_ms,
+                    ),
+                )
+                .values(ideal_time_ms=data.time_ms, record_user_id=user_id)
+            )
         result = match_public(game, participant, text)
         # El texto y la partida se guardan juntos; un error revierte todo.
         db.commit()
@@ -211,6 +225,7 @@ def monthly_leaderboard(
             GameParticipant.progress == 1,
             GameParticipant.score.is_not(None),
             GameParticipant.precision_pct.is_not(None),
+            GameParticipant.precision_pct >= MIN_PRECISION,
             GameParticipant.time_ms > 0,
             GameParticipant.ppm >= 0,
             Text.difficulty == difficulty,

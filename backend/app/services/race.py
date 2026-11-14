@@ -9,7 +9,7 @@ sin tocar la base de datos ni los sockets.
 from dataclasses import dataclass
 from math import floor
 
-from app.services.metrics import calculate_ppm, calculate_precision
+from app.services.metrics import MIN_PRECISION, calculate_ppm, calculate_precision
 from app.text_enums import Difficulty, Language
 
 DIFFICULTY_MULTIPLIER = {
@@ -21,8 +21,6 @@ DIFFICULTY_MULTIPLIER = {
 }
 POSITION_BONUS = {1: 20, 2: 10, 3: 5}
 RECORD_BONUS = 30
-# Bajo esta precisión la partida no cuenta para el ranking ni marca récord.
-RECORD_MIN_PRECISION = 75
 # Referencia de 60 PPM (5 caracteres por segundo) para textos sin marca.
 REFERENCE_MS_PER_CHAR = 200
 TIME_LIMIT_FACTOR = 2
@@ -117,7 +115,7 @@ def build_results(
             position == 1
             and finished
             and time_ms < text.ideal_time_ms
-            and precision_pct >= RECORD_MIN_PRECISION
+            and precision_pct >= MIN_PRECISION
         )
         points = race_points(
             ideal_ms=text.ideal_time_ms,
