@@ -41,31 +41,31 @@
   --btn-bg-hover: #3ee6c2;
   --btn-bg-active: #28c6a3;
   --btn-bg-loading: #90e9d5;
-  --btn-text: #007059;
+  --btn-text: #124739;
   --btn-border: #18a98a;
   --btn-relief: #18a98a;
   --btn-halo: rgb(47 217 180 / 0.45);
 }
 
 .button--dark {
-  --btn-bg: #23241f;
-  --btn-bg-hover: #33342f;
-  --btn-bg-active: #141412;
-  --btn-bg-loading: #55554d;
-  --btn-text: #f2f1ed;
-  --btn-border: #080808;
-  --btn-relief: #080808;
-  --btn-halo: rgb(35 36 31 / 0.28);
+  --btn-bg: light-dark(#23241f, #35453e);
+  --btn-bg-hover: light-dark(#33342f, #41554c);
+  --btn-bg-active: light-dark(#141412, #2b3832);
+  --btn-bg-loading: light-dark(#55554d, #41554c);
+  --btn-text: light-dark(#f2f1ed, #e7eee9);
+  --btn-border: light-dark(#080808, #52655c);
+  --btn-relief: light-dark(#080808, #101713);
+  --btn-halo: rgb(47 217 180 / 0.3);
 }
 
 .button--secondary {
-  --btn-bg: #ffffff;
-  --btn-bg-hover: #ffffff;
-  --btn-bg-active: #edece7;
-  --btn-bg-loading: #f7f6f2;
-  --btn-text: #23241f;
-  --btn-border: #e1e2dc;
-  --btn-relief: #e1e2dc;
+  --btn-bg: var(--surface);
+  --btn-bg-hover: var(--hover);
+  --btn-bg-active: var(--track);
+  --btn-bg-loading: var(--panel);
+  --btn-text: var(--ink);
+  --btn-border: var(--line);
+  --btn-relief: var(--line);
   --btn-halo: rgb(47 217 180 / 0.45);
 }
 
@@ -74,7 +74,7 @@
   --btn-bg-hover: #f2554c;
   --btn-bg-active: #cf362e;
   --btn-bg-loading: #f09b96;
-  --btn-text: #ffffff;
+  --btn-text: light-dark(#fff, #210e0d);
   --btn-border: #b22c23;
   --btn-relief: #b22c23;
   --btn-halo: rgb(232 69 60 / 0.4);
@@ -82,10 +82,10 @@
 
 .button--ghost {
   --btn-bg: transparent;
-  --btn-bg-hover: #edece7;
-  --btn-bg-active: #e5e4df;
+  --btn-bg-hover: var(--hover);
+  --btn-bg-active: var(--track);
   --btn-bg-loading: transparent;
-  --btn-text: #575853;
+  --btn-text: var(--muted);
   --btn-border: transparent;
   --btn-relief: transparent;
   --btn-halo: rgb(47 217 180 / 0.45);
@@ -151,9 +151,9 @@
 
 .button--off,
 .button:disabled:not(.button--loading) {
-  background: #efeee9;
-  color: #a8a7a2;
-  border-color: #efeee9;
+  background: var(--hover);
+  color: var(--quiet);
+  border-color: var(--hover);
   box-shadow: none;
   transform: none;
   cursor: not-allowed;
@@ -166,5 +166,5 @@
 }
 
 .button--ghost.button--loading {
-  color: #a8a7a2;
+  color: var(--quiet);
 }

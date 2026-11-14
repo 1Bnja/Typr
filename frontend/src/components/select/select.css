@@ -6,7 +6,7 @@
 }
 
 .select-label {
-  color: #23241f;
+  color: var(--ink);
   font-size: 14px;
   font-weight: 600;
 }
@@ -23,15 +23,15 @@
 }
 
 .select-trigger[aria-expanded='true'] {
-  --btn-border: #18a98a;
-  --btn-relief: #18a98a;
+  --btn-border: var(--accent-fill);
+  --btn-relief: var(--accent-fill);
 }
 
 .select-chevron {
   flex-shrink: 0;
   width: 20px;
   height: 20px;
-  color: #575853;
+  color: var(--muted);
 }
 
 .select-trigger[aria-expanded='true'] .select-chevron {
@@ -49,10 +49,10 @@
   max-height: 240px;
   overflow-y: auto;
   padding: var(--select-inset);
-  border: 1px solid #e1e2dc;
+  border: 1px solid var(--line);
   border-radius: var(--select-radius);
-  background: #fff;
-  box-shadow: 0 3px 0 #e1e2dc;
+  background: var(--surface);
+  box-shadow: 0 3px 0 var(--line);
 }
 
 .select-options [role='option'] {
@@ -64,23 +64,23 @@
   min-height: 44px;
   padding: 10px 12px;
   border-radius: calc(var(--select-radius) - var(--select-inset) - 1px);
-  color: #23241f;
+  color: var(--ink);
   font-size: 14px;
   text-align: left;
 }
 
 .select-options [role='option']:hover {
-  background: #f2f1ed;
+  background: var(--canvas);
 }
 
 .select-options [role='option'][aria-selected='true'] {
-  background: #e9f9f3;
-  color: #007059;
+  background: var(--accent-bg);
+  color: var(--accent);
   font-weight: 600;
 }
 
 .select-options [role='option']:focus-visible {
-  outline: 2px solid #18a98a;
+  outline: 2px solid var(--accent-fill);
   outline-offset: -2px;
 }
 
@@ -92,7 +92,7 @@
 }
 
 [aria-selected='true'] > .select-indicator {
-  background: #007059;
+  background: var(--accent);
 }
 
 @media (prefers-reduced-motion: no-preference) {

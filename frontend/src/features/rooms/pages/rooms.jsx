@@ -33,9 +33,9 @@ const Rooms = () => {
     return () => controller.abort()
   }, [status, token, navigate])
 
-  if (status === 'loading') return <p className="p-8 text-center text-neutral-600">Loading…</p>
+  if (status === 'loading') return <p className="p-8 text-center text-muted">Loading…</p>
   if (status === 'unauthenticated') return <Navigate to="/login" replace />
-  if (checking) return <p className="p-8 text-center text-neutral-600" role="status">Looking for your room…</p>
+  if (checking) return <p className="p-8 text-center text-muted" role="status">Looking for your room…</p>
 
   const enter = async (form, action) => {
     setPending(form)

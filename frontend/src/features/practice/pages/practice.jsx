@@ -30,7 +30,7 @@ const Practice = ({ focusMode = false, onFocusChange }) => {
   const [error, setError] = useState('')
 
   if (status === 'loading') {
-    return <p className="p-8 text-center text-neutral-600">Loading…</p>
+    return <p className="p-8 text-center text-muted">Loading…</p>
   }
   if (status === 'unauthenticated') {
     return <Navigate to="/login" replace />

@@ -459,6 +459,18 @@ class RoomSocketTests(unittest.TestCase):
         self.assertEqual(resumed["players"][0]["progress"], 3 / len(text["content"]))
         self.assertGreaterEqual(resumed["elapsedMs"], 0)
 
+    def test_reconnecting_after_finishing_keeps_the_recorded_time(self):
+        code = self.room()
+        ana, beto = sockets = self.ready_lobby(code, "ana", "beto")
+        length = len(self.start(sockets)[0]["text"]["content"])
+        ana.send_json({"type": "progress", "typed": length, "errors": 0})
+        self.assertTrue(self.expect(beto, "progress_update")["finished"])
+        first = self.expect(self.connect("ana", code), "race_start")
+        second = self.expect(self.connect("ana", code), "race_start")
+        self.assertEqual(first["you"]["typed"], length)
+        self.assertGreaterEqual(first["you"]["finishedMs"], 0)
+        self.assertEqual(first["you"]["finishedMs"], second["you"]["finishedMs"])
+
     def test_match_is_abandoned_when_everyone_disconnects(self):
         code = self.room()
         sockets = self.ready_lobby(code, "ana", "beto")
