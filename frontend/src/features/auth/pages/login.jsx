@@ -10,7 +10,7 @@ const Login = () => {
                 <h1 className="text-center text-4xl font-extrabold tracking-tight text-charcoal">
                     {isRegistering ? 'Create an account' : 'Welcome back!'}
                 </h1>
-                <p className="mt-4 text-center text-base leading-relaxed text-[#575853]">
+                <p className="mt-4 text-center text-base leading-relaxed text-muted">
                     {isRegistering
                         ? 'Save your tests and come back to your speed.'
                         : 'Sign in to pick up your tests and your speed.'}
@@ -23,7 +23,7 @@ const Login = () => {
                     />
                 </div>
 
-                <p className="mt-6 text-center text-[#575853]">
+                <p className="mt-6 text-center text-muted">
                     {isRegistering ? 'Already have an account? ' : "Don't have an account? "}
                     <button
                         type="button"

@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import Button from '../button/button'
 import ChevronDown from '../icons/chevron-down'
 import PracticeMenu from './practice-menu'
+import ThemeToggle from './theme-toggle'
 import logo from '../../assets/logo.svg'
 import { useAuth } from '../../features/auth/context/auth-context'
 import './nav-bar.css'
@@ -10,6 +11,7 @@ import './nav-bar.css'
 const links = [
   { to: '/', label: 'Home' },
   { to: '/practice', label: 'Practice' },
+  { to: '/rooms', label: 'Multiplayer' },
   { to: '/about', label: 'About' },
   { to: '/contact', label: 'Contact' },
 ]
@@ -24,14 +26,14 @@ const desktopLinkClass = ({ isActive }) =>
     focusRing,
     isActive
       ? 'text-charcoal after:scale-x-100'
-      : 'text-neutral-600 after:scale-x-0 hover:text-charcoal hover:after:scale-x-100',
+      : 'text-muted after:scale-x-0 hover:text-charcoal hover:after:scale-x-100',
   ].join(' ')
 
 const mobileLinkClass = ({ isActive }) =>
   [
     'flex items-center justify-between rounded-lg px-3 py-3 text-base font-medium transition-colors',
     focusRing,
-    isActive ? 'bg-mint/10 text-charcoal' : 'text-neutral-700 hover:bg-neutral-100 hover:text-charcoal',
+    isActive ? 'bg-mint/10 text-charcoal' : 'text-muted hover:bg-subtle hover:text-charcoal',
   ].join(' ')
 
 const getInitials = (name = '') => name.trim().slice(0, 2).toUpperCase() || '?'
@@ -68,6 +70,7 @@ const Navbar = ({ focusMode = false }) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [lastPathname, setLastPathname] = useState(pathname)
+  const mobileMenuVisible = open && !focusMode
 
   const toggleRef = useRef(null)
   const userMenuRef = useRef(null)
@@ -97,13 +100,13 @@ const Navbar = ({ focusMode = false }) => {
   }, [])
 
   useEffect(() => {
-    if (!open) return
+    if (!mobileMenuVisible) return
     const { overflow } = document.body.style
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = overflow
     }
-  }, [open])
+  }, [mobileMenuVisible])
 
   useEffect(() => {
     if (!open && !userMenuOpen) return
@@ -145,7 +148,7 @@ const Navbar = ({ focusMode = false }) => {
           'site-header sticky top-0 z-40 border-b',
           focusMode ? 'site-header--focused' : '',
           elevated
-            ? 'border-neutral-200/80 bg-canvas/80 shadow-sm backdrop-blur-md'
+            ? 'border-divider/80 bg-canvas/80 shadow-sm backdrop-blur-md'
             : 'border-transparent bg-canvas',
         ].join(' ')}
       >
@@ -174,86 +177,88 @@ const Navbar = ({ focusMode = false }) => {
             ))}
           </ul>
 
-          <div className="hidden items-center gap-2 justify-self-end md:flex">
-            {user ? (
-              <div className="relative" ref={userMenuRef}>
-                <button
-                  type="button"
-                  aria-expanded={userMenuOpen}
-                  aria-controls="user-menu"
-                  onClick={() => setUserMenuOpen((value) => !value)}
-                  className={`flex items-center gap-2 rounded-full border border-neutral-200 py-1 pl-1 pr-3 text-sm font-medium text-charcoal transition-colors hover:bg-neutral-100 ${focusRing}`}
-                >
-                  <Avatar name={user.username} className="h-7 w-7 text-xs" />
-                  <span className="max-w-32 truncate">{user.username}</span>
-                  <ChevronDown
-                    className={`h-4 w-4 text-neutral-500 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
-
-                <div
-                  id="user-menu"
-                  className={[
-                    'absolute right-0 mt-2 w-56 origin-top-right rounded-xl border border-neutral-200 bg-canvas p-1.5 shadow-lg transition-all duration-200',
-                    userMenuOpen ? 'visible scale-100 opacity-100' : 'invisible scale-95 opacity-0',
-                  ].join(' ')}
-                >
-                  <div className="px-3 py-2">
-                    <p className="text-xs text-neutral-500">Sesión iniciada como</p>
-                    <p className="truncate text-sm font-semibold text-charcoal">{user.username}</p>
-                  </div>
-                  <div className="my-1 h-px bg-neutral-200" />
+          <div className="flex items-center gap-1 justify-self-end sm:gap-2">
+            <ThemeToggle className={`theme-toggle inline-flex h-10 w-10 items-center justify-center rounded-lg text-charcoal hover:bg-subtle ${focusRing}`} />
+            <div className="hidden items-center gap-2 md:flex">
+              {user ? (
+                <div className="relative" ref={userMenuRef}>
                   <button
                     type="button"
-                    onClick={handleSignOut}
-                    className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 hover:text-charcoal ${focusRing}`}
+                    aria-expanded={userMenuOpen}
+                    aria-controls="user-menu"
+                    onClick={() => setUserMenuOpen((value) => !value)}
+                    className={`flex items-center gap-2 rounded-full border border-divider py-1 pl-1 pr-3 text-sm font-medium text-charcoal transition-colors hover:bg-subtle ${focusRing}`}
                   >
-                    Sign out
+                    <Avatar name={user.username} className="h-7 w-7 text-xs" />
+                    <span className="max-w-32 truncate">{user.username}</span>
+                    <ChevronDown
+                      className={`h-4 w-4 text-muted transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`}
+                    />
                   </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <Button variant="secondary" size="sm" onClick={() => navigate('/login')}>
-                  Sign in
-                </Button>
-                <Button variant="streak" size="sm">Try</Button>
-              </>
-            )}
-          </div>
 
-          <button
-            ref={toggleRef}
-            type="button"
-            className={`inline-flex h-10 w-10 items-center justify-center rounded-lg text-charcoal transition-colors hover:bg-neutral-100 md:hidden ${focusRing}`}
-            aria-expanded={open}
-            aria-controls="mobile-menu"
-            aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
-            onClick={() => setOpen((value) => !value)}
-          >
-            <MenuIcon open={open} />
-          </button>
+                  <div
+                    id="user-menu"
+                    className={[
+                      'absolute right-0 mt-2 w-56 origin-top-right rounded-xl border border-divider bg-canvas p-1.5 shadow-lg transition-all duration-200',
+                      userMenuOpen ? 'visible scale-100 opacity-100' : 'invisible scale-95 opacity-0',
+                    ].join(' ')}
+                  >
+                    <div className="px-3 py-2">
+                      <p className="text-xs text-muted">Sesión iniciada como</p>
+                      <p className="truncate text-sm font-semibold text-charcoal">{user.username}</p>
+                    </div>
+                    <div className="my-1 h-px bg-divider" />
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className={`w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-muted transition-colors hover:bg-subtle hover:text-charcoal ${focusRing}`}
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Button variant="secondary" size="sm" onClick={() => navigate('/login')}>
+                    Sign in
+                  </Button>
+                  <Button variant="streak" size="sm">Try</Button>
+                </>
+              )}
+            </div>
+            <button
+              ref={toggleRef}
+              type="button"
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-lg text-charcoal transition-colors hover:bg-subtle md:hidden ${focusRing}`}
+              aria-expanded={open}
+              aria-controls="mobile-menu"
+              aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+              onClick={() => setOpen((value) => !value)}
+            >
+              <MenuIcon open={open} />
+            </button>
+          </div>
         </nav>
       </header>
 
       <div
         aria-hidden="true"
         onClick={close}
-        className={`fixed inset-0 top-16 z-30 bg-charcoal/20 backdrop-blur-sm transition-opacity duration-300 md:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+        className={`fixed inset-0 top-16 z-30 bg-black/35 backdrop-blur-sm transition-opacity duration-300 md:hidden ${mobileMenuVisible ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
       />
 
       <div
         id="mobile-menu"
         className={[
-          'styled-scrollbar fixed inset-x-0 top-16 z-30 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-neutral-200 bg-canvas px-4 pb-6 pt-4 shadow-lg transition-all duration-300 ease-out sm:px-6 md:hidden',
-          open ? 'visible translate-y-0 opacity-100' : 'invisible -translate-y-2 opacity-0',
+          'styled-scrollbar fixed inset-x-0 top-16 z-30 max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-divider bg-canvas px-4 pb-6 pt-4 shadow-lg transition-all duration-300 ease-out sm:px-6 md:hidden',
+          mobileMenuVisible ? 'visible translate-y-0 opacity-100' : 'invisible -translate-y-2 opacity-0',
         ].join(' ')}
       >
         {user && (
-          <div className="mb-4 flex items-center gap-3 rounded-xl border border-neutral-200 p-3">
+          <div className="mb-4 flex items-center gap-3 rounded-xl border border-divider p-3">
             <Avatar name={user.username} className="h-10 w-10 text-sm" />
             <div className="min-w-0">
-              <p className="text-xs text-neutral-500">Sesión iniciada como</p>
+              <p className="text-xs text-muted">Sesión iniciada como</p>
               <p className="truncate text-sm font-semibold text-charcoal">{user.username}</p>
             </div>
           </div>
@@ -271,7 +276,7 @@ const Navbar = ({ focusMode = false }) => {
           ))}
         </ul>
 
-        <div className="mt-6 border-t border-neutral-200 pt-4">
+        <div className="mt-6 border-t border-divider pt-4">
           {user ? (
             <div className="flex flex-col">
               <Button variant="ghost" onClick={handleSignOut}>Sign out</Button>

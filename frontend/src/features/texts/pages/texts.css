@@ -1,11 +1,11 @@
 .texts-page {
-  --texts-border: #dedfd7;
-  --texts-muted: #62635b;
+  --texts-border: var(--line);
+  --texts-muted: var(--muted);
   width: 100%;
   max-width: 1120px;
   margin: 0 auto;
   padding: 56px 24px 48px;
-  color: #232320;
+  color: var(--ink);
 }
 
 .texts-session {
@@ -82,15 +82,15 @@
 }
 
 .texts-message--success {
-  border-color: #b4e5d6;
-  background: #e9f9f3;
-  color: #005e4c;
+  border-color: var(--accent-line);
+  background: var(--accent-bg);
+  color: var(--accent-strong);
 }
 
 .texts-message--error {
-  border-color: #f1bdb7;
-  background: #fff0ed;
-  color: #ad332b;
+  border-color: var(--danger-ink);
+  background: var(--danger-bg);
+  color: var(--danger-ink);
 }
 
 .texts-empty,
@@ -112,10 +112,10 @@
   width: 48px;
   height: 48px;
   margin-bottom: 16px;
-  border: 1px solid #a9ddce;
+  border: 1px solid var(--accent-line);
   border-radius: 10px;
-  background: #d5f5eb;
-  color: #007059;
+  background: var(--accent-hover);
+  color: var(--accent);
   font-size: 20px;
   font-weight: 800;
 }
@@ -154,7 +154,7 @@
 }
 
 .texts-overview-label {
-  color: #007059;
+  color: var(--accent);
   font-size: 12px;
   font-weight: 600;
 }
@@ -236,13 +236,13 @@
 }
 
 .texts-filter:hover {
-  background: #eaeae3;
+  background: var(--hover);
 }
 
 .texts-filter[aria-pressed='true'] {
-  border-color: #18a98a;
-  background: #e9f9f3;
-  color: #005e4c;
+  border-color: var(--accent-fill);
+  background: var(--accent-bg);
+  color: var(--accent-strong);
 }
 
 .texts-filter span {
@@ -253,7 +253,7 @@
 
 .texts-filter:focus-visible,
 .texts-editor textarea:focus-visible {
-  outline: 2px solid #007059;
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
@@ -272,12 +272,12 @@
   padding: 20px;
   border: 1px solid var(--texts-border);
   border-radius: 12px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .texts-card--approved {
-  border-color: #18a98a;
-  background: #f5fcf8;
+  border-color: var(--accent-fill);
+  background: var(--accent-bg);
 }
 
 .texts-card-top {
@@ -308,24 +308,24 @@
 }
 
 .texts-difficulty {
-  background: #e7e8e0;
-  color: #575853;
+  background: var(--track);
+  color: var(--muted);
 }
 
 .texts-status--pending {
-  background: #e7e8e0;
-  color: #575853;
+  background: var(--track);
+  color: var(--muted);
 }
 
 .texts-status--approved,
 .texts-status--stored {
-  background: #dbf1e7;
-  color: #005e4c;
+  background: var(--accent-bg);
+  color: var(--accent-strong);
 }
 
 .texts-status--issues {
-  background: #f5e8b2;
-  color: #685100;
+  background: var(--warning-bg);
+  color: var(--warning-ink);
 }
 
 .texts-word-count {
@@ -339,13 +339,13 @@
 }
 
 .texts-word-count--valid {
-  background: #dbf1e7;
-  color: #005e4c;
+  background: var(--accent-bg);
+  color: var(--accent-strong);
 }
 
 .texts-word-count--invalid {
-  background: #f5e8b2;
-  color: #685100;
+  background: var(--warning-bg);
+  color: var(--warning-ink);
 }
 
 .texts-word-count span {
@@ -362,13 +362,13 @@
 .texts-reason,
 .texts-saved-id {
   margin-top: 10px;
-  color: #685100;
+  color: var(--warning-ink);
   font-size: 12px;
   line-height: 1.5;
 }
 
 .texts-saved-id {
-  color: #005e4c;
+  color: var(--accent-strong);
 }
 
 .texts-actions {
@@ -401,8 +401,8 @@
   resize: vertical;
   border: 1px solid var(--texts-border);
   border-radius: 10px;
-  background: #fff;
-  color: #232320;
+  background: var(--surface);
+  color: var(--ink);
   font: inherit;
   line-height: 1.5;
 }
@@ -415,7 +415,7 @@
 
 .texts-item-error {
   margin-top: 8px;
-  color: #b2332a;
+  color: var(--danger-ink);
   font-size: 13px;
 }
 
@@ -437,7 +437,7 @@
   margin-top: 24px;
   padding: 18px 0;
   border-top: 1px solid var(--texts-border);
-  background: #f2f1ed;
+  background: var(--canvas);
 }
 
 .texts-save-bar > div {

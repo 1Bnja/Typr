@@ -1,0 +1,446 @@
+/* Entrada: crear una sala o unirse a una */
+
+.rooms-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.rooms-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--practice-border);
+  border-radius: 16px;
+  background: var(--panel);
+}
+
+.rooms-card h2 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.rooms-card-note,
+.room-hint {
+  color: var(--practice-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.rooms-card-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.room-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  min-width: 0;
+}
+
+.room-settings .select-field {
+  min-width: 0;
+}
+
+.rooms-code-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rooms-code-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--practice-border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: ui-monospace, monospace;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.rooms-code-input::placeholder {
+  color: var(--quiet);
+}
+
+.rooms-code-input:focus-visible {
+  outline: 2px solid var(--practice-green);
+  outline-offset: 2px;
+}
+
+.rooms-code-input[aria-invalid='true'] {
+  border-color: var(--danger-ink);
+}
+
+/* Sala de espera */
+
+.room-lobby {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.room-code {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 16px;
+  padding: 16px 20px;
+  border: 1px dashed var(--accent-line);
+  border-radius: 16px;
+  background: var(--accent-bg);
+}
+
+.room-code-label {
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.room-code-value {
+  color: var(--ink);
+  font-family: ui-monospace, monospace;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.25em;
+  /* El espaciado deja un hueco tras la última letra: se compensa para centrar. */
+  margin-right: -0.25em;
+  padding-right: 0.25em;
+}
+
+.room-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  align-items: start;
+  gap: 32px 40px;
+}
+
+.room-section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.room-section-title span {
+  color: var(--practice-muted);
+  font-size: 13px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.room-members {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+}
+
+.room-member {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--practice-border);
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.room-member[data-current='true'] {
+  border-color: var(--accent-line);
+  background: var(--accent-bg);
+}
+
+.room-member-name {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.room-badge {
+  flex-shrink: 0;
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: var(--warning-bg);
+  color: var(--warning-ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.room-member-status {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  color: var(--practice-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* El estado se lee en el texto; el punto solo lo refuerza. */
+.room-member-status::before {
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--quiet);
+  border-radius: 50%;
+  content: '';
+}
+
+.room-member-status[data-state='ready'] {
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+.room-member-status[data-state='ready']::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.room-member-status[data-state='offline']::before {
+  border-style: dashed;
+}
+
+.room-rules {
+  display: flex;
+  flex-direction: column;
+}
+
+.room-rules > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--practice-border);
+  font-size: 14px;
+}
+
+.room-rules dt {
+  color: var(--practice-muted);
+}
+
+.room-rules dd {
+  font-weight: 600;
+  text-align: right;
+}
+
+.room-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 24px;
+  border-top: 1px solid var(--practice-border);
+  text-align: center;
+}
+
+.room-actions .practice-error {
+  text-align: center;
+}
+
+.room-exit {
+  margin-top: 8px;
+}
+
+/* Carrera */
+
+.race-countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 0 48px;
+  text-align: center;
+}
+
+.race-countdown-number {
+  display: grid;
+  place-items: center;
+  width: 144px;
+  height: 144px;
+  border: 2px solid var(--accent-fill);
+  border-radius: 50%;
+  background: var(--accent-bg);
+  color: var(--accent-strong);
+  font-size: 72px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.race-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.race-focus-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.race-focus-toggle:hover,
+.race-focus-toggle[aria-pressed='true'] {
+  border-color: var(--accent-line);
+  background: var(--accent-bg);
+  color: var(--accent-strong);
+}
+
+.race-focus-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.race .practice-metrics {
+  gap: 16px;
+}
+
+.race .practice-live-metrics {
+  gap: clamp(12px, 3vw, 32px);
+}
+
+.race-track {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 24px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  list-style: none;
+}
+
+.race[data-focus='true'] .race-track {
+  max-width: 760px;
+  margin-inline: auto;
+  background: transparent;
+}
+
+.race-lane {
+  display: grid;
+  grid-template-columns: minmax(0, 104px) minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.race-lane[data-current='true'] .race-lane-name,
+.race-lane[data-finished='true'] .race-lane-value {
+  color: var(--accent-strong);
+}
+
+.race-lane-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.race-lane-bar {
+  height: 4px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--track);
+}
+
+.race-lane-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--quiet);
+  transition: width 200ms linear;
+}
+
+.race-lane[data-current='true'] .race-lane-bar > span,
+.race-lane[data-finished='true'] .race-lane-bar > span {
+  background: var(--accent-fill);
+}
+
+.race-lane-value {
+  color: var(--practice-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.race-blocked[data-blocked='true'] {
+  color: var(--danger-ink);
+  font-weight: 600;
+}
+
+.race-finished {
+  padding: 56px 16px;
+  color: var(--accent-strong);
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.race-results .room-actions {
+  margin-top: 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .race-lane-bar > span {
+    transition: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .rooms-entry,
+  .room-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .rooms-card {
+    padding: 20px 16px;
+  }
+
+  .room-code-value {
+    font-size: 26px;
+  }
+
+  .race-track {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .race-countdown-number {
+    width: 112px;
+    height: 112px;
+    font-size: 56px;
+  }
+}
+
+@media (max-width: 420px) {
+  .room-settings {
+    grid-template-columns: 1fr;
+  }
+
+  .room-member {
+    flex-wrap: wrap;
+  }
+}
