@@ -316,7 +316,12 @@ class RoomSocketTests(unittest.TestCase):
         ends = [self.expect(socket, "race_end") for socket in sockets]
         self.assertEqual(ends[0], ends[1])
         self.assertIsNone(ends[0]["nextRoundInS"])
+        self.assertEqual(ends[0]["returnToRoomInS"], 15)
         first, second = ends[0]["results"]
+        self.assertEqual([result["userId"] for result in ends[0]["matchResults"]],
+                         [first["userId"], second["userId"]])
+        self.assertEqual(ends[0]["matchResults"][0]["averageScore"], first["score"])
+        self.assertEqual(ends[0]["matchResults"][0]["roundsPlayed"], 1)
         self.assertEqual((first["username"], first["position"], first["finished"]), ("ana", 1, True))
         self.assertEqual((second["username"], second["position"], second["finished"]), ("beto", 2, True))
         self.assertEqual((first["precisionPct"], first["progress"]), (100, 1))
@@ -400,6 +405,7 @@ class RoomSocketTests(unittest.TestCase):
         sockets = self.ready_lobby(code, "ana", "beto")
         sockets[0].send_json({"type": "start"})
         played = []
+        round_results = []
         for round_number in (1, 2):
             starts = [self.expect(socket, "race_start") for socket in sockets]
             self.assertEqual((starts[0]["round"], starts[0]["rounds"]), (round_number, 2))
@@ -411,6 +417,29 @@ class RoomSocketTests(unittest.TestCase):
                 socket.send_json({"type": "progress", "typed": len(played[-1]), "errors": 0})
             end = [self.expect(socket, "race_end") for socket in sockets][0]
             self.assertEqual(end["nextRoundInS"], None if round_number == 2 else 0.05)
+            round_results.append(end["results"])
+            if round_number == 1:
+                self.assertNotIn("matchResults", end)
+            else:
+                self.assertEqual(end["returnToRoomInS"], 15)
+                final = end["matchResults"]
+                self.assertEqual([item["position"] for item in final], [1, 2])
+                self.assertEqual(
+                    [item["averageScore"] for item in final],
+                    sorted((item["averageScore"] for item in final), reverse=True),
+                )
+                for item in final:
+                    played_by_user = [
+                        result for results in round_results for result in results
+                        if result["userId"] == item["userId"]
+                    ]
+                    self.assertEqual(item["roundsPlayed"], 2)
+                    for key, source in (("averageScore", "score"), ("averagePpm", "ppm"),
+                                        ("averagePrecisionPct", "precisionPct"), ("averageTimeMs", "timeMs"),
+                                        ("averageProgress", "progress")):
+                        self.assertAlmostEqual(
+                            item[key], sum(result[source] for result in played_by_user) / 2,
+                        )
         self.assertEqual(sorted(played), sorted(TEXTS))
         self.assertEqual(self.state(sockets[0])["status"], "waiting")
         with self.sessions() as db:
