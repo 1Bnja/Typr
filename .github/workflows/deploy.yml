@@ -18,6 +18,8 @@ jobs:
         run: |
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > backend/.env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> backend/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> backend/.env
+          echo "GEMINI_MODEL=${{ secrets.GEMINI_MODEL }}" >> backend/.env
 
       - name: Construir contenedores
         run: docker compose build
