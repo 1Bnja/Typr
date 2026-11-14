@@ -1,23 +1,20 @@
-import { USE_LOCAL_TEXTS } from '../constants.js'
-import { generatePracticeText } from '../utils/generate-text.js'
-
-export async function getRandomText({ language, difficulty, previousContent }) {
-  if (USE_LOCAL_TEXTS) return generatePracticeText(language, difficulty, previousContent)
-
+export async function getRandomText(token, { language, difficulty, previousId }) {
   const params = new URLSearchParams({ language, difficulty })
-  try {
-    const response = await fetch(`/api/v1/texts/random?${params}`)
-    if (!response.ok) throw new Error('Text not available')
-    const text = await response.json()
-    if (!text?.content?.trim()) throw new Error('Text is empty')
-    if (text.content.trim() === previousContent?.trim()) throw new Error('Text was already used')
-    return text
-  } catch {
-    return generatePracticeText(language, difficulty, previousContent)
+  if (previousId != null) params.set('excludeId', previousId)
+  const response = await fetch(`/api/v1/texts/random?${params}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  const data = await response.json().catch(() => null)
+  if (!response.ok) {
+    throw new Error(typeof data?.detail === 'string' ? data.detail : 'No se pudo cargar una frase guardada. Inténtalo nuevamente.')
   }
+  if (!Number.isInteger(data?.id) || !data?.content?.trim() || data.language !== language || data.difficulty !== difficulty) {
+    throw new Error('La frase recibida no es válida. Inténtalo nuevamente.')
+  }
+  return data
 }
 
-export async function savePracticeMatch(token, { textId, text, difficulty, timeMs, typed, keystrokes, errors }) {
+export async function savePracticeMatch(token, { textId, difficulty, timeMs, typed, keystrokes, errors }) {
   const response = await fetch('/api/v1/matches/practice', {
     method: 'POST',
     headers: {
@@ -25,7 +22,7 @@ export async function savePracticeMatch(token, { textId, text, difficulty, timeM
       Authorization: `Bearer ${token}`,
     },
     // Solo señales crudas: el servidor calcula PPM, precisión y puntaje.
-    body: JSON.stringify({ textId, text, difficulty, timeMs, typed, keystrokes, errors }),
+    body: JSON.stringify({ textId, difficulty, timeMs, typed, keystrokes, errors }),
   })
 
   const data = await response.json().catch(() => null)

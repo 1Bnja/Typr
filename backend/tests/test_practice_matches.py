@@ -88,6 +88,51 @@ class PracticeMatchTests(unittest.TestCase):
         with self.sessions() as db:
             return db.scalar(select(func.count()).select_from(model))
 
+    def test_random_text_uses_saved_phrase_and_filters(self):
+        response = self.client.get(
+            "/api/v1/texts/random",
+            params={"language": "eng", "difficulty": "easy"},
+            headers=self.headers,
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["id"], self.text_id)
+        self.assertEqual(response.json()["content"], "Hello world.")
+        self.assertEqual(self.count(Text), 1)
+
+    def test_random_text_avoids_previous_when_another_is_available(self):
+        with self.sessions() as db:
+            alternative = Text(
+                content="Another saved English phrase.",
+                language=Language.ENG,
+                difficulty=Difficulty.EASY,
+            )
+            db.add(alternative)
+            db.commit()
+            alternative_id = alternative.id
+        response = self.client.get(
+            "/api/v1/texts/random",
+            params={"language": "eng", "difficulty": "easy", "excludeId": self.text_id},
+            headers=self.headers,
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["id"], alternative_id)
+
+    def test_random_text_reuses_only_available_phrase(self):
+        response = self.client.get(
+            "/api/v1/texts/random",
+            params={"language": "eng", "difficulty": "easy", "excludeId": self.text_id},
+            headers=self.headers,
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["id"], self.text_id)
+
+    def test_random_text_requires_auth_and_reports_empty_selection(self):
+        path = "/api/v1/texts/random?language=spa&difficulty=advanced"
+        self.assertEqual(self.client.get(path).status_code, 401)
+        response = self.client.get(path, headers=self.headers)
+        self.assertEqual(response.status_code, 404, response.text)
+        self.assertIn("No hay frases", response.json()["detail"])
+
     def test_saves_authenticated_user_and_returns_persisted_result(self):
         response = self.save()
         self.assertEqual(response.status_code, 201, response.text)

@@ -219,6 +219,14 @@
   overflow-wrap: anywhere;
 }
 
+.practice-preview-bank {
+  margin: 32px 0 20px;
+  color: #575853;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
 .practice-preview-description {
   color: var(--practice-muted);
   font-size: 14px;

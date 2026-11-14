@@ -127,6 +127,16 @@ class ClassificationTests(unittest.TestCase):
             with self.subTest(score=score):
                 self.assertEqual(difficulty_for_score(score).value, expected)
 
+    def test_generated_word_counts_select_the_requested_difficulty(self):
+        for word_count, expected in (
+            (20, "easy"), (30, "medium"), (40, "advanced"),
+        ):
+            with self.subTest(word_count=word_count):
+                phrase = " ".join(["practicar"] * word_count) + "."
+                context = TextFacade().process(phrase, "spa")
+                self.assertEqual(context.classification.word_count, word_count)
+                self.assertEqual(context.difficulty.value, expected)
+
     def test_long_input_has_fixed_call_depth(self):
         result = self.measure("a" * 5000)
         self.assertEqual(result.nonspace_characters, 5000)

@@ -1,18 +1,9 @@
 import Button from '../../../components/button'
 import { DIFFICULTIES, LANGUAGES } from '../constants'
-import { WORD_LISTS } from '../data/word-lists'
 
 const PracticeSetup = ({ language, difficulty, onLanguageChange, onDifficultyChange, onStart, isLoading, error }) => {
   const selectedDifficulty = DIFFICULTIES.find((option) => option.value === difficulty)
   const selectedLanguage = LANGUAGES.find((option) => option.value === language)
-  const description = difficulty === 'medium' && language === 'eng'
-    ? 'Longer words with more varied letter combinations.'
-    : selectedDifficulty.description
-  const previewWords = WORD_LISTS[language][difficulty].slice(0, 6).map((word) => word.toLowerCase())
-  if (difficulty === 'advanced') {
-    previewWords[0] = previewWords[0][0].toUpperCase() + previewWords[0].slice(1)
-    previewWords[4] += ','
-  }
 
   return (
     <div className="practice-setup">
@@ -66,11 +57,11 @@ const PracticeSetup = ({ language, difficulty, onLanguageChange, onDifficultyCha
 
       <aside className="practice-preview" aria-labelledby="preview-title">
         <div className="practice-preview-heading">
-          <h2 id="preview-title">A look at your test</h2>
+          <h2 id="preview-title">Your practice text</h2>
           <span className="practice-word-count">{selectedDifficulty.wordCount} words</span>
         </div>
-        <p className="practice-preview-words" aria-label="Sample words">{previewWords.join(' ')}</p>
-        <p className="practice-preview-description">{description}</p>
+        <p className="practice-preview-bank">A phrase from the text bank will appear when you start.</p>
+        <p className="practice-preview-description">{selectedDifficulty.description} The selection will match your chosen language and difficulty.</p>
         <div className="practice-preview-notes">
           <p>Your first character starts the timer.</p>
           <p>Use <kbd>Backspace</kbd> to correct a mistake.</p>

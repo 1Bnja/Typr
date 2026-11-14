@@ -24,3 +24,6 @@ export const generateTexts = (token) =>
 
 export const saveTexts = (phrases, token) =>
   postText('/save', { phrases }, token)
+
+export const verifyText = (content, language, token) =>
+  postText('/verify', { content, language }, token)
