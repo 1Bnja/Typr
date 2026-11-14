@@ -2,6 +2,7 @@
 
 from typing import Annotated
 
+from anyio import from_thread
 from fastapi import APIRouter, Depends, HTTPException, Path, Response, status
 from sqlalchemy.orm import Session
 
@@ -10,6 +11,7 @@ from app.models import User
 from app.schemas.room import RoomCreate, RoomPublic, RoomUpdate
 from app.services import rooms
 from app.services.rooms import RoomError
+from app.ws.rooms import hub
 
 router = APIRouter(tags=["rooms"])
 
@@ -21,6 +23,11 @@ def _http_error(error: RoomError) -> HTTPException:
         status_code=error.status,
         detail={"code": error.code, "message": error.message},
     )
+
+
+def _notify(function, *args) -> None:
+    """Avisa a los sockets de la sala, que viven en el event loop."""
+    from_thread.run(function, *args)
 
 
 @router.post("", response_model=RoomPublic, status_code=status.HTTP_201_CREATED)
@@ -64,9 +71,11 @@ def update_room(
 ):
     """Cambia la configuración. Solo el anfitrión, con la sala en espera."""
     try:
-        return rooms.room_public(db, rooms.update_room(db, user.id, code, data))
+        room = rooms.room_public(db, rooms.update_room(db, user.id, code, data))
     except RoomError as error:
         raise _http_error(error)
+    _notify(hub.room_changed, room.code)
+    return room
 
 
 @router.post("/{code}/join", response_model=RoomPublic)
@@ -77,9 +86,11 @@ def join_room(
 ):
     """Ingresa a la sala por su código, como miembro sin permisos de anfitrión."""
     try:
-        return rooms.room_public(db, rooms.join_room(db, user.id, code))
+        room = rooms.room_public(db, rooms.join_room(db, user.id, code))
     except RoomError as error:
         raise _http_error(error)
+    _notify(hub.room_changed, room.code)
+    return room
 
 
 @router.post("/{code}/leave", status_code=status.HTTP_204_NO_CONTENT)
@@ -90,9 +101,13 @@ def leave_room(
 ):
     """Abandona la sala. Si lo hace el anfitrión, la sala se elimina."""
     try:
-        rooms.leave_room(db, user.id, code)
+        deleted = rooms.leave_room(db, user.id, code)
     except RoomError as error:
         raise _http_error(error)
+    if deleted:
+        _notify(hub.room_closed, code.upper())
+    else:
+        _notify(hub.member_removed, code.upper(), user.id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -105,9 +120,11 @@ def kick_member(
 ):
     """Expulsa a un jugador. Solo el anfitrión, con la sala en espera."""
     try:
-        return rooms.room_public(db, rooms.kick_member(db, user.id, code, member_id))
+        room = rooms.room_public(db, rooms.kick_member(db, user.id, code, member_id))
     except RoomError as error:
         raise _http_error(error)
+    _notify(hub.member_removed, room.code, member_id)
+    return room
 
 
 @router.delete("/{code}", status_code=status.HTTP_204_NO_CONTENT)
@@ -121,4 +138,5 @@ def close_room(
         rooms.close_room(db, user.id, code)
     except RoomError as error:
         raise _http_error(error)
+    _notify(hub.room_closed, code.upper())
     return Response(status_code=status.HTTP_204_NO_CONTENT)

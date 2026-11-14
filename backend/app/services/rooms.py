@@ -6,15 +6,29 @@ router HTTP y para el WebSocket.
 """
 
 import secrets
+from dataclasses import dataclass
+from datetime import datetime
 
-from sqlalchemy import delete, func, insert, select, update
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import delete, func, insert, or_, select, update
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.models import Room, RoomStatus, User, room_members
+from app.models import (
+    Game,
+    GameMode,
+    GameParticipant,
+    Room,
+    RoomStatus,
+    Text,
+    User,
+    room_members,
+)
 from app.schemas.room import RoomCreate, RoomMemberPublic, RoomPublic, RoomUpdate
+from app.services.race import RaceResult, RaceText, ideal_time_ms
+from app.text_enums import Difficulty, Language
 
 MAX_MEMBERS = 10
+MIN_PLAYERS = 2
 # Sin 0/O ni 1/I/L: el código se dicta o se copia a mano.
 CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 CODE_LENGTH = 6
@@ -38,6 +52,7 @@ ERRORS = {
         "Todos los jugadores deben estar conectados y listos.",
     ),
     "no_texts": (409, "No hay textos para el idioma y la dificultad de la sala."),
+    "invalid_message": (422, "Mensaje inválido."),
 }
 
 
@@ -255,5 +270,152 @@ def set_ready(db: Session, user_id: int, code: str, ready: bool) -> None:
             room_members.c.room_id == room.id, room_members.c.member_id == user_id
         )
         .values(is_ready=ready)
+    )
+    db.commit()
+
+
+@dataclass(frozen=True)
+class MatchConfig:
+    """Foto de la sala al iniciar: la partida no vuelve a leer su configuración."""
+
+    room_id: int
+    language: Language
+    difficulty: Difficulty
+    rounds: int
+    time_limit_s: int | None
+    players: dict[int, str]
+
+
+def pick_text(
+    db: Session,
+    language: Language,
+    difficulty: Difficulty,
+    exclude_ids: list[int] | None = None,
+) -> RaceText | None:
+    """Texto al azar para una ronda, evitando repetir los ya jugados si se puede."""
+
+    def choose(excluded: list[int] | None) -> Text | None:
+        statement = select(Text).where(
+            Text.language == language, Text.difficulty == difficulty
+        )
+        if excluded:
+            statement = statement.where(Text.id.not_in(excluded))
+        return db.scalars(statement.order_by(func.random()).limit(1)).first()
+
+    text = choose(exclude_ids) or (choose(None) if exclude_ids else None)
+    if text is None:
+        return None
+    return RaceText(
+        id=text.id,
+        content=text.content,
+        language=text.language,
+        difficulty=text.difficulty,
+        ideal_time_ms=ideal_time_ms(text.content, text.ideal_time_ms),
+    )
+
+
+def begin_match(
+    db: Session, host_id: int, code: str, connected_ids: set[int]
+) -> MatchConfig:
+    """Valida el inicio y deja la sala "en curso".
+
+    Exige al menos 2 jugadores, todos conectados y listos (el anfitrión se da
+    por listo al iniciar) y que existan textos para la configuración.
+    """
+    room = _get_host_room(db, code, host_id)
+    if room.status != RoomStatus.WAITING:
+        raise RoomError("room_in_progress")
+    members = db.execute(
+        select(User.id, User.username, room_members.c.is_ready)
+        .join(room_members, room_members.c.member_id == User.id)
+        .where(room_members.c.room_id == room.id)
+        .order_by(User.id != room.host_id, User.username)
+    ).all()
+    if len(members) < MIN_PLAYERS:
+        raise RoomError("not_enough_players")
+    if any(
+        user_id not in connected_ids or not (is_ready or user_id == host_id)
+        for user_id, _, is_ready in members
+    ):
+        raise RoomError("players_not_ready")
+    if pick_text(db, room.language, room.difficulty) is None:
+        raise RoomError("no_texts")
+    config = MatchConfig(
+        room_id=room.id,
+        language=room.language,
+        difficulty=room.difficulty,
+        rounds=room.rounds,
+        time_limit_s=room.time_limit_s,
+        players={user_id: username for user_id, username, _ in members},
+    )
+    room.status = RoomStatus.IN_PROGRESS
+    db.commit()
+    return config
+
+
+def save_race(
+    db: Session,
+    room_id: int,
+    text: RaceText,
+    started_at: datetime,
+    finished_at: datetime,
+    results: list[RaceResult],
+) -> None:
+    """Guarda la ronda: una partida multijugador y un resultado por jugador."""
+    try:
+        game = Game(
+            room_id=room_id,
+            text_id=text.id,
+            mode=GameMode.MULTIPLAYER,
+            started_at=started_at,
+            finished_at=finished_at,
+        )
+        db.add(game)
+        db.flush()
+        db.add_all(
+            GameParticipant(
+                game_id=game.id,
+                user_id=result.user_id,
+                time_ms=result.time_ms,
+                ppm=result.ppm,
+                precision_pct=result.precision_pct,
+                progress=result.progress,
+                position=result.position,
+                score=result.score,
+            )
+            for result in results
+        )
+        record = next((result for result in results if result.is_record), None)
+        if record is not None:
+            # Solo mejora la marca: otra sala pudo superarla durante la carrera.
+            db.execute(
+                update(Text)
+                .where(
+                    Text.id == text.id,
+                    or_(
+                        Text.ideal_time_ms.is_(None),
+                        Text.ideal_time_ms > record.time_ms,
+                    ),
+                )
+                .values(ideal_time_ms=record.time_ms, record_user_id=record.user_id)
+            )
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise
+
+
+def end_match(db: Session, code: str) -> None:
+    """Devuelve la sala a "esperando" y limpia los "listo" para la próxima."""
+    room = db.scalar(
+        select(Room).where(Room.code == code, Room.status == RoomStatus.IN_PROGRESS)
+    )
+    if room is None:
+        return
+    room.status = RoomStatus.WAITING
+    db.execute(
+        update(room_members)
+        .where(room_members.c.room_id == room.id)
+        .values(is_ready=False)
     )
     db.commit()
