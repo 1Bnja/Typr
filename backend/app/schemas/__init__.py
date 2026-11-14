@@ -11,8 +11,7 @@ from app.schemas.game import (
 )
 from app.schemas.room import (
     RoomCreate,
-    RoomDetail,
-    RoomJoinRequest,
+    RoomMemberPublic,
     RoomPublic,
     RoomUpdate,
 )
@@ -30,8 +29,7 @@ __all__ = [
     "GamePublic",
     "GameResultRequest",
     "RoomCreate",
-    "RoomDetail",
-    "RoomJoinRequest",
+    "RoomMemberPublic",
     "RoomPublic",
     "RoomUpdate",
     "TextCreate",
