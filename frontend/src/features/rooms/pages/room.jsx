@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../auth'
+import RaceCountdown from '../components/race-countdown'
+import RaceResults from '../components/race-results'
+import RaceView from '../components/race-view'
 import RoomLobby from '../components/room-lobby'
 import { CLOSE_REASONS, settingLabel } from '../constants'
 import { useRoomSocket } from '../hooks/use-room-socket'
@@ -15,7 +18,7 @@ const RoomSession = ({ code, token, userId }) => {
   const [busy, setBusy] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [actionError, setActionError] = useState(null)
-  const { room } = state
+  const { room, phase, countdown, race, results } = state
 
   const run = async (action, { exit = false } = {}) => {
     setBusy(true)
@@ -51,17 +54,33 @@ const RoomSession = ({ code, token, userId }) => {
 
   if (!room) return <p className="p-8 text-center text-neutral-600" role="status">Connecting to the room…</p>
 
+  const round = (countdown ?? race ?? results)
+  const title = { lobby: 'Race room', countdown: 'Get ready', racing: 'Race in progress', results: 'Results' }[phase]
+
   return (
-    <section className="practice rooms">
+    <section className={`practice rooms ${phase === 'racing' ? 'practice--typing' : ''}`}>
       <header className="practice-header">
-        <h1>Race room</h1>
+        <h1 className={phase === 'racing' ? 'sr-only' : ''}>{title}</h1>
         <p>
-          {['language', 'difficulty', 'rounds'].map((key) => settingLabel(key, room[key])).join(' · ')}
+          {phase === 'lobby'
+            ? ['language', 'difficulty', 'rounds'].map((key) => settingLabel(key, room[key])).join(' · ')
+            : `Round ${round.round} of ${round.rounds}`}
           {connection.status === 'connecting' && ' · Reconnecting…'}
         </p>
       </header>
 
-      <RoomLobby
+      {phase === 'countdown' && <RaceCountdown key={countdown.round} seconds={countdown.seconds} />}
+      {/* La clave por ronda conserva el avance local si el socket reconecta a mitad de carrera. */}
+      {phase === 'racing' && <RaceView key={race.round} race={race} userId={userId} send={send} />}
+      {phase === 'results' && (
+        <RaceResults
+          results={results}
+          userId={userId}
+          language={room.language}
+          onContinue={() => dispatch({ type: 'dismiss_results' })}
+        />
+      )}
+      {phase === 'lobby' && <RoomLobby
         room={room}
         userId={userId}
         error={state.error ?? actionError}
@@ -72,7 +91,7 @@ const RoomSession = ({ code, token, userId }) => {
         onKick={(memberId) => run(() => kickMember(token, code, memberId))}
         onLeave={() => run(() => leaveRoom(token, code), { exit: true })}
         onClose={() => run(() => closeRoom(token, code), { exit: true })}
-      />
+      />}
     </section>
   )
 }

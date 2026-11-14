@@ -48,9 +48,12 @@ export function useRoomSocket(code, token) {
     }
   }, [code, token])
 
+  // Devuelve si el mensaje salió: con el socket caído, quien llama decide si reintenta.
   const send = useCallback((message) => {
     const socket = socketRef.current
-    if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message))
+    if (socket?.readyState !== WebSocket.OPEN) return false
+    socket.send(JSON.stringify(message))
+    return true
   }, [])
 
   return { state, dispatch, send, connection }

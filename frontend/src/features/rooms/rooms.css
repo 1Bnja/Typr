@@ -257,6 +257,107 @@
   margin-top: 8px;
 }
 
+/* Carrera */
+
+.race-countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 0 48px;
+  text-align: center;
+}
+
+.race-countdown-number {
+  display: grid;
+  place-items: center;
+  width: 144px;
+  height: 144px;
+  border: 2px solid #18a98a;
+  border-radius: 50%;
+  background: #e9f9f3;
+  color: #005e4c;
+  font-size: 72px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.race-track {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding: 16px 0;
+  border-top: 1px solid var(--practice-border);
+  border-bottom: 1px solid var(--practice-border);
+  list-style: none;
+}
+
+.race-lane {
+  display: grid;
+  grid-template-columns: minmax(0, 150px) minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.race-lane-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.race-lane-bar {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #e3e2db;
+}
+
+.race-lane-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: #94958a;
+  transition: width 200ms linear;
+}
+
+.race-lane[data-current='true'] .race-lane-bar > span {
+  background: #18a98a;
+}
+
+.race-lane-value {
+  color: var(--practice-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.race-blocked[data-blocked='true'] {
+  color: #b22c23;
+  font-weight: 600;
+}
+
+.race-finished {
+  padding: 56px 16px;
+  color: #005e4c;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.race-results .room-actions {
+  margin-top: 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .race-lane-bar > span {
+    transition: none;
+  }
+}
+
 @media (max-width: 720px) {
   .rooms-entry,
   .room-columns {
@@ -269,6 +370,17 @@
 
   .room-code-value {
     font-size: 26px;
+  }
+
+  .race-lane {
+    grid-template-columns: minmax(0, 96px) minmax(0, 1fr) 40px;
+    gap: 8px;
+  }
+
+  .race-countdown-number {
+    width: 112px;
+    height: 112px;
+    font-size: 56px;
   }
 }
 
