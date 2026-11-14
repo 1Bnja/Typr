@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import Button from '../button/button'
 import ChevronDown from '../icons/chevron-down'
+import GitHubIcon from '../icons/github'
 import PracticeMenu from './practice-menu'
 import ThemeToggle from './theme-toggle'
 import logo from '../../assets/logo.svg'
@@ -178,6 +179,16 @@ const Navbar = ({ focusMode = false }) => {
           </ul>
 
           <div className="flex items-center gap-1 justify-self-end sm:gap-2">
+            <a
+              href="https://github.com/1Bnja/Typr"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Abrir el repositorio del proyecto en GitHub"
+              title="Repositorio en GitHub"
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-lg text-charcoal transition-colors hover:bg-subtle ${focusRing}`}
+            >
+              <GitHubIcon className="h-5 w-5" />
+            </a>
             <ThemeToggle className={`theme-toggle inline-flex h-10 w-10 items-center justify-center rounded-lg text-charcoal hover:bg-subtle ${focusRing}`} />
             <div className="hidden items-center gap-2 md:flex">
               {user ? (
