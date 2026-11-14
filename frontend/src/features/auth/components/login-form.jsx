@@ -6,7 +6,7 @@ import authService from '../services/authService'
 
 const fieldClass = 'flex flex-col gap-2 text-sm font-semibold text-charcoal'
 const inputClass =
-    'w-full rounded-xl border border-[#e1e2dc] bg-white px-4 py-3 font-normal text-charcoal shadow-[0_3px_0_#e1e2dc] outline-none caret-charcoal placeholder:text-[#5f605b] selection:bg-mint/45 selection:text-charcoal focus-visible:border-[#18a98a] focus-visible:shadow-[0_3px_0_#18a98a,0_0_0_4px_rgb(47_217_180/0.45)]'
+    'w-full rounded-xl border border-divider bg-surface px-4 py-3 font-normal text-charcoal shadow-[0_3px_0_var(--line)] outline-none caret-charcoal placeholder:text-muted selection:bg-mint/45 selection:text-charcoal focus-visible:border-[#18a98a] focus-visible:shadow-[0_3px_0_#18a98a,0_0_0_4px_rgb(47_217_180/0.45)]'
 
 const LoginForm = ({ isRegistering }) => {
     const navigate = useNavigate()
@@ -77,7 +77,7 @@ const LoginForm = ({ isRegistering }) => {
                 />
             </label>
             {error && (
-                <p className="text-sm font-semibold text-red-600" role="alert">
+                <p className="text-sm font-semibold text-danger" role="alert">
                     {error}
                 </p>
             )}

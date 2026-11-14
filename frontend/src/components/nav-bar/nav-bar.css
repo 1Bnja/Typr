@@ -25,3 +25,6 @@
     transform: none;
   }
 }
+.theme-toggle[aria-pressed='true'] {
+  color: var(--accent);
+}

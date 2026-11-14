@@ -58,16 +58,16 @@ const PracticeMenu = ({ className, mobile = false, onNavigate }) => {
       <button ref={trigger} type="button" className={`${className} ${mobile ? 'w-full' : 'inline-flex items-center gap-1'}`} aria-expanded={open} aria-controls={open ? id : undefined}
         onClick={() => setOpen((current) => !current)} onKeyDown={(event) => { if (event.key === 'ArrowDown') { event.preventDefault(); setOpen(true) } }}>
         Practice
-        <ChevronDown className={`h-4 w-4 text-neutral-500 motion-safe:transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-4 w-4 text-muted motion-safe:transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <ul id={id} aria-label="Practice" className={mobile
-          ? 'ml-3 mt-1 space-y-1 border-l border-neutral-200 pl-3'
-          : 'absolute left-0 top-full z-50 mt-2 w-56 rounded-xl border border-[#e1e2dc] bg-white p-1 shadow-[0_3px_0_#e1e2dc]'} onKeyDown={moveFocus}>
+          ? 'ml-3 mt-1 space-y-1 border-l border-divider pl-3'
+          : 'absolute left-0 top-full z-50 mt-2 w-56 rounded-xl border border-divider bg-surface p-1 shadow-[0_3px_0_var(--line)]'} onKeyDown={moveFocus}>
           {practiceLinks.map((link) => (
             <li key={link.to}>
               <NavLink to={link.to} end onClick={() => { setOpen(false); onNavigate?.() }}
-                className={({ isActive }) => `block rounded-lg px-3 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#18a98a] ${isActive ? 'bg-mint/10 font-semibold text-[#007059]' : 'text-charcoal hover:bg-neutral-100'}`}>
+                className={({ isActive }) => `block rounded-lg px-3 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#18a98a] ${isActive ? 'bg-mint/10 font-semibold text-accent' : 'text-charcoal hover:bg-subtle'}`}>
                 {link.label}
               </NavLink>
             </li>

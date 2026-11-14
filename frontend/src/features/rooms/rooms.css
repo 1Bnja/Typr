@@ -14,7 +14,7 @@
   padding: 24px;
   border: 1px solid var(--practice-border);
   border-radius: 16px;
-  background: #faf9f6;
+  background: var(--panel);
 }
 
 .rooms-card h2 {
@@ -60,8 +60,8 @@
   padding: 12px 16px;
   border: 1px solid var(--practice-border);
   border-radius: 12px;
-  background: #fff;
-  color: #232320;
+  background: var(--surface);
+  color: var(--ink);
   font-family: ui-monospace, monospace;
   font-size: 22px;
   font-weight: 600;
@@ -70,7 +70,7 @@
 }
 
 .rooms-code-input::placeholder {
-  color: #b9b8b0;
+  color: var(--quiet);
 }
 
 .rooms-code-input:focus-visible {
@@ -79,7 +79,7 @@
 }
 
 .rooms-code-input[aria-invalid='true'] {
-  border-color: #b22c23;
+  border-color: var(--danger-ink);
 }
 
 /* Sala de espera */
@@ -97,19 +97,19 @@
   justify-content: center;
   gap: 12px 16px;
   padding: 16px 20px;
-  border: 1px dashed #a9ddce;
+  border: 1px dashed var(--accent-line);
   border-radius: 16px;
-  background: #e9f9f3;
+  background: var(--accent-bg);
 }
 
 .room-code-label {
-  color: #005e4c;
+  color: var(--accent-strong);
   font-size: 13px;
   font-weight: 600;
 }
 
 .room-code-value {
-  color: #232320;
+  color: var(--ink);
   font-family: ui-monospace, monospace;
   font-size: 30px;
   font-weight: 800;
@@ -161,8 +161,8 @@
 }
 
 .room-member[data-current='true'] {
-  border-color: #cce6dc;
-  background: #e9f9f3;
+  border-color: var(--accent-line);
+  background: var(--accent-bg);
 }
 
 .room-member-name {
@@ -177,8 +177,8 @@
   flex-shrink: 0;
   padding: 3px 6px;
   border-radius: 5px;
-  background: #f6e7a8;
-  color: #5a4700;
+  background: var(--warning-bg);
+  color: var(--warning-ink);
   font-size: 11px;
   font-weight: 600;
 }
@@ -197,19 +197,19 @@
 .room-member-status::before {
   width: 8px;
   height: 8px;
-  border: 1.5px solid #94958a;
+  border: 1.5px solid var(--quiet);
   border-radius: 50%;
   content: '';
 }
 
 .room-member-status[data-state='ready'] {
-  color: #005e4c;
+  color: var(--accent-strong);
   font-weight: 600;
 }
 
 .room-member-status[data-state='ready']::before {
-  border-color: #007059;
-  background: #007059;
+  border-color: var(--accent);
+  background: var(--accent);
 }
 
 .room-member-status[data-state='offline']::before {
@@ -273,76 +273,128 @@
   place-items: center;
   width: 144px;
   height: 144px;
-  border: 2px solid #18a98a;
+  border: 2px solid var(--accent-fill);
   border-radius: 50%;
-  background: #e9f9f3;
-  color: #005e4c;
+  background: var(--accent-bg);
+  color: var(--accent-strong);
   font-size: 72px;
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
-.race-track {
+.race-controls {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 24px;
-  padding: 16px 0;
-  border-top: 1px solid var(--practice-border);
-  border-bottom: 1px solid var(--practice-border);
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.race-focus-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.race-focus-toggle:hover,
+.race-focus-toggle[aria-pressed='true'] {
+  border-color: var(--accent-line);
+  background: var(--accent-bg);
+  color: var(--accent-strong);
+}
+
+.race-focus-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.race .practice-metrics {
+  gap: 16px;
+}
+
+.race .practice-live-metrics {
+  gap: clamp(12px, 3vw, 32px);
+}
+
+.race-track {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 24px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
   list-style: none;
+}
+
+.race[data-focus='true'] .race-track {
+  max-width: 760px;
+  margin-inline: auto;
+  background: transparent;
 }
 
 .race-lane {
   display: grid;
-  grid-template-columns: minmax(0, 150px) minmax(0, 1fr) 44px;
+  grid-template-columns: minmax(0, 104px) minmax(0, 1fr) 34px;
   align-items: center;
-  gap: 12px;
-  font-size: 14px;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.race-lane[data-current='true'] .race-lane-name,
+.race-lane[data-finished='true'] .race-lane-value {
+  color: var(--accent-strong);
 }
 
 .race-lane-name {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   min-width: 0;
 }
 
 .race-lane-bar {
-  height: 10px;
+  height: 4px;
   overflow: hidden;
   border-radius: 5px;
-  background: #e3e2db;
+  background: var(--track);
 }
 
 .race-lane-bar > span {
   display: block;
   height: 100%;
   border-radius: 5px;
-  background: #94958a;
+  background: var(--quiet);
   transition: width 200ms linear;
 }
 
-.race-lane[data-current='true'] .race-lane-bar > span {
-  background: #18a98a;
+.race-lane[data-current='true'] .race-lane-bar > span,
+.race-lane[data-finished='true'] .race-lane-bar > span {
+  background: var(--accent-fill);
 }
 
 .race-lane-value {
   color: var(--practice-muted);
-  font-size: 13px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
 .race-blocked[data-blocked='true'] {
-  color: #b22c23;
+  color: var(--danger-ink);
   font-weight: 600;
 }
 
 .race-finished {
   padding: 56px 16px;
-  color: #005e4c;
+  color: var(--accent-strong);
   font-size: 18px;
   font-weight: 600;
   text-align: center;
@@ -372,9 +424,8 @@
     font-size: 26px;
   }
 
-  .race-lane {
-    grid-template-columns: minmax(0, 96px) minmax(0, 1fr) 40px;
-    gap: 8px;
+  .race-track {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .race-countdown-number {

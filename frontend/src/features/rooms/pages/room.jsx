@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../auth'
 import RaceCountdown from '../components/race-countdown'
@@ -12,13 +12,20 @@ import '../../practice/practice.css'
 import '../../practice/records.css'
 import '../rooms.css'
 
-const RoomSession = ({ code, token, userId }) => {
+const RoomSession = ({ code, token, userId, onFocusChange }) => {
   const navigate = useNavigate()
   const { state, dispatch, send, connection } = useRoomSocket(code, token)
   const [busy, setBusy] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [actionError, setActionError] = useState(null)
+  const [raceFocus, setRaceFocus] = useState(false)
   const { room, phase, countdown, race, results } = state
+  const focusMode = raceFocus && phase === 'racing' && connection.status !== 'closed' && !leaving
+
+  useEffect(() => {
+    onFocusChange(focusMode)
+    return () => onFocusChange(false)
+  }, [focusMode, onFocusChange])
 
   const run = async (action, { exit = false } = {}) => {
     setBusy(true)
@@ -36,7 +43,7 @@ const RoomSession = ({ code, token, userId }) => {
     }
   }
 
-  if (leaving) return <p className="p-8 text-center text-neutral-600" role="status">Leaving the room…</p>
+  if (leaving) return <p className="p-8 text-center text-muted" role="status">Leaving the room…</p>
 
   if (connection.status === 'closed') {
     const expired = connection.closeCode === 4401
@@ -52,13 +59,13 @@ const RoomSession = ({ code, token, userId }) => {
     )
   }
 
-  if (!room) return <p className="p-8 text-center text-neutral-600" role="status">Connecting to the room…</p>
+  if (!room) return <p className="p-8 text-center text-muted" role="status">Connecting to the room…</p>
 
   const round = (countdown ?? race ?? results)
   const title = { lobby: 'Race room', countdown: 'Get ready', racing: 'Race in progress', results: 'Results' }[phase]
 
   return (
-    <section className={`practice rooms ${phase === 'racing' ? 'practice--typing' : ''}`}>
+    <section className={`practice rooms ${phase === 'racing' ? 'practice--typing' : ''} ${focusMode ? 'practice--focus' : ''}`}>
       <header className="practice-header">
         <h1 className={phase === 'racing' ? 'sr-only' : ''}>{title}</h1>
         <p>
@@ -71,7 +78,10 @@ const RoomSession = ({ code, token, userId }) => {
 
       {phase === 'countdown' && <RaceCountdown key={countdown.round} seconds={countdown.seconds} />}
       {/* La clave por ronda conserva el avance local si el socket reconecta a mitad de carrera. */}
-      {phase === 'racing' && <RaceView key={race.round} race={race} userId={userId} send={send} />}
+      {phase === 'racing' && (
+        <RaceView key={race.round} race={race} userId={userId} send={send}
+          focusMode={focusMode} onFocusChange={setRaceFocus} />
+      )}
       {phase === 'results' && (
         <RaceResults
           results={results}
@@ -96,14 +106,14 @@ const RoomSession = ({ code, token, userId }) => {
   )
 }
 
-const Room = () => {
+const Room = ({ onFocusChange }) => {
   const { code } = useParams()
   const { status, token, user } = useAuth()
 
-  if (status === 'loading') return <p className="p-8 text-center text-neutral-600">Loading…</p>
+  if (status === 'loading') return <p className="p-8 text-center text-muted">Loading…</p>
   if (status === 'unauthenticated') return <Navigate to="/login" replace />
   // La clave reinicia la sesión completa si se navega a otra sala.
-  return <RoomSession key={code} code={code.toUpperCase()} token={token} userId={user.id} />
+  return <RoomSession key={code} code={code.toUpperCase()} token={token} userId={user.id} onFocusChange={onFocusChange} />
 }
 
 export default Room

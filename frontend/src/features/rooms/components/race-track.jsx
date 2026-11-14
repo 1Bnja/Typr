@@ -3,10 +3,10 @@ const RaceTrack = ({ players, userId }) => (
     {players.map((player) => {
       const percent = Math.round(player.progress * 100)
       return (
-        <li key={player.userId} className="race-lane" data-current={player.userId === userId}>
+        <li key={player.userId} className="race-lane" data-current={player.userId === userId} data-finished={player.finished}>
           <span className="race-lane-name">
             <span className="records-username" title={player.username}>{player.username}</span>
-            {player.userId === userId && <span className="records-you">You</span>}
+            {player.userId === userId && <span className="race-lane-you">(you)</span>}
           </span>
           <span
             className="race-lane-bar"

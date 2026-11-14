@@ -13,7 +13,7 @@ const Home = () => {
         <Button variant="primary" size="lg" onClick={() => navigate('/practice')}>Start test</Button>
         <Button variant="secondary" size="lg">View lessons</Button>
       </div>
-      <div className="flex flex-row gap-3 mt-12 text-center text-gray-500 gap-x-12">
+      <div className="flex flex-row gap-3 mt-12 text-center text-muted gap-x-12">
         <p>92 ppm average</p>
         <p>+31% in 30 days</p>
         <p>Free for everyone</p>

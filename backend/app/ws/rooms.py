@@ -148,6 +148,8 @@ class Race:
         racer = self.racers.get(user_id)
         if racer is not None:
             message["you"] = {"typed": racer.typed, "errors": racer.errors}
+            if racer.finished_ms is not None:
+                message["you"]["finishedMs"] = racer.finished_ms
         return message
 
 

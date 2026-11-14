@@ -25,7 +25,7 @@ const App = () => {
         <Route path="/practice/leaderboard" element={<Leaderboard />} />
         <Route path="/register" element={<div>Register</div>} />
         <Route path="/rooms" element={<Rooms />} />
-        <Route path="/rooms/:code" element={<Room />} />
+        <Route path="/rooms/:code" element={<Room onFocusChange={setFocusMode} />} />
         <Route path="/texts" element={<Texts />} />
       </Routes>
       </main>

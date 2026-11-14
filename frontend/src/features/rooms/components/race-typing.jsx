@@ -5,9 +5,8 @@ import { applyRaceInput, raceInputValue } from '../utils/race-input'
 // Teclas que moverían el cursor dentro del campo y desordenarían la comparación.
 const BLOCKED_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Enter']
 
-const RaceTyping = ({ content, initial, onInput }) => {
+const RaceTyping = ({ content, initial, onInput, inputRef }) => {
   const [isFocused, setIsFocused] = useState(false)
-  const inputRef = useRef(null)
   const textRef = useRef(null)
   const composingRef = useRef(false)
   const stateRef = useRef(initial)
@@ -18,7 +17,7 @@ const RaceTyping = ({ content, initial, onInput }) => {
     inputRef.current.value = value
     textRef.current.updateInput(value)
     inputRef.current.focus()
-  }, [content])
+  }, [content, inputRef])
 
   const handleChange = (event) => {
     // Las tildes se cuentan al confirmar el carácter, no mientras se componen.
