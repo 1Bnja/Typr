@@ -5,6 +5,7 @@ import Login from '../features/auth/pages/login'
 import { Home } from '../features/home'
 import Texts from '../features/texts/pages/texts'
 import { History, Leaderboard, Practice } from '../features/practice'
+import { Room, Rooms } from '../features/rooms'
 import './app.css'
 
 const App = () => {
@@ -23,6 +24,8 @@ const App = () => {
         <Route path="/practice/history" element={<History />} />
         <Route path="/practice/leaderboard" element={<Leaderboard />} />
         <Route path="/register" element={<div>Register</div>} />
+        <Route path="/rooms" element={<Rooms />} />
+        <Route path="/rooms/:code" element={<Room />} />
         <Route path="/texts" element={<Texts />} />
       </Routes>
       </main>

@@ -36,7 +36,7 @@ services:
       - |
         python -m unittest discover -s backend/tests/services/texts_handler -v
         python -m unittest discover -s backend/tests/integration -v
-        python -m unittest discover -s backend/tests -p test_practice_matches.py -v
+        python -m unittest discover -s backend/tests -v
     depends_on:
       postgres:
         condition: service_healthy
