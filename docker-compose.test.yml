@@ -18,7 +18,9 @@ services:
     networks: [test]
 
   test-runner:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     working_dir: /workspace
     environment:
       DATABASE_URL: postgresql+psycopg://typr_test:local_test_only@postgres:5432/typr_texts_test
@@ -28,12 +30,15 @@ services:
       PYTHONDONTWRITEBYTECODE: "1"
     volumes:
       - ./backend/app:/workspace/backend/app:ro
+      - ./backend/alembic:/workspace/backend/alembic:ro
+      - ./backend/alembic.ini:/workspace/backend/alembic.ini:ro
       - ./backend/tests:/workspace/backend/tests:ro
       - ./supabase/db/init.sql:/workspace/supabase/db/init.sql:ro
     command:
       - /bin/sh
       - -ec
       - |
+        python -m app.commands.migrate
         python -m unittest discover -s backend/tests/services/texts_handler -v
         python -m unittest discover -s backend/tests/integration -v
         python -m unittest discover -s backend/tests -v

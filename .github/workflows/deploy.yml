@@ -19,5 +19,11 @@ jobs:
           echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > backend/.env
           echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> backend/.env
 
+      - name: Construir contenedores
+        run: docker compose build
+
+      - name: Aplicar migraciones
+        run: docker compose run --rm --no-deps backend python -m app.commands.migrate
+
       - name: Levantar contenedores
-        run: docker compose down && docker compose up -d --build --remove-orphans
+        run: docker compose up -d --remove-orphans
