@@ -16,7 +16,7 @@ Servidor -> cliente
   countdown        {round, rounds, seconds}
   race_start       {round, rounds, text, timeLimitMs, elapsedMs, players, you?}
   progress_update  {userId, progress, finished}
-  race_end         {round, rounds, results, nextRoundInS}
+  race_end         {round, rounds, results, nextRoundInS, matchResults?, returnToRoomInS?}
   room_closed      {}
   error            {code, detail}
 
@@ -41,7 +41,7 @@ from app.deps import get_db
 from app.models import User
 from app.security import decode_access_token
 from app.services import rooms
-from app.services.race import Racer, RaceText, build_results, time_limit_ms
+from app.services.race import Racer, RaceResult, RaceText, build_results, summarize_match, time_limit_ms
 from app.services.rooms import MatchConfig, RoomError
 
 logger = logging.getLogger(__name__)
@@ -50,6 +50,7 @@ router = APIRouter()
 AUTH_TIMEOUT_S = 5
 COUNTDOWN_S = 3
 INTERMISSION_S = 8
+FINAL_RESULTS_S = 15
 CLOSE_UNAUTHORIZED = 4401
 CLOSE_NOT_MEMBER = 4403
 CLOSE_ROOM_GONE = 4404
@@ -349,6 +350,7 @@ class RoomHub:
 
     async def _run_match(self, live: LiveRoom, config: MatchConfig) -> None:
         used_texts: list[int] = []
+        completed_rounds: list[list[RaceResult]] = []
         try:
             for round_number in range(1, config.rounds + 1):
                 text = await run_db(
@@ -361,7 +363,9 @@ class RoomHub:
                 if text is None or not live.players:
                     break
                 used_texts.append(text.id)
-                await self._run_round(live, config, round_number, text)
+                results = await self._run_round(live, config, round_number, text, completed_rounds)
+                if results:
+                    completed_rounds.append(results)
                 if round_number < config.rounds:
                     await asyncio.sleep(INTERMISSION_S)
         except asyncio.CancelledError:
@@ -380,8 +384,9 @@ class RoomHub:
                 logger.exception("No se pudo reabrir la sala %s", live.code)
 
     async def _run_round(
-        self, live: LiveRoom, config: MatchConfig, round_number: int, text: RaceText
-    ) -> None:
+        self, live: LiveRoom, config: MatchConfig, round_number: int, text: RaceText,
+        completed_rounds: list[list[RaceResult]],
+    ) -> list[RaceResult]:
         await self.broadcast(
             live,
             {
@@ -413,7 +418,7 @@ class RoomHub:
             text, min(race.elapsed_ms(), race.limit_ms), race.standings()
         )
         if not results:
-            return
+            return []
         await run_db(
             live.app,
             rooms.save_race,
@@ -424,19 +429,24 @@ class RoomHub:
             results,
         )
         last = round_number == config.rounds
-        await self.broadcast(
-            live,
-            {
-                "type": "race_end",
-                "round": round_number,
-                "rounds": config.rounds,
-                "results": [
-                    {to_camel(key): value for key, value in asdict(result).items()}
-                    for result in results
-                ],
-                "nextRoundInS": None if last else INTERMISSION_S,
-            },
-        )
+        message = {
+            "type": "race_end",
+            "round": round_number,
+            "rounds": config.rounds,
+            "results": [
+                {to_camel(key): value for key, value in asdict(result).items()}
+                for result in results
+            ],
+            "nextRoundInS": None if last else INTERMISSION_S,
+        }
+        if last:
+            message["matchResults"] = [
+                {to_camel(key): value for key, value in asdict(result).items()}
+                for result in summarize_match([*completed_rounds, results])
+            ]
+            message["returnToRoomInS"] = FINAL_RESULTS_S
+        await self.broadcast(live, message)
+        return results
 
 
 hub = RoomHub()

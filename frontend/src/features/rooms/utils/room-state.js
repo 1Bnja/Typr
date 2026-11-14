@@ -71,6 +71,9 @@ export function roomReducer(state, message) {
           rounds: message.rounds,
           results: message.results,
           nextRoundInS: message.nextRoundInS,
+          matchResults: message.matchResults ?? null,
+          returnToRoomInS: message.returnToRoomInS ?? null,
+          receivedAt: message.receivedAt,
         },
       }
     case 'error':

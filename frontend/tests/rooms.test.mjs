@@ -113,6 +113,22 @@ test('a match flows from countdown to race to results and back to the lobby', ()
   assert.equal(state.results, null)
 })
 
+test('final match results retain average standings until the room return', () => {
+  const standings = [{ userId: 2, position: 1, averageScore: 85 }, { userId: 1, position: 2, averageScore: 60 }]
+  let state = roomReducer(initialRoomState, {
+    type: 'race_end', round: 2, rounds: 2, results: [{ userId: 1 }],
+    nextRoundInS: null, matchResults: standings, returnToRoomInS: 15, receivedAt: 10_000,
+  })
+  assert.deepEqual(state.results.matchResults, standings)
+  assert.equal(state.results.returnToRoomInS, 15)
+  assert.equal(state.results.receivedAt, 10_000)
+  state = roomReducer(state, { type: 'room_state', room: room([member(1)], 'waiting') })
+  assert.equal(state.phase, 'results')
+  assert.deepEqual(state.results.matchResults, standings)
+  state = roomReducer(state, { type: 'dismiss_results' })
+  assert.equal(state.phase, 'lobby')
+})
+
 test('reconnecting mid-race resumes the clock and the own progress', () => {
   const state = roomReducer(initialRoomState, { ...raceStart, elapsedMs: 1500, you: { typed: 4, errors: 1 } })
   assert.equal(state.race.startedAt, 8500)

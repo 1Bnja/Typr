@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../auth'
 import RaceCountdown from '../components/race-countdown'
@@ -21,6 +21,7 @@ const RoomSession = ({ code, token, userId, onFocusChange }) => {
   const [raceFocus, setRaceFocus] = useState(false)
   const { room, phase, countdown, race, results } = state
   const focusMode = raceFocus && phase === 'racing' && connection.status !== 'closed' && !leaving
+  const dismissResults = useCallback(() => dispatch({ type: 'dismiss_results' }), [dispatch])
 
   useEffect(() => {
     onFocusChange(focusMode)
@@ -62,7 +63,7 @@ const RoomSession = ({ code, token, userId, onFocusChange }) => {
   if (!room) return <p className="p-8 text-center text-muted" role="status">Connecting to the room…</p>
 
   const round = (countdown ?? race ?? results)
-  const title = { lobby: 'Race room', countdown: 'Get ready', racing: 'Race in progress', results: 'Results' }[phase]
+  const title = { lobby: 'Race room', countdown: 'Get ready', racing: 'Race in progress', results: results?.matchResults ? 'Final results' : 'Results' }[phase]
 
   return (
     <section className={`practice rooms ${phase === 'racing' ? 'practice--typing' : ''} ${focusMode ? 'practice--focus' : ''}`}>
@@ -87,7 +88,7 @@ const RoomSession = ({ code, token, userId, onFocusChange }) => {
           results={results}
           userId={userId}
           language={room.language}
-          onContinue={() => dispatch({ type: 'dismiss_results' })}
+          onContinue={dismissResults}
         />
       )}
       {phase === 'lobby' && <RoomLobby

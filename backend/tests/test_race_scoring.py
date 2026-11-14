@@ -6,10 +6,12 @@ os.environ.setdefault("JWT_SECRET", "race-scoring-tests-only-secret-not-for-prod
 
 from app.services.race import (
     Racer,
+    RaceResult,
     RaceText,
     build_results,
     ideal_time_ms,
     race_points,
+    summarize_match,
     time_limit_ms,
 )
 from app.text_enums import Difficulty, Language
@@ -22,6 +24,33 @@ def text(difficulty=Difficulty.EASY, ideal=20_000):
 
 
 class RaceScoringTests(unittest.TestCase):
+    def test_final_positions_use_average_score_and_include_unfinished_rounds(self):
+        rounds = [
+            [
+                RaceResult(1, "ana", 1, 1_000, 60, 90, 1, 100, True, True),
+                RaceResult(2, "beto", 2, 2_000, 50, 80, 0.5, 80, False, False),
+            ],
+            [
+                RaceResult(2, "beto", 1, 1_000, 70, 100, 1, 90, True, False),
+                RaceResult(1, "ana", 2, 3_000, 20, 70, 0.5, 20, False, False),
+            ],
+        ]
+        winner, second = summarize_match(rounds)
+        self.assertEqual((winner.username, winner.position, winner.average_score), ("beto", 1, 85))
+        self.assertEqual((winner.average_ppm, winner.average_precision_pct, winner.average_time_ms), (60, 90, 1_500))
+        self.assertEqual((winner.average_progress, winner.finished_rounds, winner.rounds_played), (0.75, 1, 2))
+        self.assertEqual((second.username, second.position, second.average_score, second.records_count), ("ana", 2, 60, 1))
+        self.assertEqual((second.average_ppm, second.average_precision_pct, second.average_time_ms), (40, 80, 2_000))
+        self.assertEqual(summarize_match([]), [])
+
+    def test_final_score_ties_use_precision_then_speed(self):
+        results = [
+            RaceResult(1, "ana", 1, 1_000, 50, 90, 1, 80, True, False),
+            RaceResult(2, "beto", 2, 1_000, 40, 95, 1, 80, True, False),
+            RaceResult(3, "caro", 3, 1_000, 60, 95, 1, 80, True, False),
+        ]
+        self.assertEqual([item.username for item in summarize_match([results])], ["caro", "beto", "ana"])
+
     def test_matches_the_documented_example(self):
         # Media, ideal 30 s, 40 s con 95% y 2° lugar = 95,5 puntos.
         points = race_points(

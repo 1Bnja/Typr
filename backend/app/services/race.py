@@ -6,7 +6,7 @@ Son funciones puras: reciben el estado de la carrera y devuelven resultados,
 sin tocar la base de datos ni los sockets.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from math import floor
 
 from app.services.metrics import MIN_PRECISION, calculate_ppm, calculate_precision
@@ -56,6 +56,63 @@ class RaceResult:
     score: int
     finished: bool
     is_record: bool
+
+
+@dataclass(frozen=True)
+class MatchResult:
+    user_id: int
+    username: str
+    position: int
+    rounds_played: int
+    finished_rounds: int
+    records_count: int
+    average_score: float
+    average_ppm: float
+    average_precision_pct: float
+    average_time_ms: float
+    average_progress: float
+
+
+def summarize_match(rounds: list[list[RaceResult]]) -> list[MatchResult]:
+    """Rank players by their average score across the rounds they played."""
+    by_player: dict[int, list[RaceResult]] = {}
+    for results in rounds:
+        for result in results:
+            by_player.setdefault(result.user_id, []).append(result)
+
+    averages = []
+    for player_results in by_player.values():
+        count = len(player_results)
+        first = player_results[0]
+        averages.append(
+            MatchResult(
+                user_id=first.user_id,
+                username=first.username,
+                position=0,
+                rounds_played=count,
+                finished_rounds=sum(result.finished for result in player_results),
+                records_count=sum(result.is_record for result in player_results),
+                average_score=sum(result.score for result in player_results) / count,
+                average_ppm=sum(result.ppm for result in player_results) / count,
+                average_precision_pct=sum(result.precision_pct for result in player_results) / count,
+                average_time_ms=sum(result.time_ms for result in player_results) / count,
+                average_progress=sum(result.progress for result in player_results) / count,
+            )
+        )
+
+    averages.sort(
+        key=lambda result: (
+            -result.average_score,
+            -result.average_precision_pct,
+            -result.average_ppm,
+            result.average_time_ms,
+            result.user_id,
+        )
+    )
+    return [
+        replace(result, position=position)
+        for position, result in enumerate(averages, start=1)
+    ]
 
 
 def ideal_time_ms(content: str, best_time_ms: int | None) -> int:
