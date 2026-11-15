@@ -6,6 +6,7 @@ const practiceLinks = [
   { to: '/practice', label: 'Start a test' },
   { to: '/practice/history', label: 'History' },
   { to: '/practice/leaderboard', label: 'Monthly leaderboard' },
+  { to: '/practice/stats', label: 'Your progress' },
 ]
 
 const PracticeMenu = ({ className, mobile = false, onNavigate }) => {

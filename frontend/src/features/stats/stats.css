@@ -1,0 +1,154 @@
+.stats-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  padding: 20px 0;
+  border-top: 1px solid var(--practice-border);
+  border-bottom: 1px solid var(--practice-border);
+}
+
+.stats-summary .practice-stat {
+  padding: 0;
+}
+
+.stats-summary .practice-stat-value {
+  font-size: 28px;
+}
+
+.stats-modes {
+  margin: 12px 0 40px;
+  color: var(--practice-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.stats-chart {
+  margin: 0 0 40px;
+}
+
+.stats-chart-plot {
+  padding: 12px 0;
+}
+
+.stats-chart-caption {
+  color: var(--practice-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* Recharts dibuja SVG: los colores van por CSS para respetar el tema. */
+.stats-chart .recharts-cartesian-axis-tick-value {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
+.stats-chart .recharts-cartesian-grid line {
+  stroke: var(--line);
+}
+
+.stats-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.stats-chart-cursor {
+  stroke: var(--line);
+}
+
+.stats-line--ppm .recharts-line-curve,
+.stats-line--ppm .recharts-line-dot,
+.stats-line--ppm .recharts-active-dot circle {
+  stroke: var(--accent-fill);
+}
+
+.stats-line--ppm .recharts-line-dot,
+.stats-line--ppm .recharts-active-dot circle {
+  fill: var(--canvas);
+}
+
+.stats-line--precision .recharts-line-curve,
+.stats-line--precision .recharts-active-dot circle {
+  stroke: var(--warning-ink);
+}
+
+.stats-line--precision .recharts-active-dot circle {
+  fill: var(--canvas);
+}
+
+.stats-tooltip {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
+  box-shadow: 0 3px 0 var(--line);
+}
+
+.stats-tooltip-title {
+  font-weight: 600;
+}
+
+.stats-tooltip-date {
+  color: var(--muted);
+}
+
+.stats-key {
+  display: inline-block;
+  width: 12px;
+  height: 0;
+  margin-right: 4px;
+  vertical-align: middle;
+  border-top: 2.5px solid var(--accent-fill);
+}
+
+.stats-key--precision {
+  border-top: 2px dashed var(--warning-ink);
+}
+
+.stats-col-mode {
+  width: 18%;
+}
+
+.stats-mode {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--accent-bg);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stats-mode[data-mode='multiplayer'] {
+  background: var(--warning-bg);
+  color: var(--warning-ink);
+}
+
+.stats-empty h2 {
+  max-width: 420px;
+}
+
+.stats-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .stats-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 24px;
+  }
+
+  .stats-summary .practice-stat-value {
+    font-size: 24px;
+  }
+}

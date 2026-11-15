@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Navbar from '../components/nav-bar'
 import Login from '../features/auth/pages/login'
@@ -7,6 +7,9 @@ import Texts from '../features/texts/pages/texts'
 import { History, Leaderboard, Practice } from '../features/practice'
 import { Room, Rooms } from '../features/rooms'
 import './app.css'
+
+// Recharts solo se descarga al abrir la analítica.
+const Stats = lazy(() => import('../features/stats/pages/stats'))
 
 const App = () => {
   const [focusMode, setFocusMode] = useState(false)
@@ -23,6 +26,7 @@ const App = () => {
         <Route path="/practice" element={<Practice focusMode={focusMode} onFocusChange={setFocusMode} />} />
         <Route path="/practice/history" element={<History />} />
         <Route path="/practice/leaderboard" element={<Leaderboard />} />
+        <Route path="/practice/stats" element={<Suspense fallback={<p className="p-8 text-center">Loading…</p>}><Stats /></Suspense>} />
         <Route path="/register" element={<div>Register</div>} />
         <Route path="/rooms" element={<Rooms />} />
         <Route path="/rooms/:code" element={<Room onFocusChange={setFocusMode} />} />
