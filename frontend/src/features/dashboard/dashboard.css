@@ -1,0 +1,19 @@
+/* Three summary cards instead of the four used by the full stats page. */
+.dashboard-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dashboard-recent {
+  margin-top: 40px;
+}
+
+.dashboard-actions {
+  justify-content: flex-start;
+  margin-top: 28px;
+}
+
+@media (max-width: 640px) {
+  .dashboard-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

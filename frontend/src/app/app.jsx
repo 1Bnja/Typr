@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Navbar from '../components/nav-bar'
 import Login from '../features/auth/pages/login'
+import { Dashboard } from '../features/dashboard'
 import { Home } from '../features/home'
 import Texts from '../features/texts/pages/texts'
 import { History, Leaderboard, Practice } from '../features/practice'
@@ -23,6 +24,7 @@ const App = () => {
         <Route path="/about" element={<div>About</div>} />
         <Route path="/contact" element={<div>Contact</div>} />
         <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/practice" element={<Practice focusMode={focusMode} onFocusChange={setFocusMode} />} />
         <Route path="/practice/history" element={<History />} />
         <Route path="/practice/leaderboard" element={<Leaderboard />} />
