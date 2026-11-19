@@ -2,7 +2,8 @@
   "name": "typr-browser-tests",
   "private": true,
   "scripts": {
-    "test": "cucumber-js --import '*.steps.mjs' *.feature"
+    "test": "cucumber-js",
+    "test:diagnostics": "cucumber-js --profile diagnostics"
   },
   "devDependencies": {
     "@cucumber/cucumber": "13.3.0",

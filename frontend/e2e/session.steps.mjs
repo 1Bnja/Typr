@@ -2,8 +2,7 @@ import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
 import { Given, Then, When } from '@cucumber/cucumber'
 import { expect } from '@playwright/test'
-
-const origin = 'http://127.0.0.1:5173'
+import { disconnected, httpError, origin } from './browser.mjs'
 const invalid = 'Tu sesión ya no es válida. Inicia sesión de nuevo'
 const credentials = (page) => page.evaluate(() => [localStorage.token, localStorage.user].map(value => value ?? null))
 const dashboard = (page, account) => expect(page.getByRole('heading', { name: `Welcome back, ${account.username}` })).toBeVisible()
@@ -67,9 +66,11 @@ Then('only the browser session is revoked', async function () {
 Then('the other tab detects the revocation on a protected request and on reload', async function () {
   await dashboard(this.tab, this.account)
   await this.tab.getByRole('button', { name: 'Practice', exact: true }).click()
+  this.expectResourceError('/api/v1/matches/practice?offset=0&limit=11', httpError(401))
   await this.tab.getByRole('link', { name: 'History', exact: true }).click()
   await loginScreen(this.tab, invalid)
   await this.tab.evaluate(([token, user]) => Object.assign(localStorage, { token, user }), this.credentials)
+  this.expectResourceError('/api/v1/users/me', httpError(401))
   await this.tab.reload()
   await loginScreen(this.tab, invalid)
   assert.deepEqual(await credentials(this.tab), [null, null])
@@ -96,12 +97,14 @@ Then('local sign-out finishes first and warns if revocation cannot be confirmed'
   await loginScreen(this.page)
   assert.deepEqual(await credentials(this.page), [null, null])
   await expect.poll(() => Boolean(this.logoutRoute)).toBe(true)
+  this.expectResourceError('/api/v1/auth/logout', disconnected)
   await this.logoutRoute.abort('internetdisconnected')
   await loginScreen(this.page, 'Signed out on this device. Server revocation could not be confirmed.')
   await checkSession(this.request, this.credentials[0], 200)
 })
 
 When('I reload with a {word} validation failure', async function (failure) {
+  this.expectResourceError('/api/v1/users/me', failure === '503' ? httpError(503) : disconnected)
   await this.page.route('**/api/v1/users/me', route => failure === '503' ? route.fulfill({ status: 503 }) : route.abort('internetdisconnected'))
   await this.page.reload()
 })

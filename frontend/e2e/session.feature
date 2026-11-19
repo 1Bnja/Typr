@@ -3,6 +3,7 @@ Feature: Browser session lifecycle
   Background:
     Given I register a new account in the browser
 
+  @TC-FUNC-01
   Scenario: Reload, sign out, go Back and sign in again
     When I reload the dashboard and the API validates my session
     When I sign out with another tab open and a separate session for my account
