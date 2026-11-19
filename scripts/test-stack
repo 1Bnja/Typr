@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Run the standalone fixture, or pass --verify-cleanup to exercise failure cleanup.
+set -euo pipefail
+
+refuse() {
+    printf '%s\n' 'Refusing external configuration; use only the standalone test fixture.' >&2
+    exit 2
+}
+
+failure=0
+if [[ $# == 1 && $1 == --verify-cleanup ]]; then
+    failure=1
+elif [[ $# != 0 ]]; then
+    refuse
+fi
+for key in ${!COMPOSE_@} DATABASE_URL JWT_SECRET GEMINI_API_KEY GEMINI_MODEL GOOGLE_API_KEY DOCKER_HOST DOCKER_CONTEXT; do
+    [[ ! -v $key ]] || refuse
+done
+
+root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+project=typr-test-$(tr -d '-' </proc/sys/kernel/random/uuid)
+compose=(docker --context default compose --env-file /dev/null --project-directory "$root"
+         --file "$root/docker-compose.test.yml" --project-name "$project")
+export TYPR_TEST_FAIL_AFTER_SMOKE=$failure
+
+cleanup() {
+    result=$?
+    if "${compose[@]}" down --volumes >/dev/null 2>&1; then
+        printf 'run=%s suite_exit=%s cleanup=ok\n' "$project" "$result"
+    else
+        printf 'run=%s suite_exit=%s cleanup=failed\n' "$project" "$result" >&2
+        [[ $result != 0 ]] || result=1
+    fi
+    exit "$result"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+printf 'run=%s fixture=postgresql16 gemini=mocked\n' "$project"
+"${compose[@]}" up --build --abort-on-container-exit --exit-code-from test-runner >/dev/null 2>&1
