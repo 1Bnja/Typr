@@ -478,7 +478,7 @@ async def _listen(live: LiveRoom, user: User, socket: WebSocket, token: str) -> 
             received = False
         except (ValueError, KeyError):
             message = None
-        authorized = await run_db(live.app, sessions.session_user, token)
+        authorized = await run_db(live.app, sessions.validate_race_session, token)
         if live.sockets.get(user.id) is not socket:
             return
         if authorized is None:
@@ -488,7 +488,11 @@ async def _listen(live: LiveRoom, user: User, socket: WebSocket, token: str) -> 
             continue
         try:
             advanced = await hub.handle(live, user, socket, message)
-            if advanced and not await run_db(live.app, sessions.renew_from_race, token):
+            if (
+                advanced
+                and not authorized.renewal_not_due()
+                and not await run_db(live.app, sessions.renew_from_race, token)
+            ):
                 if live.sockets.get(user.id) is socket:
                     await _close_quietly(socket, CLOSE_UNAUTHORIZED)
                 return

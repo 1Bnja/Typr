@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
@@ -33,21 +34,57 @@ def issue_session(db: Session, user_id: int) -> str:
     return token
 
 
-def session_user(db: Session, token: str) -> User | None:
+def _validated_session(db: Session, token: str) -> tuple[User, datetime, datetime] | None:
     claims = decode_session_token(token)
     if claims is None:
         return None
     subject, session_id = claims
     now = utc_now()
-    user = db.scalar(
-        select(User).join(AuthSession, AuthSession.user_id == User.id).where(
+    row = db.execute(
+        select(User, AuthSession.idle_expires_at, AuthSession.absolute_expires_at)
+        .join(AuthSession, AuthSession.user_id == User.id).where(
             AuthSession.id == session_id,
             AuthSession.revoked_at.is_(None),
             AuthSession.idle_expires_at > now,
             AuthSession.absolute_expires_at > now,
         )
-    )
-    return user if user is not None and str(user.id) == subject else None
+    ).one_or_none()
+    if row is None:
+        return None
+    user, idle, absolute = row
+    return (user, idle, absolute) if str(user.id) == subject else None
+
+
+def session_user(db: Session, token: str) -> User | None:
+    row = _validated_session(db, token)
+    return row[0] if row is not None else None
+
+
+def _utc_deadline(deadline: datetime) -> datetime:
+    # SQLite room fixtures return naive datetimes for columns that store UTC.
+    return deadline.replace(tzinfo=deadline.tzinfo or timezone.utc)
+
+
+def _renewal_due_at(idle: datetime) -> datetime:
+    return idle - IDLE_TIMEOUT + RENEWAL_INTERVAL
+
+
+@dataclass(frozen=True)
+class RaceSessionCheck:
+    idle: datetime
+    absolute: datetime
+
+    def renewal_not_due(self) -> bool:
+        # Recheck after handling the frame: handling may cross the cadence boundary.
+        return utc_now() < min(_renewal_due_at(self.idle), self.absolute)
+
+
+def validate_race_session(db: Session, token: str) -> RaceSessionCheck | None:
+    row = _validated_session(db, token)
+    if row is None:
+        return None
+    _, idle, absolute = row
+    return RaceSessionCheck(_utc_deadline(idle), _utc_deadline(absolute))
 
 
 def revoke_session(db: Session, token: str) -> bool:
@@ -94,11 +131,8 @@ def _renew_from_activity(
     now = utc_now()
     if session is None or session.revoked_at is not None:
         return None
-    # SQLite room fixtures return naive datetimes for columns that store UTC.
-    idle, absolute = (
-        deadline.replace(tzinfo=deadline.tzinfo or timezone.utc)
-        for deadline in (session.idle_expires_at, session.absolute_expires_at)
-    )
+    idle = _utc_deadline(session.idle_expires_at)
+    absolute = _utc_deadline(session.absolute_expires_at)
     if (
         now >= min(idle, absolute)
         or decode_session_token(token) is None
@@ -110,7 +144,7 @@ def _renew_from_activity(
         if notice_id is not None:
             # Practice notices retain their own ordering; race progress is ordered by the room.
             session.last_practice_notice = notice_id
-        if now >= idle - IDLE_TIMEOUT + RENEWAL_INTERVAL:
+        if now >= _renewal_due_at(idle):
             idle = session.idle_expires_at = min(now + IDLE_TIMEOUT, absolute)
     db.commit()
     return idle, absolute

@@ -210,19 +210,25 @@ def initial_renewal(context):
 @then("further advances respect the one-minute cadence")
 def cadence(context):
     at(context, minutes=14, seconds=30)
-    advance(context, 2)
+    with patch.object(sessions, "renew_from_race", wraps=sessions.renew_from_race) as renew:
+        advance(context, 2)
+        renew.assert_not_called()
     assert_deadline(context, 29)
     practice_activity(context, context.headers)
     assert_deadline(context, 29)
     at(context, minutes=15)
-    advance(context, 3)
+    with patch.object(sessions, "renew_from_race", wraps=sessions.renew_from_race) as renew:
+        advance(context, 3)
+        renew.assert_called_once()
     assert_deadline(context, 30)
 
 
 @then("repeated progress does not renew")
 def repeated_progress(context):
     at(context, minutes=16)
-    advance(context, 3, errors=1)
+    with patch.object(sessions, "renew_from_race", wraps=sessions.renew_from_race) as renew:
+        advance(context, 3, errors=1)
+        renew.assert_not_called()
     assert_deadline(context, 30)
 
 
