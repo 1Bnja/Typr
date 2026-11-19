@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../auth'
+import PlayExpiryWarning from '../../auth/components/play-expiry-warning'
+import { getAbsoluteDeadline } from '../../auth/utils/session'
+import { rejectSession } from '../../auth/utils/session-fetch'
 import PracticeSetup from '../components/practice-setup'
 import TypingTest from '../components/typing-test'
 import TestResults from '../components/test-results'
@@ -14,6 +17,8 @@ const titles = {
   typing: 'Start typing',
   results: 'Your results',
 }
+
+const expiryNotice = 'Tu sesión ya no es válida. Inicia sesión de nuevo. Tu prueba de práctica no se guardó.'
 
 const Practice = ({ focusMode = false, onFocusChange }) => {
   const { status, token } = useAuth()
@@ -54,6 +59,10 @@ const Practice = ({ focusMode = false, onFocusChange }) => {
   }
 
   const handleFinish = async (testResult) => {
+    if (Date.now() >= getAbsoluteDeadline(token)) {
+      rejectSession(token, expiryNotice)
+      return
+    }
     setResult(testResult)
     setPhase('results')
 
@@ -93,14 +102,17 @@ const Practice = ({ focusMode = false, onFocusChange }) => {
       )}
 
       {phase === 'typing' && (
-        <TypingTest
-          key={attempt}
-          text={text}
-          onActivity={() => reportPracticeActivity(token)}
-          onFinish={handleFinish}
-          onFocusChange={onFocusChange}
-          onCancel={() => setPhase('setup')}
-        />
+        <>
+          <PlayExpiryWarning token={token} expiryNotice={expiryNotice} />
+          <TypingTest
+            key={attempt}
+            text={text}
+            onActivity={() => reportPracticeActivity(token)}
+            onFinish={handleFinish}
+            onFocusChange={onFocusChange}
+            onCancel={() => setPhase('setup')}
+          />
+        </>
       )}
 
       {phase === 'results' && (
