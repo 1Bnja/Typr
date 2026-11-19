@@ -13,7 +13,7 @@ from app.database import Base
 from app.deps import get_db
 from app.main import app
 from app.models import Difficulty, Language, Text, User
-from app.security import create_access_token
+from app.services.sessions import issue_session
 
 
 class TextsRandomTests(unittest.TestCase):
@@ -46,7 +46,8 @@ class TextsRandomTests(unittest.TestCase):
 
         app.dependency_overrides[get_db] = test_db
         self.client = TestClient(app)
-        self.headers = {"Authorization": f"Bearer {create_access_token(self.user_id)}"}
+        with self.sessions() as db:
+            self.headers = {"Authorization": f"Bearer {issue_session(db, self.user_id)}"}
         self.addCleanup(self.engine.dispose)
         self.addCleanup(app.dependency_overrides.pop, get_db)
         self.addCleanup(self.client.close)

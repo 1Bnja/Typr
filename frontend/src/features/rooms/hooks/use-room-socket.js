@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
+import { rejectSession } from '../../auth/utils/session-fetch'
 import { CLOSE_REASONS } from '../constants'
 import { roomSocketUrl } from '../services/rooms-service'
 import { initialRoomState, roomReducer } from '../utils/room-state'
@@ -30,6 +31,10 @@ export function useRoomSocket(code, token) {
       }
       socket.onclose = (event) => {
         if (!active || socketRef.current !== socket) return
+        if (event.code === 4401) {
+          rejectSession(token, CLOSE_REASONS[4401])
+          return
+        }
         if (event.code in CLOSE_REASONS || retries >= MAX_RETRIES) {
           setConnection({ status: 'closed', closeCode: event.code })
           return

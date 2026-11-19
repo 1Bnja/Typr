@@ -31,7 +31,7 @@ from app.database import Base
 from app.deps import get_db
 from app.main import app
 from app.models import Difficulty, Game, GameParticipant, Language, Text, User
-from app.security import create_access_token
+from app.services.sessions import issue_session
 from app.ws import rooms as rooms_ws
 
 PLAYERS = 10
@@ -68,7 +68,7 @@ class RaceLoadTests(unittest.TestCase):
             db.add(Text(content=CONTENT, language=Language.SPA, difficulty=Difficulty.EASY))
             db.commit()
             self.user_ids = [user.id for user in users]
-        self.tokens = [create_access_token(user_id) for user_id in self.user_ids]
+            self.tokens = [issue_session(db, user_id) for user_id in self.user_ids]
 
         def test_db():
             with self.sessions() as db:
