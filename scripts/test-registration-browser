@@ -11,6 +11,8 @@ cleanup() {
   rm -f "$vite_log"
 }
 trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 wait_for() {
   for ((attempt = 0; attempt < 60; attempt++)); do

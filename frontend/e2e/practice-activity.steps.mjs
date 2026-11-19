@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { Then, When } from '@cucumber/cucumber'
 import { expect } from '@playwright/test'
+import { disconnected } from './browser.mjs'
 
 When('I start a practice test with a controlled clock', async function () {
   this.notices = []
@@ -10,6 +11,7 @@ When('I start a practice test with a controlled clock', async function () {
   }))
   await this.page.route('**/api/v1/auth/practice-activity', async route => {
     this.notices.push({ method: route.request().method(), body: route.request().postDataJSON() })
+    this.expectResourceError('/api/v1/auth/practice-activity', disconnected)
     await route.abort('internetdisconnected')
   })
   await this.page.getByRole('link', { name: 'Start a practice test' }).click()
