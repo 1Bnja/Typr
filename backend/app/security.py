@@ -22,14 +22,6 @@ def _decode(token: str, *required: str) -> dict:
     )
 
 
-def decode_access_token(token: str) -> int | None:
-    """Stateless WebSocket compatibility until room session enforcement lands."""
-    try:
-        return int(_decode(token, "sub")["sub"])
-    except (jwt.InvalidTokenError, TypeError, ValueError, OverflowError):
-        return None
-
-
 def decode_session_token(token: str) -> tuple[str, UUID] | None:
     try:
         payload = _decode(token, "sub", "exp", "jti")
