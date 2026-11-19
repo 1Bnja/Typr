@@ -1,4 +1,4 @@
-"""Carrera con varios clientes simultáneos sobre un servidor real (T-03.11).
+"""Carrera con varios clientes simultáneos sobre un servidor real (T-03.11, TC-AUTO-02).
 
 Levanta uvicorn en un hilo y conecta 10 clientes WebSocket de verdad: mide
 cuánto tarda el avance de un jugador en llegar a los demás.
