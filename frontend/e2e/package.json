@@ -1,0 +1,12 @@
+{
+  "name": "typr-browser-tests",
+  "private": true,
+  "scripts": {
+    "test": "cucumber-js",
+    "test:diagnostics": "cucumber-js --profile diagnostics"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "13.3.0",
+    "@playwright/test": "1.65.1"
+  }
+}

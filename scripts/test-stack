@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the standalone fixture, or pass --verify-cleanup to exercise failure cleanup.
+# Run the standalone fixture; --behave/--unittest/--latency isolate suites for CI.
 set -euo pipefail
 
 refuse() {
@@ -8,8 +8,20 @@ refuse() {
 }
 
 failure=0
+auth_only=0
+suite=combined
 if [[ $# == 1 && $1 == --verify-cleanup ]]; then
     failure=1
+elif [[ $# == 1 && $1 == --auth ]]; then
+    auth_only=1
+elif [[ $# == 1 && $1 == --sessions ]]; then
+    auth_only=2
+elif [[ $# == 1 && $1 == --behave ]]; then
+    suite=behave
+elif [[ $# == 1 && $1 == --unittest ]]; then
+    suite=unittest
+elif [[ $# == 1 && $1 == --latency ]]; then
+    suite=latency
 elif [[ $# != 0 ]]; then
     refuse
 fi
@@ -22,6 +34,8 @@ project=typr-test-$(tr -d '-' </proc/sys/kernel/random/uuid)
 compose=(docker --context default compose --env-file /dev/null --project-directory "$root"
          --file "$root/docker-compose.test.yml" --project-name "$project")
 export TYPR_TEST_FAIL_AFTER_SMOKE=$failure
+export TYPR_TEST_AUTH_ONLY=$auth_only
+export TYPR_TEST_SUITE=$suite
 
 cleanup() {
     result=$?
@@ -36,5 +50,19 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+if [[ $suite == latency ]]; then
+    printf 'run=%s fixture=sqlite gemini=unused\n' "$project"
+    "${compose[@]}" run --build --rm --no-deps -T \
+        -e DATABASE_URL=sqlite+pysqlite:// \
+        -e JWT_SECRET=race-load-tests-only-secret-not-for-production \
+        -e TYPR_POSTGRES_INTEGRATION=0 test-runner \
+        python -u -m unittest backend.tests.latency.test_race_load -v
+    exit
+fi
 printf 'run=%s fixture=postgresql16 gemini=mocked\n' "$project"
-"${compose[@]}" up --build --abort-on-container-exit --exit-code-from test-runner >/dev/null 2>&1
+if [[ $suite == behave ]]; then
+    # The standalone Gherkin fixture uses synthetic data; surface CI failures.
+    "${compose[@]}" up --build --abort-on-container-exit --exit-code-from test-runner
+else
+    "${compose[@]}" up --build --abort-on-container-exit --exit-code-from test-runner >/dev/null 2>&1
+fi

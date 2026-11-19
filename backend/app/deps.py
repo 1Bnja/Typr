@@ -4,9 +4,9 @@ from app.database import SessionLocal
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.models import User
-from app.security import decode_access_token
+from app.services.sessions import session_user
 
-bearer_scheme = HTTPBearer()
+bearer_scheme = HTTPBearer(auto_error=False)
 
 def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
@@ -27,10 +27,7 @@ def get_current_user(
     if credentials is None:
         raise unauthorized
 
-    user_id = decode_access_token(credentials.credentials)
-    if user_id is None:
-        raise unauthorized
-    user = db.get(User, user_id)
+    user = session_user(db, credentials.credentials)
     if user is None:
         raise unauthorized
     return user

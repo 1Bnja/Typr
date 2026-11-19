@@ -1,9 +1,24 @@
+import { sessionFetch } from '../../auth/utils/session-fetch.js'
+
+let lastNotice
+
+export function reportPracticeActivity(token) {
+  const noticeId = Date.now()
+  if (lastNotice?.token === token && noticeId - lastNotice.noticeId < 60_000) return
+  lastNotice = { token, noticeId }
+  // No queued retries: a later typing event may try again, but only the server can renew.
+  void sessionFetch(token, '/api/v1/auth/practice-activity', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ noticeId }),
+    signal: AbortSignal.timeout(5000),
+  }).catch(() => {})
+}
+
 export async function getRandomText(token, { language, difficulty, previousId }) {
   const params = new URLSearchParams({ language, difficulty })
   if (previousId != null) params.set('excludeId', previousId)
-  const response = await fetch(`/api/v1/texts/random?${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
+  const response = await sessionFetch(token, `/api/v1/texts/random?${params}`)
   const data = await response.json().catch(() => null)
   if (!response.ok) {
     throw new Error(typeof data?.detail === 'string' ? data.detail : 'No se pudo cargar una frase guardada. Inténtalo nuevamente.')
@@ -15,11 +30,10 @@ export async function getRandomText(token, { language, difficulty, previousId })
 }
 
 export async function savePracticeMatch(token, { textId, difficulty, timeMs, typed, keystrokes, errors }) {
-  const response = await fetch('/api/v1/matches/practice', {
+  const response = await sessionFetch(token, '/api/v1/matches/practice', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
     // Solo señales crudas: el servidor calcula PPM, precisión y puntaje.
     body: JSON.stringify({ textId, difficulty, timeMs, typed, keystrokes, errors }),
@@ -37,8 +51,7 @@ export async function savePracticeMatch(token, { textId, difficulty, timeMs, typ
 }
 
 async function getPracticeData(path, token, params, signal) {
-  const response = await fetch(`/api/v1/matches/${path}?${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
+  const response = await sessionFetch(token, `/api/v1/matches/${path}?${params}`, {
     signal,
   })
   if (!response.ok) throw new Error('Could not load your practice data. Please try again.')
