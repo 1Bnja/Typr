@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+run="typr-registration-$(cat /proc/sys/kernel/random/uuid)"
+vite_log=$(mktemp)
+cleanup() {
+  if [[ -n ${vite_pid:-} ]]; then kill "$vite_pid" 2>/dev/null || true; fi
+  docker rm -f "$run-api" "$run-db" >/dev/null 2>&1 || true
+  docker network rm "$run" >/dev/null 2>&1 || true
+  rm -f "$vite_log"
+}
+trap cleanup EXIT
+
+wait_for() {
+  for ((attempt = 0; attempt < 60; attempt++)); do
+    if "$@"; then return; fi
+    sleep 1
+  done
+  return 1
+}
+
+docker build --target production -f backend/Dockerfile -t typr-registration-browser:local .
+docker network create "$run" >/dev/null
+docker run -d --name "$run-db" --network "$run" --network-alias postgres \
+  --tmpfs /var/lib/postgresql/data \
+  -e POSTGRES_USER=typr_test -e POSTGRES_PASSWORD=local_test_only \
+  -e POSTGRES_DB=typr_registration_test postgres:16-alpine >/dev/null
+wait_for docker exec "$run-db" pg_isready -h 127.0.0.1 -U typr_test -d typr_registration_test
+docker run -d --name "$run-api" --network "$run" -p 127.0.0.1:8000:8000 \
+  -e DATABASE_URL=postgresql+psycopg://typr_test:local_test_only@postgres:5432/typr_registration_test \
+  -e JWT_SECRET=local-browser-test-only typr-registration-browser:local \
+  sh -ec 'python -m app.commands.migrate && exec uvicorn app.main:app --host 0.0.0.0 --port 8000' >/dev/null
+wait_for curl -fsS http://127.0.0.1:8000/api/v1/health >/dev/null 2>&1 || {
+  docker logs "$run-api"
+  exit 1
+}
+
+(cd frontend && exec node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 --strictPort) >"$vite_log" 2>&1 &
+vite_pid=$!
+vite_ready() {
+  kill -0 "$vite_pid" 2>/dev/null &&
+    grep -q 'Local:' "$vite_log" &&
+    curl -fsS http://127.0.0.1:5173/api/v1/health >/dev/null
+}
+wait_for vite_ready || { cat "$vite_log"; exit 1; }
+npm --prefix frontend/e2e test
