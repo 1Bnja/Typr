@@ -17,7 +17,8 @@ export function saveSession(token, user) {
     localStorage.setItem(USER_KEY, JSON.stringify(user))
 }
 
-export function clearSession() {
+export function clearSession(token) {
+    if (localStorage.getItem(TOKEN_KEY) !== token) return
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(USER_KEY)
 }

@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from sqlalchemy import select
+from sqlalchemy import String, select, update
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -47,3 +47,22 @@ def session_user(db: Session, token: str) -> User | None:
         )
     )
     return user if user is not None and str(user.id) == subject else None
+
+
+def revoke_session(db: Session, token: str) -> bool:
+    claims = decode_session_token(token)
+    if claims is None:
+        return False
+    subject, session_id = claims
+    now = utc_now()
+    revoked = db.scalar(
+        update(AuthSession).where(
+            AuthSession.id == session_id,
+            AuthSession.user_id.cast(String) == subject,
+            AuthSession.revoked_at.is_(None),
+            AuthSession.idle_expires_at > now,
+            AuthSession.absolute_expires_at > now,
+        ).values(revoked_at=now).returning(AuthSession.id)
+    )
+    db.commit()
+    return revoked is not None

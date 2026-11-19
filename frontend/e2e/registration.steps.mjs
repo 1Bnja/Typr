@@ -9,7 +9,7 @@ setDefaultTimeout(15_000)
 
 Before(async function () {
   this.browser = await chromium.launch({ executablePath: process.env.TYPR_CHROMIUM_PATH })
-  const page = await this.browser.newPage()
+  const page = await (await this.browser.newContext()).newPage()
   page.setDefaultTimeout(5_000)
   this.request = page.request
   this.registration = new RegistrationPage(page)

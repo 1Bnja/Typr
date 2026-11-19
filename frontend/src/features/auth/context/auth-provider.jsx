@@ -1,60 +1,94 @@
-import { useState, useEffect } from 'react';
-import { AuthContext } from './auth-context';
-import { login as loginRequest } from '../services/authService';
-import { clearSession, readSession, saveSession } from '../utils/session';
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { AuthContext } from './auth-context'
+import { login } from '../services/authService'
+import { clearSession, readSession, saveSession } from '../utils/session'
+import { SESSION_REJECTED, sessionFetch } from '../utils/session-fetch'
+
+const signedOut = { token: null, user: null, status: 'unauthenticated' }
+
+async function validateSession(token, signal) {
+    const response = await sessionFetch(token, '/api/v1/users/me', { signal, cache: 'no-store' })
+    if (!response.ok) throw new Error('Session validation failed')
+    return response.json()
+}
 
 export function AuthProvider({ children }) {
-    const stored = readSession()
-    const [user, setUser] = useState(stored.user)
-    const [token, setToken] = useState(stored.token)
-    const [status, setStatus] = useState(stored.token ? 'loading' : 'unauthenticated')
+    const [{ token, user, status }, setSession] = useState(() => {
+        const { token } = readSession()
+        return { token, user: null, status: token ? 'loading' : 'unauthenticated' }
+    })
+    const [notice, setNotice] = useState(null)
+    const [retry, setRetry] = useState(0)
+    const active = useRef(token)
+    const navigate = useNavigate()
+
+    useEffect(() => {
+        function onRejected({ detail: rejectedToken }) {
+            if (active.current !== rejectedToken) return
+            active.current = null
+            clearSession(rejectedToken)
+            setSession(signedOut)
+            setNotice('Tu sesión ya no es válida. Inicia sesión de nuevo')
+            navigate('/login', { replace: true })
+        }
+        window.addEventListener(SESSION_REJECTED, onRejected)
+        return () => window.removeEventListener(SESSION_REJECTED, onRejected)
+    }, [navigate])
 
     useEffect(() => {
         if (!token) return
-        let cancelled = false
+        const controller = new AbortController()
+        const { signal } = controller
+        const isCurrent = () => !signal.aborted && active.current === token
 
-        fetch('/api/v1/users/me', {
-            headers: { Authorization: `Bearer ${token}` },
-        })
-        .then(async (response) => {
-            if (!response.ok) throw new Error('Session expired')
-            return response.json()
-        })
-        .then((me) => {
-            if (cancelled) return
-            setUser(me)
-            setStatus('authenticated')
-        })
-        .catch(() => {
-            if (cancelled) return
-            setUser(null)
-            setToken(null)
-            setStatus('unauthenticated')
-        })
+        validateSession(token, signal)
+            .then((me) => {
+                if (isCurrent()) setSession({ token, user: me, status: 'authenticated' })
+            })
+            .catch(() => {
+                if (isCurrent()) setSession({ token, user: null, status: 'unavailable' })
+            })
+        return () => controller.abort()
+    }, [token, retry])
 
-    return () => {
-        cancelled = true
+    async function signIn({ email, password }) {
+        const data = await login({ email, password })
+        active.current = data.token
+        saveSession(data.token, data.user)
+        setNotice(null)
+        setSession({ token: data.token, user: data.user, status: 'authenticated' })
     }
-}, [token])
 
-async function signIn({ email, password }) {
-    const data = await loginRequest({ email, password })
-    saveSession(data.token, data.user)
-    setToken(data.token)
-    setUser(data.user)
-    setStatus('authenticated')
-}
+    function signOut() {
+        const signedOutToken = active.current
+        const attempt = Symbol()
+        active.current = attempt
+        clearSession(signedOutToken)
+        setSession(signedOut)
+        setNotice(null)
+        navigate('/login', { replace: true })
 
-function signOut() {
-    clearSession()
-    setToken(null)
-    setUser(null)
-    setStatus('unauthenticated')
-}
+        fetch('/api/v1/auth/logout', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${signedOutToken}` },
+            keepalive: true,
+            signal: AbortSignal.timeout(5000),
+        }).then(response => {
+            if (response.status !== 204 && response.status !== 401) throw new Error('Logout unconfirmed')
+        }).catch(() => {
+            if (active.current === attempt) setNotice('Signed out on this device. Server revocation could not be confirmed.')
+        })
+    }
 
-return (
-    <AuthContext.Provider value={{ user, token, status, signIn, signOut }}>
-        {children}
-    </AuthContext.Provider>
+    function retryValidation() {
+        setSession({ token, user: null, status: 'loading' })
+        setRetry(value => value + 1)
+    }
+
+    return (
+        <AuthContext.Provider value={{ user, token, status, notice, retryValidation, signIn, signOut }}>
+            {children}
+        </AuthContext.Provider>
     )
 }

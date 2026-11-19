@@ -2,7 +2,7 @@
   "name": "typr-browser-tests",
   "private": true,
   "scripts": {
-    "test": "cucumber-js --import registration.steps.mjs --tags @TC-FUNC-02 registration.feature"
+    "test": "cucumber-js --import '*.steps.mjs' *.feature"
   },
   "devDependencies": {
     "@cucumber/cucumber": "13.3.0",

@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import LoginForm from '../components/login-form'
+import { useAuth } from '../context/auth-context'
 
 const Login = () => {
     const [isRegistering, setIsRegistering] = useState(false)
+    const { notice } = useAuth()
 
     return (
         <section className="mx-auto flex w-full max-w-md flex-col px-6 py-10">
@@ -16,6 +18,7 @@ const Login = () => {
                         : 'Sign in to pick up your tests and your speed.'}
                 </p>
 
+                {notice && <p role="alert" className="mt-4 text-center text-danger">{notice}</p>}
                 <div className="mt-8">
                     <LoginForm
                         key={isRegistering ? 'register' : 'login'}
