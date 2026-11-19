@@ -1,6 +1,7 @@
 @auth @postgresql
 Feature: Registration preserves unique account identities and protects passwords
 
+  @RI-01
   Scenario Outline: Overlapping registrations collide on <identity>
     Given two new registrations that share <identity>
     When both registrations reach the database insert in separate transactions
@@ -14,11 +15,13 @@ Feature: Registration preserves unique account identities and protects passwords
       | username | El usuario ya existe bro    |
       | both     | Este correo ya está en uso  |
 
+  @RI-01
   Scenario: Email conflict takes precedence even when two accounts own the fields
     Given two registered accounts with different emails and usernames
     When a new request uses the email of one and the username of the other
     Then registration returns "Este correo ya está en uso" with status 409
 
+  @TC-FUNC-01 @RI-02
   Scenario: Passwords are stored as bcrypt and never exposed by account endpoints
     When a new account registers, logs in, and requests its profile
     Then its persisted password is a bcrypt hash of the submitted password

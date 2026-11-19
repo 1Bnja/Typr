@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from app.deps import get_db
-from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse
+from app.deps import bearer_scheme, get_db
+from app.schemas.auth import (
+    LoginRequest, PracticeActivityRequest, PracticeActivityResponse, RegisterRequest, TokenResponse,
+)
 from app.schemas.user import UserPublic
 from app.services.auth import register_user, authenticate, UserAlreadyExists
-from app.services.sessions import issue_session
+from app.services.sessions import issue_session, renew_from_practice, revoke_session
 
 router = APIRouter(tags=["auth"])
 
@@ -30,3 +33,33 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
             detail="Credenciales inválidas bro",
         )
     return TokenResponse(token=issue_session(db, user.id), user=user)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+):
+    if credentials is None or not revoke_session(db, credentials.credentials):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No autenticado bro",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+@router.post("/practice-activity", response_model=PracticeActivityResponse)
+def practice_activity(
+    data: PracticeActivityRequest,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+):
+    deadlines = credentials and renew_from_practice(db, credentials.credentials, data.notice_id)
+    if deadlines is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No autenticado bro",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    idle, absolute = deadlines
+    return PracticeActivityResponse(idle_expires_at=idle, absolute_expires_at=absolute)

@@ -307,6 +307,11 @@
   font-size: 14px;
 }
 
+.play-expiry-warning {
+  min-height: 1.5em;
+  color: var(--practice-muted);
+}
+
 .practice-results-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

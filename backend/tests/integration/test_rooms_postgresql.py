@@ -10,9 +10,11 @@ class PostgreSQLRoomsTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         require_local_fixture()
+        from alembic.script import ScriptDirectory
         from fastapi.testclient import TestClient
         from sqlalchemy import text
 
+        from app.commands.migrate import alembic_config
         from app.database import SessionLocal
         from app.main import app
         from app.models import User
@@ -32,6 +34,7 @@ class PostgreSQLRoomsTests(unittest.TestCase):
             cls.headers = {"Authorization": f"Bearer {issue_session(db, cls.user_id)}"}
 
         # La prueba debe ejecutarse sobre el head que usara el deploy.
+        cls.head = ScriptDirectory.from_config(alembic_config()).get_current_head()
         with cls.SessionLocal() as db:
             cls.revision = db.scalar(
                 text("SELECT version_num FROM alembic_version")
@@ -52,7 +55,7 @@ class PostgreSQLRoomsTests(unittest.TestCase):
             cls.client.close()
 
     def test_creates_room_on_migrated_postgresql_schema(self):
-        self.assertEqual(self.revision, "0004")
+        self.assertEqual(self.revision, self.head)
         response = self.client.post(
             "/api/v1/rooms",
             headers=self.headers,

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../auth'
+import PlayExpiryWarning from '../../auth/components/play-expiry-warning'
 import RaceCountdown from '../components/race-countdown'
 import RaceResults from '../components/race-results'
 import RaceView from '../components/race-view'
@@ -47,13 +48,12 @@ const RoomSession = ({ code, token, userId, onFocusChange }) => {
   if (leaving) return <p className="p-8 text-center text-muted" role="status">Leaving the room…</p>
 
   if (connection.status === 'closed') {
-    const expired = connection.closeCode === 4401
     return (
       <section className="practice rooms">
         <div className="records-feedback" role="alert">
           <h2>{CLOSE_REASONS[connection.closeCode] ?? 'The connection to the room was lost.'}</h2>
-          <Link to={expired ? '/login' : '/rooms'} className="button button--primary">
-            {expired ? 'Sign in' : 'Back to multiplayer'}
+          <Link to="/rooms" className="button button--primary">
+            Back to multiplayer
           </Link>
         </div>
       </section>
@@ -80,8 +80,11 @@ const RoomSession = ({ code, token, userId, onFocusChange }) => {
       {phase === 'countdown' && <RaceCountdown key={countdown.round} seconds={countdown.seconds} />}
       {/* La clave por ronda conserva el avance local si el socket reconecta a mitad de carrera. */}
       {phase === 'racing' && (
-        <RaceView key={race.round} race={race} userId={userId} send={send}
-          focusMode={focusMode} onFocusChange={setRaceFocus} />
+        <>
+          <PlayExpiryWarning token={token} expiryNotice={CLOSE_REASONS[4401]} />
+          <RaceView key={race.round} race={race} userId={userId} send={send}
+            focusMode={focusMode} onFocusChange={setRaceFocus} />
+        </>
       )}
       {phase === 'results' && (
         <RaceResults

@@ -1,23 +1,7 @@
 import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
-import { After, Before, Given, Then, When, setDefaultTimeout } from '@cucumber/cucumber'
-import { chromium } from '@playwright/test'
-import { RegistrationPage } from './registration.page.mjs'
-
-const origin = 'http://127.0.0.1:5173'
-setDefaultTimeout(15_000)
-
-Before(async function () {
-  this.browser = await chromium.launch({ executablePath: process.env.TYPR_CHROMIUM_PATH })
-  const page = await this.browser.newPage()
-  page.setDefaultTimeout(5_000)
-  this.request = page.request
-  this.registration = new RegistrationPage(page)
-})
-
-After(async function () {
-  await this.browser?.close()
-})
+import { Given, Then, When } from '@cucumber/cucumber'
+import { httpError, origin } from './browser.mjs'
 
 Given('an account exists and I open the registration form', async function () {
   const id = randomBytes(6).toString('hex')
@@ -33,6 +17,7 @@ When('I submit registration with a {word} conflict', async function (conflict) {
     email: conflict === 'username' ? `other_${this.account.email}` : this.account.email,
     password: 'DifferentLocal123!',
   }
+  this.expectResourceError('/api/v1/auth/register', httpError(409))
   assert.equal(await this.registration.submit(this.values), 409)
 })
 

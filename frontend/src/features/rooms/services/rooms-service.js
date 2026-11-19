@@ -1,3 +1,5 @@
+import { sessionFetch } from '../../auth/utils/session-fetch.js'
+
 export class RoomRequestError extends Error {
   constructor(code, message, status) {
     super(message)
@@ -8,11 +10,10 @@ export class RoomRequestError extends Error {
 }
 
 async function request(token, path = '', { method = 'GET', body, signal } = {}) {
-  const response = await fetch(`/api/v1/rooms${path}`, {
+  const response = await sessionFetch(token, `/api/v1/rooms${path}`, {
     method,
     signal,
     headers: {
-      Authorization: `Bearer ${token}`,
       ...(body ? { 'Content-Type': 'application/json' } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
