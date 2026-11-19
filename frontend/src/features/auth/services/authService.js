@@ -13,6 +13,14 @@ export async function login({ email, password }) {
     return data
 }
 
+const DUPLICATE_EMAIL_MESSAGE = 'Este correo ya está en uso'
+
+export class DuplicateEmailError extends Error {
+    constructor() {
+        super(DUPLICATE_EMAIL_MESSAGE)
+    }
+}
+
 export async function register({ username, email, password }) {
     const response = await fetch('/api/v1/auth/register', {
         method: 'POST',
@@ -22,6 +30,9 @@ export async function register({ username, email, password }) {
     const data = await response.json().catch(() => null)
     if (!response.ok) {
         const detail = data?.detail
+        if (response.status === 409 && detail === DUPLICATE_EMAIL_MESSAGE) {
+            throw new DuplicateEmailError()
+        }
         throw new Error(typeof detail === 'string' ? detail : 'Error al registrar usuario')
     }
     return data

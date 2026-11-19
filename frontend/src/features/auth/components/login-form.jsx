@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/auth-context'
 import Button from '../../../components/button'
-import authService from '../services/authService'
+import authService, { DuplicateEmailError } from '../services/authService'
 
 const fieldClass = 'flex flex-col gap-2 text-sm font-semibold text-charcoal'
 const inputClass =
@@ -15,11 +15,14 @@ const LoginForm = ({ isRegistering }) => {
     const [password, setPassword] = useState('')
     const [username, setUsername] = useState('')
     const [error, setError] = useState(null)
+    const [emailError, setEmailError] = useState(null)
+    const emailErrorId = useId()
     const [pending, setPending] = useState(false)
 
     const handleSubmit = async (e) => {
         e.preventDefault()
         setError(null)
+        setEmailError(null)
         setPending(true)
         try {
             if (isRegistering) {
@@ -30,7 +33,11 @@ const LoginForm = ({ isRegistering }) => {
             }
             navigate('/dashboard')
         } catch (err) {
-            setError(err.message)
+            if (err instanceof DuplicateEmailError) {
+                setEmailError(err.message)
+            } else {
+                setError(err.message)
+            }
         } finally {
             setPending(false)
         }
@@ -59,11 +66,21 @@ const LoginForm = ({ isRegistering }) => {
                     type="email"
                     name="email"
                     autoComplete="email"
+                    aria-invalid={emailError ? true : undefined}
+                    aria-describedby={emailError ? emailErrorId : undefined}
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                        setEmail(e.target.value)
+                        setEmailError(null)
+                    }}
                     placeholder="you@email.com"
                 />
             </label>
+            {isRegistering && (
+                <div id={emailErrorId} role="alert" className="-mt-2 text-sm font-semibold text-danger empty:-mt-4">
+                    {emailError}
+                </div>
+            )}
             <label className={fieldClass}>
                 Password
                 <input

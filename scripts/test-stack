@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the standalone fixture, or pass --verify-cleanup to exercise failure cleanup.
+# Run the standalone fixture; --auth/--sessions select features, --verify-cleanup tests cleanup.
 set -euo pipefail
 
 refuse() {
@@ -8,8 +8,13 @@ refuse() {
 }
 
 failure=0
+auth_only=0
 if [[ $# == 1 && $1 == --verify-cleanup ]]; then
     failure=1
+elif [[ $# == 1 && $1 == --auth ]]; then
+    auth_only=1
+elif [[ $# == 1 && $1 == --sessions ]]; then
+    auth_only=2
 elif [[ $# != 0 ]]; then
     refuse
 fi
@@ -22,6 +27,7 @@ project=typr-test-$(tr -d '-' </proc/sys/kernel/random/uuid)
 compose=(docker --context default compose --env-file /dev/null --project-directory "$root"
          --file "$root/docker-compose.test.yml" --project-name "$project")
 export TYPR_TEST_FAIL_AFTER_SMOKE=$failure
+export TYPR_TEST_AUTH_ONLY=$auth_only
 
 cleanup() {
     result=$?

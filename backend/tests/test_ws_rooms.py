@@ -29,7 +29,7 @@ from app.models import (
     User,
     room_members,
 )
-from app.security import create_access_token
+from app.services.sessions import issue_session
 from app.ws import rooms as rooms_ws
 
 TEXTS = ("hola mundo", "casa mesa")
@@ -69,6 +69,7 @@ class RoomSocketTests(unittest.TestCase):
             )
             db.commit()
             self.ids = {user.username: user.id for user in users}
+            self.tokens = {name: issue_session(db, user_id) for name, user_id in self.ids.items()}
 
         def test_db():
             with self.sessions() as db:
@@ -98,7 +99,7 @@ class RoomSocketTests(unittest.TestCase):
         self.engine.dispose()
 
     def api(self, method, path, username, **kwargs):
-        token = create_access_token(self.ids[username])
+        token = self.tokens[username]
         return self.client.request(
             method,
             f"/api/v1/rooms{path}",
@@ -120,7 +121,7 @@ class RoomSocketTests(unittest.TestCase):
         socket.__enter__()
         self.addCleanup(socket.__exit__, None, None, None)
         socket.send_json(
-            {"type": "auth", "token": create_access_token(self.ids[username])}
+            {"type": "auth", "token": self.tokens[username]}
         )
         return socket
 
