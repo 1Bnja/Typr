@@ -16,7 +16,7 @@ class PostgreSQLRoomsTests(unittest.TestCase):
         from app.database import SessionLocal
         from app.main import app
         from app.models import User
-        from app.security import create_access_token
+        from app.services.sessions import issue_session
 
         cls.SessionLocal = staticmethod(SessionLocal)
         cls.client = TestClient(app)
@@ -29,9 +29,7 @@ class PostgreSQLRoomsTests(unittest.TestCase):
             db.add(user)
             db.commit()
             cls.user_id = user.id
-        cls.headers = {
-            "Authorization": f"Bearer {create_access_token(cls.user_id)}"
-        }
+            cls.headers = {"Authorization": f"Bearer {issue_session(db, cls.user_id)}"}
 
         # La prueba debe ejecutarse sobre el head que usara el deploy.
         with cls.SessionLocal() as db:
@@ -54,7 +52,7 @@ class PostgreSQLRoomsTests(unittest.TestCase):
             cls.client.close()
 
     def test_creates_room_on_migrated_postgresql_schema(self):
-        self.assertEqual(self.revision, "0003")
+        self.assertEqual(self.revision, "0004")
         response = self.client.post(
             "/api/v1/rooms",
             headers=self.headers,

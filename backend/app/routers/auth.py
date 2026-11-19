@@ -4,7 +4,7 @@ from app.deps import get_db
 from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse
 from app.schemas.user import UserPublic
 from app.services.auth import register_user, authenticate, UserAlreadyExists
-from app.security import create_access_token
+from app.services.sessions import issue_session
 
 router = APIRouter(tags=["auth"])
 
@@ -29,4 +29,4 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Credenciales inválidas bro",
         )
-    return TokenResponse(token=create_access_token(user.id), user=user)
+    return TokenResponse(token=issue_session(db, user.id), user=user)
