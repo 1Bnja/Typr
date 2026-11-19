@@ -1,4 +1,4 @@
-# Registration browser check (`@TC-FUNC-02`)
+# Browser acceptance checks
 
 Run from the repository root with Docker, Node.js 22 LTS or 24 LTS, and the
 frontend dependencies installed:
@@ -14,6 +14,11 @@ must be free. The script starts Vite and the real API with a disposable
 PostgreSQL database, then removes the containers and network. It uses no
 production credentials.
 
-The browser checks email-only and dual conflicts for the exact inline alert,
+Registration (`@TC-FUNC-02`) checks email-only and dual conflicts for the exact inline alert,
 its accessible association, and retained values. It also checks that a
 username-only conflict still shows the original form error.
+
+Run `bash scripts/test-registration-browser --tags @active_expiry` for the
+active-play expiry cases (`@RI-14`). The fixture seeds a typing text; Playwright
+controls only the affected browser's clock and the revocation case uses the real
+API and room socket.

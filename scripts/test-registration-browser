@@ -36,6 +36,16 @@ wait_for curl -fsS http://127.0.0.1:8000/api/v1/health >/dev/null 2>&1 || {
   exit 1
 }
 
+docker exec "$run-api" python -c '
+from app.database import SessionLocal
+from app.models import Text
+from app.models.enums import Difficulty, Language
+with SessionLocal() as db:
+    db.add(Text(content="A quiet trail winds beneath the tall trees and leads to a small wooden bridge over the river.",
+                language=Language.SPA, difficulty=Difficulty.EASY))
+    db.commit()
+'
+
 (cd frontend && exec node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 --strictPort) >"$vite_log" 2>&1 &
 vite_pid=$!
 vite_ready() {
@@ -44,4 +54,4 @@ vite_ready() {
     curl -fsS http://127.0.0.1:5173/api/v1/health >/dev/null
 }
 wait_for vite_ready || { cat "$vite_log"; exit 1; }
-npm --prefix frontend/e2e test
+npm --prefix frontend/e2e test -- "$@"
