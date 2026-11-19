@@ -21,6 +21,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+      target: test-runner
     working_dir: /workspace
     environment:
       DATABASE_URL: postgresql+psycopg://typr_test:local_test_only@postgres:5432/typr_texts_test
@@ -29,6 +30,7 @@ services:
       PYTHONPATH: /workspace/backend
       PYTHONDONTWRITEBYTECODE: "1"
       TYPR_TEST_FAIL_AFTER_SMOKE: "${TYPR_TEST_FAIL_AFTER_SMOKE:-0}"
+      TYPR_TEST_AUTH_ONLY: "${TYPR_TEST_AUTH_ONLY:-0}"
     volumes:
       - ./backend/app:/workspace/backend/app:ro
       - ./backend/alembic:/workspace/backend/alembic:ro
@@ -43,6 +45,8 @@ services:
         python -m app.commands.migrate
         python backend/tests/fixtures/smoke_stack.py
         [ "$$TYPR_TEST_FAIL_AFTER_SMOKE" != 1 ] || exit 19
+        python -m behave --tags=@auth backend/tests/features
+        [ "$$TYPR_TEST_AUTH_ONLY" != 1 ] || exit 0
         python -m unittest discover -s backend/tests/services/texts_handler -v
         python -m unittest discover -s backend/tests/integration -v
         python -m unittest discover -s backend/tests -v

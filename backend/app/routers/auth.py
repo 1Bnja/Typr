@@ -12,11 +12,14 @@ router = APIRouter(tags=["auth"])
 def register(data: RegisterRequest, db: Session = Depends(get_db)):
     try:
         return register_user(db, data)
-    except UserAlreadyExists:
+    except UserAlreadyExists as error:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="El usuario ya existe bro"
-        )
+            detail=(
+                "Este correo ya está en uso" if error.field == "email"
+                else "El usuario ya existe bro"
+            ),
+        ) from error
 
 @router.post("/login", response_model=TokenResponse)
 def login(data: LoginRequest, db: Session = Depends(get_db)):

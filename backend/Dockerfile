@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
-FROM python:3.11-slim
+FROM python:3.11-slim AS runtime
 
 WORKDIR /app/backend
 
@@ -27,3 +27,10 @@ USER appuser
 EXPOSE 8000
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+FROM runtime AS test-runner
+USER root
+RUN pip install --no-cache-dir behave==1.3.3
+USER appuser
+
+FROM runtime AS production
