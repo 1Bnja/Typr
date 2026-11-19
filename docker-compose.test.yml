@@ -42,9 +42,13 @@ services:
       - -ec
       - |
         python -c 'import sys; sys.path.insert(0, "backend/tests/integration"); from test_text_postgresql import require_local_fixture; require_local_fixture()'
+        python -m backend.tests.fixtures.check_migrations
         python -m app.commands.migrate
         python backend/tests/fixtures/smoke_stack.py
         [ "$$TYPR_TEST_FAIL_AFTER_SMOKE" != 1 ] || exit 19
+        if [ "$$TYPR_TEST_AUTH_ONLY" = 2 ]; then
+          exec python -m behave --tags=@sessions backend/tests/features
+        fi
         python -m behave --tags=@auth backend/tests/features
         [ "$$TYPR_TEST_AUTH_ONLY" != 1 ] || exit 0
         python -m unittest discover -s backend/tests/services/texts_handler -v

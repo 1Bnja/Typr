@@ -25,7 +25,7 @@ from app.models import (
     Text,
     User,
 )
-from app.security import create_access_token
+from app.services.sessions import issue_session
 
 START = datetime(2026, 11, 1, 12, tzinfo=timezone.utc)
 
@@ -60,6 +60,7 @@ class UserStatsTests(unittest.TestCase):
             db.commit()
             self.ids = {user.username: user.id for user in users}
             self.text_id, self.room_id = text.id, room.id
+            self.tokens = {name: issue_session(db, user_id) for name, user_id in self.ids.items()}
 
         def test_db():
             with self.sessions() as db:
@@ -94,7 +95,7 @@ class UserStatsTests(unittest.TestCase):
             return game.id
 
     def stats(self, username="ana", query=""):
-        token = create_access_token(self.ids[username])
+        token = self.tokens[username]
         response = self.client.get(
             f"/api/v1/users/me/stats{query}", headers={"Authorization": f"Bearer {token}"}
         )
@@ -169,7 +170,7 @@ class UserStatsTests(unittest.TestCase):
         self.assertEqual(len(last["trend"]), 5)
 
     def test_rejects_invalid_pages_and_missing_authentication(self):
-        token = create_access_token(self.ids["ana"])
+        token = self.tokens["ana"]
         for query in ("?limit=0", "?limit=51", "?offset=-1"):
             response = self.client.get(
                 f"/api/v1/users/me/stats{query}", headers={"Authorization": f"Bearer {token}"}

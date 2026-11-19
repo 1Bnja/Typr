@@ -1,6 +1,18 @@
 const TOKEN_KEY = 'token';
 const USER_KEY = 'user';
 
+// The server issues JWT exp at the stored absolute deadline. This is only a
+// local UX deadline; reading the claim does not validate or renew the session.
+export function getAbsoluteDeadline(token) {
+    try {
+        const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+        const { exp } = JSON.parse(atob(payload))
+        return Number.isSafeInteger(exp) && exp > 0 ? exp * 1000 : Infinity
+    } catch {
+        return Infinity
+    }
+}
+
 export function readSession() {
     const token = localStorage.getItem(TOKEN_KEY)
     const raw = localStorage.getItem(USER_KEY)
@@ -17,7 +29,8 @@ export function saveSession(token, user) {
     localStorage.setItem(USER_KEY, JSON.stringify(user))
 }
 
-export function clearSession() {
+export function clearSession(token) {
+    if (localStorage.getItem(TOKEN_KEY) !== token) return
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(USER_KEY)
 }

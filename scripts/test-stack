@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the standalone fixture; --auth selects registration and --verify-cleanup tests failure cleanup.
+# Run the standalone fixture; --auth/--sessions select features, --verify-cleanup tests cleanup.
 set -euo pipefail
 
 refuse() {
@@ -13,6 +13,8 @@ if [[ $# == 1 && $1 == --verify-cleanup ]]; then
     failure=1
 elif [[ $# == 1 && $1 == --auth ]]; then
     auth_only=1
+elif [[ $# == 1 && $1 == --sessions ]]; then
+    auth_only=2
 elif [[ $# != 0 ]]; then
     refuse
 fi

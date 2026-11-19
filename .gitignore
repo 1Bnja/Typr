@@ -27,3 +27,4 @@ Thumbs.db
 
 .atl/
 .codegraph/
+/frontend/e2e/test-results/
