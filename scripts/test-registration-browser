@@ -22,6 +22,10 @@ wait_for() {
   return 1
 }
 
+http_probe() {
+  curl --noproxy '*' --connect-timeout 1 --max-time 2 --silent --show-error "$@"
+}
+
 docker build --target production -f backend/Dockerfile -t typr-registration-browser:local .
 docker network create "$run" >/dev/null
 docker run -d --name "$run-db" --network "$run" --network-alias postgres \
@@ -33,7 +37,7 @@ docker run -d --name "$run-api" --network "$run" -p 127.0.0.1:8000:8000 \
   -e DATABASE_URL=postgresql+psycopg://typr_test:local_test_only@postgres:5432/typr_registration_test \
   -e JWT_SECRET=local-browser-test-only typr-registration-browser:local \
   sh -ec 'python -m app.commands.migrate && exec uvicorn app.main:app --host 0.0.0.0 --port 8000' >/dev/null
-wait_for curl -fsS http://127.0.0.1:8000/api/v1/health >/dev/null 2>&1 || {
+wait_for http_probe --fail http://127.0.0.1:8000/api/v1/health >/dev/null 2>&1 || {
   docker logs "$run-api"
   exit 1
 }
@@ -50,10 +54,20 @@ with SessionLocal() as db:
 
 (cd frontend && exec node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 --strictPort) >"$vite_log" 2>&1 &
 vite_pid=$!
+frontend_url=http://127.0.0.1:5173
 vite_ready() {
+  local health
   kill -0 "$vite_pid" 2>/dev/null &&
-    grep -q 'Local:' "$vite_log" &&
-    curl -fsS http://127.0.0.1:5173/api/v1/health >/dev/null
+    [[ $(http_probe --output /dev/null --write-out '%{http_code}' "$frontend_url/") == 200 ]] &&
+    health=$(http_probe --fail "$frontend_url/api/v1/health") &&
+    [[ $health == '{"status":"ok"}' ]]
 }
-wait_for vite_ready || { cat "$vite_log"; exit 1; }
+if ! wait_for vite_ready 2>/dev/null; then
+  printf 'Browser fixture did not become ready (expected HTTP 200 for the frontend and {"status":"ok"} from proxied health).\n' >&2
+  for url in "$frontend_url/" "$frontend_url/api/v1/health" http://127.0.0.1:8000/api/v1/health; do
+    http_probe --output /dev/null --write-out "$url: HTTP %{http_code}\n" "$url" >&2 || true
+  done
+  tail -n 30 "$vite_log" >&2
+  exit 1
+fi
 npm --prefix frontend/e2e test -- "$@"
