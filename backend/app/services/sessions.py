@@ -10,6 +10,7 @@ from app.security import create_access_token, decode_session_token
 
 IDLE_TIMEOUT = timedelta(minutes=15)
 ABSOLUTE_TIMEOUT = timedelta(hours=24)
+RENEWAL_INTERVAL = timedelta(minutes=1)
 
 
 def utc_now() -> datetime:
@@ -66,3 +67,50 @@ def revoke_session(db: Session, token: str) -> bool:
     )
     db.commit()
     return revoked is not None
+
+
+def renew_from_practice(db: Session, token: str, notice_id: int) -> tuple[datetime, datetime] | None:
+    return _renew_from_activity(db, token, notice_id)
+
+
+def renew_from_race(db: Session, token: str) -> bool:
+    return _renew_from_activity(db, token) is not None
+
+
+def _renew_from_activity(
+    db: Session, token: str, notice_id: int | None = None,
+) -> tuple[datetime, datetime] | None:
+    claims = decode_session_token(token)
+    if claims is None:
+        return None
+    subject, session_id = claims
+    session = db.scalar(
+        select(AuthSession).where(
+            AuthSession.id == session_id,
+            AuthSession.user_id.cast(String) == subject,
+        ).with_for_update()
+    )
+    # Recheck after taking the lock: waiting behind another writer cannot buy time.
+    now = utc_now()
+    if session is None or session.revoked_at is not None:
+        return None
+    # SQLite room fixtures return naive datetimes for columns that store UTC.
+    idle, absolute = (
+        deadline.replace(tzinfo=deadline.tzinfo or timezone.utc)
+        for deadline in (session.idle_expires_at, session.absolute_expires_at)
+    )
+    if (
+        now >= min(idle, absolute)
+        or decode_session_token(token) is None
+    ):
+        return None
+
+    previous = session.last_practice_notice
+    if notice_id is None or previous is None or notice_id > previous:
+        if notice_id is not None:
+            # Practice notices retain their own ordering; race progress is ordered by the room.
+            session.last_practice_notice = notice_id
+        if now >= idle - IDLE_TIMEOUT + RENEWAL_INTERVAL:
+            idle = session.idle_expires_at = min(now + IDLE_TIMEOUT, absolute)
+    db.commit()
+    return idle, absolute

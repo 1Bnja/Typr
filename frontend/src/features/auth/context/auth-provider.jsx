@@ -24,12 +24,12 @@ export function AuthProvider({ children }) {
     const navigate = useNavigate()
 
     useEffect(() => {
-        function onRejected({ detail: rejectedToken }) {
+        function onRejected({ detail: { token: rejectedToken, notice: rejectionNotice } }) {
             if (active.current !== rejectedToken) return
             active.current = null
             clearSession(rejectedToken)
             setSession(signedOut)
-            setNotice('Tu sesión ya no es válida. Inicia sesión de nuevo')
+            setNotice(rejectionNotice ?? 'Tu sesión ya no es válida. Inicia sesión de nuevo')
             navigate('/login', { replace: true })
         }
         window.addEventListener(SESSION_REJECTED, onRejected)
