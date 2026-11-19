@@ -2,8 +2,7 @@ import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
 import { Given, Then, When } from '@cucumber/cucumber'
 import { expect } from '@playwright/test'
-
-const origin = 'http://127.0.0.1:5173'
+import { disconnected, origin } from './browser.mjs'
 const api = `${origin}/api/v1`
 const auth = token => ({ headers: { Authorization: `Bearer ${token}` } })
 const warning = 'Your session expires in 5 minutes or less.'
@@ -32,7 +31,7 @@ Given('I start an active practice attempt near absolute expiry', async function 
 Given('I enter an active race with a separate peer near absolute expiry', async function () {
   const id = randomBytes(6).toString('hex')
   const peerAccount = { username: `peer_${id}`, email: `peer_${id}@example.com`, password: 'LocalTest123!' }
-  const peerContext = await this.browser.newContext()
+  const { context: peerContext } = await this.newContext()
   this.peer = await peerContext.newPage()
   assert.equal((await this.request.post(`${api}/auth/register`, { data: peerAccount })).status(), 201)
   const login = await this.request.post(`${api}/auth/login`, { data: peerAccount })
@@ -59,6 +58,7 @@ Given('I enter an active race with a separate peer near absolute expiry', async 
 })
 
 When('I cross the five-minute boundary offline', async function () {
+  this.expectResourceError('/favicon.svg', disconnected)
   await this.page.context().setOffline(true)
   await expect(this.page.getByText(warning, { exact: true })).toHaveCount(0)
   await this.page.clock.runFor(1)
