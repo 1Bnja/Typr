@@ -5,7 +5,7 @@ import PracticeSetup from '../components/practice-setup'
 import TypingTest from '../components/typing-test'
 import TestResults from '../components/test-results'
 import TypingReference from '../components/typing-reference'
-import { getRandomText, savePracticeMatch } from '../services/practice-service'
+import { getRandomText, reportPracticeActivity, savePracticeMatch } from '../services/practice-service'
 import { DIFFICULTIES, LANGUAGES } from '../constants'
 import '../practice.css'
 
@@ -96,6 +96,7 @@ const Practice = ({ focusMode = false, onFocusChange }) => {
         <TypingTest
           key={attempt}
           text={text}
+          onActivity={() => reportPracticeActivity(token)}
           onFinish={handleFinish}
           onFocusChange={onFocusChange}
           onCancel={() => setPhase('setup')}

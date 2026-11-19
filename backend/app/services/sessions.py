@@ -10,6 +10,7 @@ from app.security import create_access_token, decode_session_token
 
 IDLE_TIMEOUT = timedelta(minutes=15)
 ABSOLUTE_TIMEOUT = timedelta(hours=24)
+PRACTICE_INTERVAL = timedelta(minutes=1)
 
 
 def utc_now() -> datetime:
@@ -66,3 +67,34 @@ def revoke_session(db: Session, token: str) -> bool:
     )
     db.commit()
     return revoked is not None
+
+
+def renew_from_practice(db: Session, token: str, notice_id: int) -> tuple[datetime, datetime] | None:
+    claims = decode_session_token(token)
+    if claims is None:
+        return None
+    subject, session_id = claims
+    session = db.scalar(
+        select(AuthSession).where(
+            AuthSession.id == session_id,
+            AuthSession.user_id.cast(String) == subject,
+        ).with_for_update()
+    )
+    # Recheck after taking the lock: waiting behind another writer cannot buy time.
+    now = utc_now()
+    if (
+        session is None or session.revoked_at is not None
+        or now >= min(session.idle_expires_at, session.absolute_expires_at)
+        or decode_session_token(token) is None
+    ):
+        return None
+
+    previous = session.last_practice_notice
+    if previous is None or notice_id > previous:
+        # The marker is only for ordering; deadlines use server time exclusively.
+        session.last_practice_notice = notice_id
+        if previous is None or now >= session.idle_expires_at - IDLE_TIMEOUT + PRACTICE_INTERVAL:
+            session.idle_expires_at = min(now + IDLE_TIMEOUT, session.absolute_expires_at)
+    deadlines = session.idle_expires_at, session.absolute_expires_at
+    db.commit()
+    return deadlines

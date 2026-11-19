@@ -1,5 +1,20 @@
 import { sessionFetch } from '../../auth/utils/session-fetch.js'
 
+let lastNotice
+
+export function reportPracticeActivity(token) {
+  const noticeId = Date.now()
+  if (lastNotice?.token === token && noticeId - lastNotice.noticeId < 60_000) return
+  lastNotice = { token, noticeId }
+  // No queued retries: a later typing event may try again, but only the server can renew.
+  void sessionFetch(token, '/api/v1/auth/practice-activity', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ noticeId }),
+    signal: AbortSignal.timeout(5000),
+  }).catch(() => {})
+}
+
 export async function getRandomText(token, { language, difficulty, previousId }) {
   const params = new URLSearchParams({ language, difficulty })
   if (previousId != null) params.set('excludeId', previousId)
