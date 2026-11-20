@@ -29,7 +29,7 @@ Browser -> Cloudflare (TLS) -> Caddy :80 -> /api/*  -> backend:8000  (FastAPI)
 | Caddy | Serves plain HTTP for `typr.cfuentes.dev`, `localhost` and `127.0.0.1` (see `Caddyfile`). It does not manage certificates. Ports 80 and 443 are published by `docker-compose.yml`. |
 | Frontend | React/Vite build served by its own container. |
 | Backend | FastAPI on port 8000, internal only. Reads `backend/.env`. |
-| Database | PostgreSQL outside Docker Compose, reached via `DATABASE_URL`. The schema is managed by Alembic (`backend/alembic`, baseline in `supabase/db/init.sql`). The repository ships no database container; the production database is a hosted PostgreSQL (Supabase-style connection string). |
+| Database | PostgreSQL outside Docker Compose, reached via `DATABASE_URL`. The schema is managed by Alembic (`backend/alembic`, baseline in `supabase/db/init.sql`). The repository ships no database container; the production database is a hosted PostgreSQL reached via `DATABASE_URL`. |
 
 ## Environment variables
 
@@ -58,7 +58,7 @@ Runs are serialized (`concurrency: deploy`, no cancellation). Follow them in the
 
 ## Manual deploy
 
-On the host, from the repository root, with `backend/.env` in place:
+`deploy.yml` deploys the self-hosted runner's checkout. Run manual deploys from that same directory (same compose project), otherwise a second stack will compete for ports 80 and 443. From the repository root, with `backend/.env` in place:
 
 ```bash
 git pull --ff-only origin main
@@ -82,7 +82,7 @@ docker compose logs -f --tail=100 backend       # also: frontend, caddy
 
 ## Rollback
 
-There is no image registry; rolling back means redeploying an older commit.
+There is no image registry; rolling back means redeploying an older commit. Run it from the same checkout and compose project that `deploy.yml` uses on the self-hosted runner, so you do not start a second stack that competes for ports 80 and 443.
 
 ```bash
 git fetch origin
@@ -95,7 +95,7 @@ Do not run the migration step when going back unless you know the older code sup
 
 ## Database backup
 
-Use the official `postgres` image as the client, so nothing needs to be installed on the host. The client major version must be equal to or newer than the server's (check with `SELECT version();`).
+Use the official `postgres` image as the client, so nothing needs to be installed on the host. Check the server version with `SELECT version();` and set the image tag to that major version (the examples use `16`); the client major version must be equal to or newer than the server's.
 
 `pg_dump` needs a plain `postgresql://` URL, so drop the `+psycopg` driver suffix from `DATABASE_URL`:
 
@@ -110,6 +110,7 @@ docker run --rm postgres:16-alpine pg_dump \
 
 Notes:
 
+- Passing the URL as an argument exposes the password in the process list while the command runs. To avoid it, use a URL without the password and pass `-e PGPASSWORD` (with the variable exported in your shell) to `docker run` instead.
 - `--schema=public` keeps the dump to Typr's own tables and skips provider-internal schemas on hosted PostgreSQL.
 - The dump includes `alembic_version`, so the restored database keeps its migration history.
 - The dump contains user data and password hashes. Store it encrypted and outside the repository.
@@ -118,17 +119,22 @@ Notes:
 
 ## Database restore
 
-Restore into an **empty** database. Create the empty database first with your provider, or locally with a `postgres` container, then:
+Restore into an **empty** database. Create the empty database first with your provider, or locally with a `postgres` container.
+
+**Warning: this is destructive.** The restore drops and recreates every Typr table in `TARGET_URL`. Never point it at production. Confirm the host first, and if the target holds anything you care about, take a fresh dump of it (see [Database backup](#database-backup)) before restoring.
 
 ```bash
 export TARGET_URL="postgresql://USER:PASSWORD@HOST:5432/DBNAME"
+
+# Confirm the target host (password stripped) before continuing
+echo "$TARGET_URL" | sed -E 's#//[^@]*@#//#'
 
 docker run --rm -i postgres:16-alpine pg_restore \
   --clean --if-exists --no-owner --no-privileges --exit-on-error \
   --dbname "$TARGET_URL" < typr-YYYYMMDD-HHMMSS.dump
 ```
 
-`--clean --if-exists` is required: the dump contains `CREATE SCHEMA public`, which fails on a fresh database without it. Then point `DATABASE_URL` in `backend/.env` at the restored database (with the `+psycopg` form) and run the migration step. It is a no-op when the dump was already at the latest revision.
+On a fresh empty database, `--clean --if-exists` is needed because the dump contains `CREATE SCHEMA public`, which fails without it. The same flags are what make the command destructive on a populated database, so do not treat them as safe. Then point `DATABASE_URL` in `backend/.env` at the restored database (with the `+psycopg` form) and run the migration step. It is a no-op when the dump was already at the latest revision.
 
 From inside a container, `localhost` is the container itself. To reach a database published on the host, use `host.docker.internal` (Docker Desktop; on Linux add `extra_hosts: ["host.docker.internal:host-gateway"]` to the backend service in a local override) or put both on a shared Docker network.
 
@@ -156,7 +162,7 @@ Prerequisites: Docker with Compose v2, Git, a recent `.dump` file (if you need t
      Its `DATABASE_URL` from inside the backend container is
      `postgresql+psycopg://typr:change-me@host.docker.internal:5432/typr`.
 
-3. **Restore data (optional).** Skip this to start with an empty schema. Otherwise run the [restore](#database-restore) against the empty database.
+3. **Restore data (optional).** Applies **only** to the new, empty database option. **Skip it when reusing the hosted database**: the restore drops and recreates every Typr table. Skip it too if you want an empty schema. Otherwise run the [restore](#database-restore) against the new empty database.
 
 4. **Create `backend/.env`** with the variables listed in [Environment variables](#environment-variables).
 
