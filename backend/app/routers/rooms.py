@@ -61,13 +61,8 @@ def create_room(
     "/me",
     response_model=RoomPublic | None,
     summary="Get my room",
-    description=(
-        "Returns the room the user belongs to, or `null` when the user is in none. "
-        + ROOM_ERROR_NOTE
-    ),
-    responses={
-        **UNAUTHORIZED,
-    },
+    description="Returns the room the user belongs to, or `null` when the user is in none.",
+    responses=UNAUTHORIZED,
 )
 def my_room(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Sala a la que pertenece el usuario, o null si no está en ninguna."""

@@ -18,7 +18,9 @@ described here. All messages are JSON.
 
 **URL:** `ws(s)://<host>/api/v1/ws/rooms/{code}` where `{code}` is the
 6-character room code. The user must already be a member of the room (join it
-through `POST /api/v1/rooms/{code}/join` first).
+through `POST /api/v1/rooms/{code}/join` first). A code that does not match
+`^[A-Za-z0-9]{6}$` is rejected by path validation before the socket is
+accepted, so it never reaches the close codes below.
 
 **Authentication:** the token is never sent in the URL. The first message must
 arrive within 5 seconds and be `{"type": "auth", "token": "<token>"}`.
@@ -40,7 +42,7 @@ arrive within 5 seconds and be `{"type": "auth", "token": "<token>"}`.
 | `player_joined` | `userId`, `username`. |
 | `player_left` | `userId`. |
 | `countdown` | `round`, `rounds`, `seconds`. |
-| `race_start` | `round`, `rounds`, `text`, `timeLimitMs`, `elapsedMs`, `players`. |
+| `race_start` | `round`, `rounds`, `text`, `timeLimitMs`, `elapsedMs`, `players`, and an optional `you` object (`typed`, `errors`, `finishedMs`) when a player reconnects mid-race. |
 | `progress_update` | `userId`, `progress`, `finished`. |
 | `race_end` | `round`, `rounds`, `results`, `nextRoundInS`, and on the last round `matchResults`, `returnToRoomInS`. |
 | `room_closed` | The room was closed. |
