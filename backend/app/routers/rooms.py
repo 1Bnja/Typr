@@ -6,6 +6,7 @@ from anyio import from_thread
 from fastapi import APIRouter, Depends, HTTPException, Path, Response, status
 from sqlalchemy.orm import Session
 
+from app.api_docs import ROOM_ERROR_NOTE, UNAUTHORIZED
 from app.deps import get_current_user, get_db
 from app.models import User
 from app.schemas.room import RoomCreate, RoomPublic, RoomUpdate
@@ -30,7 +31,20 @@ def _notify(function, *args) -> None:
     from_thread.run(function, *args)
 
 
-@router.post("", response_model=RoomPublic, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=RoomPublic,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a room",
+    description=(
+        "Creates a room in the waiting state. The creator becomes host and member. "
+        + ROOM_ERROR_NOTE
+    ),
+    responses={
+        **UNAUTHORIZED,
+        409: {"description": "The user already belongs to a room (`already_in_room`)."},
+    },
+)
 def create_room(
     data: RoomCreate,
     user: User = Depends(get_current_user),
@@ -43,14 +57,38 @@ def create_room(
         raise _http_error(error)
 
 
-@router.get("/me", response_model=RoomPublic | None)
+@router.get(
+    "/me",
+    response_model=RoomPublic | None,
+    summary="Get my room",
+    description=(
+        "Returns the room the user belongs to, or `null` when the user is in none. "
+        + ROOM_ERROR_NOTE
+    ),
+    responses={
+        **UNAUTHORIZED,
+    },
+)
 def my_room(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Sala a la que pertenece el usuario, o null si no está en ninguna."""
     room = rooms.current_room(db, user.id)
     return None if room is None else rooms.room_public(db, room)
 
 
-@router.get("/{code}", response_model=RoomPublic)
+@router.get(
+    "/{code}",
+    response_model=RoomPublic,
+    summary="Get a room",
+    description=(
+        "Returns a room by its 6-character code. Only members can read it. "
+        + ROOM_ERROR_NOTE
+    ),
+    responses={
+        **UNAUTHORIZED,
+        403: {"description": "The user is not a member (`not_member`)."},
+        404: {"description": "Unknown room code (`room_not_found`)."},
+    },
+)
 def get_room(
     code: RoomCode,
     user: User = Depends(get_current_user),
@@ -62,7 +100,21 @@ def get_room(
         raise _http_error(error)
 
 
-@router.patch("/{code}", response_model=RoomPublic)
+@router.patch(
+    "/{code}",
+    response_model=RoomPublic,
+    summary="Update room settings",
+    description=(
+        "Changes the room configuration and notifies connected sockets. Host only, while the room is waiting. "
+        + ROOM_ERROR_NOTE
+    ),
+    responses={
+        **UNAUTHORIZED,
+        403: {"description": "Not a member or not the host (`not_member`, `not_host`)."},
+        404: {"description": "Unknown room code (`room_not_found`)."},
+        409: {"description": "A match is in progress (`room_in_progress`)."},
+    },
+)
 def update_room(
     code: RoomCode,
     data: RoomUpdate,
@@ -78,7 +130,20 @@ def update_room(
     return room
 
 
-@router.post("/{code}/join", response_model=RoomPublic)
+@router.post(
+    "/{code}/join",
+    response_model=RoomPublic,
+    summary="Join a room",
+    description=(
+        "Joins a room by code as a regular member and notifies connected sockets. "
+        + ROOM_ERROR_NOTE
+    ),
+    responses={
+        **UNAUTHORIZED,
+        404: {"description": "Unknown room code (`room_not_found`)."},
+        409: {"description": "Already in a room, room full or match in progress (`already_in_room`, `room_full`, `room_in_progress`)."},
+    },
+)
 def join_room(
     code: RoomCode,
     user: User = Depends(get_current_user),
@@ -93,7 +158,20 @@ def join_room(
     return room
 
 
-@router.post("/{code}/leave", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/{code}/leave",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Leave a room",
+    description=(
+        "Leaves the room. If the host leaves, the room is deleted and every socket is told it closed. "
+        + ROOM_ERROR_NOTE
+    ),
+    responses={
+        **UNAUTHORIZED,
+        403: {"description": "The user is not a member (`not_member`)."},
+        404: {"description": "Unknown room code (`room_not_found`)."},
+    },
+)
 def leave_room(
     code: RoomCode,
     user: User = Depends(get_current_user),
@@ -111,7 +189,22 @@ def leave_room(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.delete("/{code}/members/{member_id}", response_model=RoomPublic)
+@router.delete(
+    "/{code}/members/{member_id}",
+    response_model=RoomPublic,
+    summary="Kick a member",
+    description=(
+        "Removes a player from the room. Host only, while the room is waiting. "
+        + ROOM_ERROR_NOTE
+    ),
+    responses={
+        **UNAUTHORIZED,
+        403: {"description": "Not a member or not the host (`not_member`, `not_host`)."},
+        404: {"description": "Unknown room or player not in the room (`room_not_found`, `member_not_found`)."},
+        409: {"description": "A match is in progress (`room_in_progress`)."},
+        422: {"description": "The host cannot kick themselves (`cannot_kick_host`)."},
+    },
+)
 def kick_member(
     code: RoomCode,
     member_id: int,
@@ -127,7 +220,20 @@ def kick_member(
     return room
 
 
-@router.delete("/{code}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{code}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Close a room",
+    description=(
+        "Closes the room and removes all its players. Host only. "
+        + ROOM_ERROR_NOTE
+    ),
+    responses={
+        **UNAUTHORIZED,
+        403: {"description": "Not a member or not the host (`not_member`, `not_host`)."},
+        404: {"description": "Unknown room code (`room_not_found`)."},
+    },
+)
 def close_room(
     code: RoomCode,
     user: User = Depends(get_current_user),

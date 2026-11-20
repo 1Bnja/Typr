@@ -22,7 +22,11 @@ from app.services.texts_handler import TextFacade
 from app.services.texts_handler.errors import TextDatabaseError, TextValidationError
 from app.services.texts_handler.load import load_phrases
 
-router = APIRouter(tags=["texts"], dependencies=[Depends(get_current_user)])
+router = APIRouter(
+    tags=["texts"],
+    dependencies=[Depends(get_current_user)],
+    responses={401: {"description": "Missing, invalid or expired bearer token."}},
+)
 logger = logging.getLogger(__name__)
 
 
@@ -33,7 +37,16 @@ def _validation_http_error(error: TextValidationError) -> HTTPException:
     )
 
 
-@router.get("/random", response_model=TextPublic)
+@router.get(
+    "/random",
+    response_model=TextPublic,
+    summary="Get a random text",
+    description="Returns a stored text, optionally filtered by language and difficulty. `excludeId` avoids repeating the previous text when possible.",
+    responses={
+        404: {"description": "No stored texts match the filters."},
+        503: {"description": "The stored texts could not be queried."},
+    },
+)
 def random_text(
     language: Language | None = None,
     difficulty: Difficulty | None = None,
@@ -68,7 +81,16 @@ def random_text(
     return TextPublic.model_validate(text)
 
 
-@router.post("/generate", response_model=TextGenerateResponse)
+@router.post(
+    "/generate",
+    response_model=TextGenerateResponse,
+    summary="Generate candidate texts",
+    description="Generates a batch of phrases with the AI provider and validates them without storing anything (dry run). Language defaults to Spanish.",
+    responses={
+        429: {"description": "The AI provider rate limit was reached. Retry after the `Retry-After` header (seconds)."},
+        502: {"description": "The phrase generation failed."},
+    },
+)
 def generate_texts(data: TextGenerationRequest | None = None) -> TextGenerateResponse:
     language = data.language if data is not None else Language.SPA
     try:
@@ -101,7 +123,13 @@ def generate_texts(data: TextGenerationRequest | None = None) -> TextGenerateRes
     )
 
 
-@router.post("/save", response_model=TextGenerateResponse)
+@router.post(
+    "/save",
+    response_model=TextGenerateResponse,
+    summary="Save a batch of texts",
+    description="Validates and stores a batch of phrases. Duplicates and invalid phrases are reported in the summary instead of failing the request.",
+    responses={503: {"description": "Saving failed. Some earlier phrases may have been stored."}},
+)
 def save_texts(data: TextBulkSaveRequest, db: Session = Depends(get_db)) -> TextGenerateResponse:
     try:
         summary = load_phrases(
@@ -124,7 +152,16 @@ def save_texts(data: TextBulkSaveRequest, db: Session = Depends(get_db)) -> Text
     )
 
 
-@router.post("/verify", response_model=TextVerifyResponse)
+@router.post(
+    "/verify",
+    response_model=TextVerifyResponse,
+    summary="Verify a text",
+    description="Validates a text and returns its difficulty and score without storing it.",
+    responses={
+        409: {"description": "The content duplicates an existing text (`duplicate_content`)."},
+        422: {"description": "The text failed validation. The body carries a `code` and a `message`."},
+    },
+)
 def verify_text(data: TextInput) -> TextVerifyResponse:
     try:
         context = TextFacade().process(data.content, data.language)
@@ -138,7 +175,18 @@ def verify_text(data: TextInput) -> TextVerifyResponse:
     )
 
 
-@router.post("", response_model=TextPublic, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=TextPublic,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a text",
+    description="Validates, classifies and stores a new text.",
+    responses={
+        409: {"description": "The content duplicates an existing text (`duplicate_content`)."},
+        422: {"description": "The text failed validation. The body carries a `code` and a `message`."},
+        503: {"description": "The text could not be saved."},
+    },
+)
 def create_text(data: TextInput, db: Session = Depends(get_db)) -> TextPublic:
     try:
         text = TextFacade(db).create(data.content, data.language)
