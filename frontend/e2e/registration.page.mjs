@@ -27,6 +27,11 @@ export class RegistrationPage {
     return response.status()
   }
 
+  async expectDashboard({ username }) {
+    await expect(this.page).toHaveURL(/\/dashboard$/)
+    await expect(this.page.getByRole('heading', { name: `Welcome back, ${username}` })).toBeVisible()
+  }
+
   async expectEmailError(message) {
     await expect(this.alert).toBeVisible()
     await expect(this.alert).toHaveText(message)
