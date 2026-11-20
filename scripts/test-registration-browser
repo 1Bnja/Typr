@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+run="typr-registration-$(cat /proc/sys/kernel/random/uuid)"
+vite_log=$(mktemp)
+cleanup() {
+  if [[ -n ${vite_pid:-} ]]; then kill "$vite_pid" 2>/dev/null || true; fi
+  docker rm -f "$run-api" "$run-db" >/dev/null 2>&1 || true
+  docker network rm "$run" >/dev/null 2>&1 || true
+  rm -f "$vite_log"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+wait_for() {
+  for ((attempt = 0; attempt < 60; attempt++)); do
+    if "$@"; then return; fi
+    sleep 1
+  done
+  return 1
+}
+
+http_probe() {
+  curl --noproxy '*' --connect-timeout 1 --max-time 2 --silent --show-error "$@"
+}
+
+docker build --target production -f backend/Dockerfile -t typr-registration-browser:local .
+docker network create "$run" >/dev/null
+docker run -d --name "$run-db" --network "$run" --network-alias postgres \
+  --tmpfs /var/lib/postgresql/data \
+  -e POSTGRES_USER=typr_test -e POSTGRES_PASSWORD=local_test_only \
+  -e POSTGRES_DB=typr_registration_test postgres:16-alpine >/dev/null
+wait_for docker exec "$run-db" pg_isready -h 127.0.0.1 -U typr_test -d typr_registration_test
+docker run -d --name "$run-api" --network "$run" -p 127.0.0.1:8000:8000 \
+  -e DATABASE_URL=postgresql+psycopg://typr_test:local_test_only@postgres:5432/typr_registration_test \
+  -e JWT_SECRET=local-browser-test-only typr-registration-browser:local \
+  sh -ec 'python -m app.commands.migrate && exec uvicorn app.main:app --host 0.0.0.0 --port 8000' >/dev/null
+wait_for http_probe --fail http://127.0.0.1:8000/api/v1/health >/dev/null 2>&1 || {
+  docker logs "$run-api"
+  exit 1
+}
+
+docker exec "$run-api" python -c '
+from app.database import SessionLocal
+from app.models import Text
+from app.models.enums import Difficulty, Language
+with SessionLocal() as db:
+    db.add(Text(content="A quiet trail winds beneath the tall trees and leads to a small wooden bridge over the river.",
+                language=Language.SPA, difficulty=Difficulty.EASY))
+    db.commit()
+'
+
+(cd frontend && exec node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 --strictPort) >"$vite_log" 2>&1 &
+vite_pid=$!
+frontend_url=http://127.0.0.1:5173
+vite_ready() {
+  local health
+  kill -0 "$vite_pid" 2>/dev/null &&
+    [[ $(http_probe --output /dev/null --write-out '%{http_code}' "$frontend_url/") == 200 ]] &&
+    health=$(http_probe --fail "$frontend_url/api/v1/health") &&
+    [[ $health == '{"status":"ok"}' ]]
+}
+if ! wait_for vite_ready 2>/dev/null; then
+  printf 'Browser fixture did not become ready (expected HTTP 200 for the frontend and {"status":"ok"} from proxied health).\n' >&2
+  for url in "$frontend_url/" "$frontend_url/api/v1/health" http://127.0.0.1:8000/api/v1/health; do
+    http_probe --output /dev/null --write-out "$url: HTTP %{http_code}\n" "$url" >&2 || true
+  done
+  tail -n 30 "$vite_log" >&2
+  exit 1
+fi
+npm --prefix frontend/e2e test -- "$@"

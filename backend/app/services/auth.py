@@ -1,19 +1,41 @@
+from typing import Literal
+
+from psycopg.errors import UniqueViolation
+from sqlalchemy import or_, select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
 from app.models import User
 from app.schemas.auth import RegisterRequest
 from app.security import hash_password, verify_password
 
-from sqlalchemy import select, or_
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 
 class UserAlreadyExists(Exception):
-    pass
+    def __init__(self, field: Literal["email", "username"]):
+        super().__init__(field)
+        self.field = field
+
+
+def registration_conflict(
+    db: Session, email: str, username: str
+) -> UserAlreadyExists | None:
+    email_matches = User.email == email
+    matched_email = db.scalar(
+        select(User.email)
+        .where(or_(email_matches, User.username == username))
+        .order_by(email_matches.desc())
+        .limit(1)
+    )
+    if matched_email is None:
+        return None
+    return UserAlreadyExists("email" if matched_email == email else "username")
+
 
 def register_user(db: Session, data: RegisterRequest) -> User:
     email = data.email.lower()
-    existing = db.scalar(select(User).where(or_(User.username == data.username, User.email == email)))
-    if existing:
-        raise UserAlreadyExists("El usuario o correo ya existe bro")
+    conflict = registration_conflict(db, email, data.username)
+    if conflict:
+        raise conflict
     user = User(
         username=data.username,
         email=email,
@@ -22,9 +44,14 @@ def register_user(db: Session, data: RegisterRequest) -> User:
     db.add(user)
     try:
         db.commit()
-    except IntegrityError:
+    except IntegrityError as error:
         db.rollback()
-        raise UserAlreadyExists()
+        if isinstance(error.orig, UniqueViolation):
+            # PostgreSQL may report the username constraint even if both collided.
+            conflict = registration_conflict(db, email, data.username)
+            if conflict:
+                raise conflict from error
+        raise
     db.refresh(user)
     return user
 

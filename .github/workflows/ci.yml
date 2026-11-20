@@ -5,7 +5,8 @@ on:
     branches: [main]
 
 jobs:
-  frontend:
+  frontend-tests:
+    name: frontend-tests
     runs-on: self-hosted
     defaults:
       run:
@@ -19,13 +20,85 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm build
+
+  frontend-lint:
+    name: frontend-lint
+    runs-on: self-hosted
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
-      - run: pnpm build
+
+  behave-tests:
+    name: behave-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+        working-directory: frontend
+      - name: Install Cucumber and Chromium
+        working-directory: frontend/e2e
+        run: |
+          npm ci
+          npx playwright install chromium --with-deps
+
+      - name: Run backend and browser Gherkin suites
+        run: |
+          result=0
+          scripts/test-stack --behave || result=1
+          bash scripts/test-registration-browser || result=1
+          exit "$result"
+
+  websocket-latency-tests:
+    name: websocket-latency-tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Measure ten-client WebSocket latency (TC-AUTO-02)
+        run: scripts/test-stack --latency
 
   backend:
     runs-on: self-hosted

@@ -25,9 +25,10 @@ class PostgreSQLPracticeTests(unittest.TestCase):
             connection.exec_driver_sql("CREATE SCHEMA practice_results_test")
             connection.exec_driver_sql(schema.read_text(encoding="utf-8"))
         cls.sessions = sessionmaker(bind=cls.engine)
-        from app.models import User
-        from app.security import create_access_token
+        from app.models import AuthSession, User
+        from app.services.sessions import issue_session
 
+        AuthSession.__table__.create(cls.engine)
         with cls.sessions() as db:
             user = User(
                 username="practice_test",
@@ -37,7 +38,7 @@ class PostgreSQLPracticeTests(unittest.TestCase):
             db.add(user)
             db.commit()
             cls.user_id = user.id
-            cls.headers = {"Authorization": f"Bearer {create_access_token(user.id)}"}
+            cls.headers = {"Authorization": f"Bearer {issue_session(db, user.id)}"}
 
     @classmethod
     def tearDownClass(cls):

@@ -1,3 +1,5 @@
+import { sessionFetch } from '../../auth/utils/session-fetch.js'
+
 export const MODE_LABELS = {
   singleplayer: 'Practice',
   multiplayer: 'Multiplayer',
@@ -10,8 +12,7 @@ export const ordinal = (value) => `${value}${ORDINALS[pluralRules.select(value)]
 
 export async function getMyStats(token, { offset = 0, limit = 10 } = {}, signal) {
   const params = new URLSearchParams({ offset, limit })
-  const response = await fetch(`/api/v1/users/me/stats?${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
+  const response = await sessionFetch(token, `/api/v1/users/me/stats?${params}`, {
     signal,
   })
   if (!response.ok) throw new Error('Could not load your stats. Please try again.')
