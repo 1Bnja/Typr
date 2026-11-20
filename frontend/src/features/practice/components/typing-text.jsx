@@ -50,6 +50,7 @@ const TypingText = ({ ref, text, isFocused, isActive }) => {
       const state = char === undefined ? 'pending' : char === text[i] ? 'correct' : 'incorrect'
       letter.textContent = char ?? text[i]
       letter.className = `practice-character practice-character--${state}`
+      letter.dataset.state = state
     }
     inputRef.current = value
     moveCaret()
@@ -82,6 +83,7 @@ const TypingText = ({ ref, text, isFocused, isActive }) => {
     lettersRef.current.forEach((letter, index) => {
       letter.textContent = text[index]
       letter.className = 'practice-character practice-character--pending'
+      letter.dataset.state = 'pending'
     })
     const animations = {
       x: gsap.quickTo(caretRef.current, 'x', { duration: 0.1, ease: 'power2.out' }),
