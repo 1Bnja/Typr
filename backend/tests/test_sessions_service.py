@@ -13,6 +13,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.config import settings
 from app.database import Base
 from app.models import AuthSession, User
 from app.security import create_access_token, decode_session_token
@@ -98,7 +99,10 @@ class SessionServiceTests(unittest.TestCase):
         check = svc.validate_race_session(self.db, token)
         self.assertIsNotNone(check.idle.tzinfo)
         self.assertEqual(check.idle, START + svc.IDLE_TIMEOUT)
-        self.assertEqual(check.absolute - START, svc.ABSOLUTE_TIMEOUT)
+        expected = min(
+            svc.ABSOLUTE_TIMEOUT, timedelta(minutes=settings.jwt_expire_minutes)
+        )
+        self.assertEqual(check.absolute - START, expected)
 
     def test_renewal_not_due_flips_at_cadence_boundary(self):
         token, _ = self._issue()
