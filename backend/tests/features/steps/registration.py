@@ -127,6 +127,7 @@ def account_endpoints(context):
             headers={"Authorization": f"Bearer {login.json()['token']}"},
         )
         assert profile.status_code == 200, profile.text
+    assert registration.json()["username"] == account["username"]
     assert registration.json()["id"] == login.json()["user"]["id"] == profile.json()["id"]
     context.account_responses = registration, login, profile
 
@@ -134,9 +135,9 @@ def account_endpoints(context):
 @then("its persisted password is a bcrypt hash of the submitted password")
 def stored_hash(context):
     with SessionLocal() as db:
-        context.password_hash = db.scalars(
-            select(User.hashed_password).where(User.email == context.account["email"])
-        ).one()
+        user = db.scalars(select(User).where(User.email == context.account["email"])).one()
+        context.password_hash = user.hashed_password
+        assert user.username == context.account["username"]
     password = context.account["password"]
     assert context.password_hash != password
     assert bcrypt.checkpw(password.encode(), context.password_hash.encode())

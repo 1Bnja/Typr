@@ -1,5 +1,11 @@
 @TC-FUNC-02
-Feature: Registration conflicts
+Feature: Registration
+  Scenario: Successful registration signs me in and opens the dashboard
+    Given I open the registration form with valid new account data
+    When I submit the registration form
+    Then the account is created
+    And I land on the dashboard with an authenticated session
+
   Scenario Outline: Email conflicts are reported at the email field
     Given an account exists and I open the registration form
     When I submit registration with a <conflict> conflict

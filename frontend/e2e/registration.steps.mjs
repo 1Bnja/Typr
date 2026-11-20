@@ -3,6 +3,33 @@ import { randomBytes } from 'node:crypto'
 import { Given, Then, When } from '@cucumber/cucumber'
 import { httpError, origin } from './browser.mjs'
 
+Given('I open the registration form with valid new account data', async function () {
+  const id = randomBytes(6).toString('hex')
+  this.account = { username: `qa_${id}`, email: `qa_${id}@example.com`, password: 'LocalTest123!' }
+  await this.registration.open(origin)
+})
+
+When('I submit the registration form', async function () {
+  this.status = await this.registration.submit(this.account)
+})
+
+Then('the account is created', async function () {
+  assert.equal(this.status, 201)
+})
+
+Then('I land on the dashboard with an authenticated session', async function () {
+  await this.registration.expectDashboard(this.account)
+  const [token, user] = await this.page.evaluate(() => [localStorage.token, localStorage.user])
+  assert.ok(token, 'A session token must be stored')
+  assert.equal(JSON.parse(user).username, this.account.username)
+  const profile = await this.request.get(`${origin}/api/v1/users/me`, { headers: { Authorization: `Bearer ${token}` } })
+  assert.equal(profile.status(), 200)
+  const me = await profile.json()
+  assert.equal(me.username, this.account.username)
+  assert.equal(me.email, this.account.email)
+  assert.equal(me.id, JSON.parse(user).id)
+})
+
 Given('an account exists and I open the registration form', async function () {
   const id = randomBytes(6).toString('hex')
   this.account = { username: `qa_${id}`, email: `qa_${id}@example.com`, password: 'LocalTest123!' }
