@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+from app.api_docs import UNAUTHORIZED
 from app.deps import bearer_scheme, get_db
 from app.schemas.auth import (
     LoginRequest, PracticeActivityRequest, PracticeActivityResponse, RegisterRequest, TokenResponse,
@@ -11,7 +12,14 @@ from app.services.sessions import issue_session, renew_from_practice, revoke_ses
 
 router = APIRouter(tags=["auth"])
 
-@router.post("/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    response_model=UserPublic,
+    status_code=status.HTTP_201_CREATED,
+    summary="Register a user",
+    description="Creates an account with email, username and password.",
+    responses={409: {"description": "The email or the username is already in use."}},
+)
 def register(data: RegisterRequest, db: Session = Depends(get_db)):
     try:
         return register_user(db, data)
@@ -24,7 +32,13 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
             ),
         ) from error
 
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    summary="Log in",
+    description="Exchanges email and password for a session token. Send it as `Authorization: Bearer <token>`.",
+    responses={401: {"description": "Invalid credentials."}},
+)
 def login(data: LoginRequest, db: Session = Depends(get_db)):
     user = authenticate(db, data.email, data.password)
     if user is None:
@@ -35,7 +49,13 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     return TokenResponse(token=issue_session(db, user.id), user=user)
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Log out",
+    description="Revokes the session identified by the bearer token.",
+    responses=UNAUTHORIZED,
+)
 def logout(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_db),
@@ -48,7 +68,16 @@ def logout(
         )
 
 
-@router.post("/practice-activity", response_model=PracticeActivityResponse)
+@router.post(
+    "/practice-activity",
+    response_model=PracticeActivityResponse,
+    summary="Renew a session from practice activity",
+    description=(
+        "Extends the idle deadline of the current session when the user is "
+        "actively practicing. Returns the new idle and absolute expiration times."
+    ),
+    responses=UNAUTHORIZED,
+)
 def practice_activity(
     data: PracticeActivityRequest,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
