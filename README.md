@@ -4,9 +4,11 @@ Typr is a typing-speed app. Users practice alone on stored texts, climb a monthl
 
 ## Quick path
 
-1. Create `backend/.env` (see [Environment variables](#environment-variables)).
-2. Run `docker compose up --build`.
-3. Open `http://localhost` for the app and `http://localhost/api/v1/health` to check the API.
+1. Have a reachable PostgreSQL. Compose does not ship a database.
+2. Create `backend/.env` with `DATABASE_URL` pointing at it (see [Environment variables](#environment-variables)).
+3. Build and migrate: `docker compose build`, then `docker compose run --rm --no-deps backend python -m app.commands.migrate`.
+4. Run `docker compose up -d`.
+5. Open `http://localhost` for the app and `http://localhost/api/v1/health` to check the API.
 
 ## Stack
 
@@ -38,7 +40,7 @@ Typr is a typing-speed app. Users practice alone on stored texts, climb a monthl
 
 ## Local setup
 
-Requirements: Docker with Compose. Node.js 22 or 24 and pnpm 9 are only needed to work on the frontend outside Docker.
+Requirements: Docker with Compose and an external PostgreSQL database (`docker-compose.yml` runs only the backend, frontend and Caddy). Node.js 22 or 24 and pnpm 9 are only needed to work on the frontend outside Docker.
 
 ### Environment variables
 
@@ -58,14 +60,12 @@ The backend reads `backend/.env` (loaded by `docker compose` and by `app/config.
 **Full stack (Docker):**
 
 ```sh
-docker compose up --build
-```
-
-Caddy serves the frontend on `http://localhost` and proxies `/api/*` to the backend. Apply migrations with:
-
-```sh
+docker compose build
 docker compose run --rm --no-deps backend python -m app.commands.migrate
+docker compose up -d
 ```
+
+`DATABASE_URL` must point at a reachable PostgreSQL. Migrate before the first `up` so a fresh database has its tables. Caddy then serves the frontend on `http://localhost` and proxies `/api/*` to the backend.
 
 **Frontend with hot reload:**
 
@@ -105,7 +105,7 @@ Authenticate with `POST /api/v1/auth/login`, then use the **Authorize** button w
 
 Notes:
 
-- `scripts/test-stack` needs Docker, builds its own fixture, and refuses to run if `COMPOSE_*`, `DATABASE_URL`, `JWT_SECRET`, `GEMINI_*` or Docker context variables are set in your shell. It cleans up after itself.
+- `scripts/test-stack` needs Docker, builds its own fixture, and refuses to run if `COMPOSE_*`, `DATABASE_URL`, `JWT_SECRET`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `GOOGLE_API_KEY`, `DOCKER_HOST` or `DOCKER_CONTEXT` is set in your shell (any `COMPOSE_*` variable counts). It cleans up after itself.
 - Browser E2E needs extra setup (Chromium, ports 5173 and 8000 free). Follow [frontend/e2e/README.md](frontend/e2e/README.md).
 - Lint the backend with `ruff check backend`.
 
