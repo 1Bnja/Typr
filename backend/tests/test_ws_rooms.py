@@ -5,6 +5,7 @@ import os
 import tempfile
 import time
 import unittest
+from datetime import timedelta
 from unittest import mock
 
 os.environ.setdefault("DATABASE_URL", "sqlite+pysqlite://")
@@ -19,6 +20,7 @@ from app.database import Base
 from app.deps import get_db
 from app.main import app
 from app.models import (
+    AuthSession,
     Difficulty,
     Game,
     GameParticipant,
@@ -29,7 +31,7 @@ from app.models import (
     User,
     room_members,
 )
-from app.services.sessions import issue_session
+from app.services.sessions import issue_session, utc_now
 from app.ws import rooms as rooms_ws
 
 TEXTS = ("hola mundo", "casa mesa")
@@ -189,6 +191,33 @@ class RoomSocketTests(unittest.TestCase):
             with self.client.websocket_connect("/api/v1/ws/rooms/no"):
                 pass
         self.assertEqual(rooms_ws.hub.rooms, {})
+
+    def end_session(self, username, **values):
+        with self.sessions() as db:
+            db.execute(
+                update(AuthSession)
+                .where(AuthSession.user_id == self.ids[username])
+                .values(**values)
+            )
+            db.commit()
+
+    def assert_unauthorized_after(self, username, **values):
+        """Cierra una sesión en la base y exige que su socket caiga con 4401."""
+        code = self.room()
+        host, peer = self.lobby(code, "ana", "beto")
+        self.end_session(username, **values)
+        self.assert_closed(host if username == "ana" else peer, rooms_ws.CLOSE_UNAUTHORIZED)
+
+    def test_revoked_session_closes_the_connected_socket_as_unauthorized(self):
+        self.assert_unauthorized_after("ana", revoked_at=utc_now())
+
+    def test_idle_expired_session_closes_the_connected_socket_as_unauthorized(self):
+        self.assert_unauthorized_after("ana", idle_expires_at=utc_now() - timedelta(minutes=1))
+
+    def test_absolute_expired_session_closes_the_connected_socket_as_unauthorized(self):
+        self.assert_unauthorized_after(
+            "ana", absolute_expires_at=utc_now() - timedelta(minutes=1)
+        )
 
     def test_presence_is_announced_to_the_room(self):
         code = self.room()
