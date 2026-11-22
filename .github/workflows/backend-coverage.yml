@@ -1,0 +1,29 @@
+name: Backend coverage
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TYPR_COVERAGE_PROJECT: typr-coverage-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check backend service branch coverage
+        run: bash scripts/test-backend-coverage
+
+      - name: Clean up test resources
+        if: always()
+        run: |
+          docker --context default compose --env-file /dev/null \
+            -p "$TYPR_COVERAGE_PROJECT" -f docker-compose.test.yml down --volumes --remove-orphans
