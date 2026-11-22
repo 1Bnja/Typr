@@ -1,0 +1,60 @@
+name: Typr test report
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r tests/requirements.txt
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm --dir frontend install --frozen-lockfile
+      - name: Install Cucumber and Chromium
+        working-directory: frontend/e2e
+        run: |
+          npm ci
+          npx playwright install chromium --with-deps
+      - name: Check local Docker and Compose
+        run: |
+          docker --context default info --format '{{.ServerVersion}}'
+          docker --context default compose version
+      - name: Run suites and write JUnit report
+        id: required-suites
+        run: |
+          python -m pytest tests/test_suites.py --deselect 'tests/test_suites.py::test_suite[latency]' \
+            -o junit_logging=no --junitxml=reporte_tests.xml
+      - name: Report WebSocket latency (TC-AUTO-02)
+        if: ${{ !cancelled() && steps.required-suites.outcome != 'skipped' }}
+        continue-on-error: true
+        env:
+          TYPR_CI_LATENCY_OUTPUT: '1'
+        run: |
+          bash scripts/report-ci-latency python -m pytest 'tests/test_suites.py::test_suite[latency]' \
+            -s -o junit_logging=no --junitxml=reporte_latency.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: typr-test-report
+          path: |
+            reporte_tests.xml
+            reporte_latency.xml
+          if-no-files-found: warn

@@ -28,3 +28,8 @@ Thumbs.db
 .atl/
 .codegraph/
 /frontend/e2e/test-results/
+/test/results/
+.pytest_cache/
+.ipynb_checkpoints/
+/reporte_tests.xml
+/notebooks/analisis_tests.html

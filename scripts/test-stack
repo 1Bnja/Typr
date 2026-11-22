@@ -60,8 +60,8 @@ if [[ $suite == latency ]]; then
     exit
 fi
 printf 'run=%s fixture=postgresql16 gemini=mocked\n' "$project"
-if [[ $suite == behave ]]; then
-    # The standalone Gherkin fixture uses synthetic data; surface CI failures.
+if [[ $suite == behave || ( $suite == unittest && ${TYPR_TEST_STREAM_OUTPUT:-0} == 1 ) ]]; then
+    # The standalone fixture uses synthetic data; surface test output when requested.
     "${compose[@]}" up --build --abort-on-container-exit --exit-code-from test-runner
 else
     "${compose[@]}" up --build --abort-on-container-exit --exit-code-from test-runner >/dev/null 2>&1
