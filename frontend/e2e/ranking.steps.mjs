@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { Given, Then, When } from '@cucumber/cucumber'
 import { expect } from '@playwright/test'
@@ -10,6 +11,30 @@ const table = page => page.getByRole('table', { name: /Best completed test for e
 const monthOf = date => new Intl.DateTimeFormat('en-CA', {
   timeZone: 'America/Santiago', year: 'numeric', month: '2-digit',
 }).format(date)
+
+function moveToRankingMonth(gameId, email, date) {
+  const database = process.env.TYPR_BROWSER_FIXTURE_DB
+  assert.match(database ?? '', /^typr-registration-[\da-f-]{36}-db$/)
+  assert.ok(Number.isSafeInteger(gameId) && gameId > 0)
+  const updated = execFileSync('docker', [
+    'exec', '-i', database, 'psql', '-X', '-U', 'typr_test', '-d', 'typr_registration_test',
+    '-v', 'ON_ERROR_STOP=1', '-v', `game_id=${gameId}`, '-v', `email=${email}`,
+    '-v', `finished_at=${date.toISOString()}`,
+  ], {
+    input: `
+      UPDATE games AS g
+      SET started_at = :'finished_at'::timestamptz - (g.finished_at - g.started_at),
+          finished_at = :'finished_at'::timestamptz
+      FROM game_participants AS gp JOIN users AS u ON u.id = gp.user_id
+      WHERE g.id = :game_id AND gp.game_id = g.id AND u.email = :'email'
+        AND g.mode = 'singleplayer';
+    `,
+    encoding: 'utf8',
+    timeout: 5_000,
+  })
+  assert.equal(updated.trim(), 'UPDATE 1')
+}
+
 const seed = async (world, username, difficulty, language, content) => {
   const account = { username, email: `${username}@example.com`, password: `Qa!${randomBytes(12).toString('hex')}` }
   const registered = await world.request.post(`${api}/auth/register`, { data: account })
@@ -24,12 +49,12 @@ const seed = async (world, username, difficulty, language, content) => {
   assert.equal(saved.status(), 201, `Save fixture ${username}`)
   const result = await saved.json()
   assert.deepEqual([result.difficulty, result.language, result.progress, result.precisionPct], [difficulty, language, 1, 100])
-  const date = new Date(result.finishedAt)
-  if (world.seedDate) assert.equal(monthOf(date), monthOf(world.seedDate), 'Fixture results must share a Santiago month')
-  world.seedDate = date
+  // Keep API-created games out of the months used by other browser fixtures.
+  moveToRankingMonth(result.id, account.email, world.seedDate)
 }
 
 Given('distinct practice results for Easy Spanish, Medium Spanish and Medium English', async function () {
+  this.seedDate = new Date('2024-02-15T12:00:00Z')
   // Text content is globally unique in PostgreSQL, even across difficulties.
   await seed(this, 'rank_easy_es', 'easy', 'spa', 'La práctica diaria mejora la velocidad al escribir con cuidado.')
   await seed(this, 'rank_medium_es', 'medium', 'spa', 'Los pájaros vuelan sobre el valle mientras amanece en la montaña.')
@@ -37,6 +62,7 @@ Given('distinct practice results for Easy Spanish, Medium Spanish and Medium Eng
 })
 
 Given('a completed Hard Spanish result but no Hard English result', async function () {
+  this.seedDate = new Date('2024-03-15T12:00:00Z')
   await seed(this, 'rank_hard_es', 'advanced', 'spa', 'Las corrientes marinas transportan nutrientes por regiones de temperatura variable.')
 })
 
