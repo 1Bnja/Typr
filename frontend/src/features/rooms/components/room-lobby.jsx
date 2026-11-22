@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Button from '../../../components/button'
 import RoomSettings from './room-settings'
 import { SETTING_FIELDS, roomErrorMessage, settingLabel } from '../constants'
@@ -11,19 +11,25 @@ const startHint = (room) => {
 }
 
 const RoomLobby = ({ room, userId, error, busy, onReady, onStart, onUpdate, onKick, onLeave, onClose }) => {
-  const [copied, setCopied] = useState(false)
+  const [copyStatus, setCopyStatus] = useState('')
   const me = room.members.find((member) => member.id === userId)
   const isHost = room.hostId === userId
   const racing = room.status !== 'waiting'
   const startable = canStartRace(room)
 
+  useEffect(() => {
+    if (copyStatus !== 'copied') return
+    const timeout = setTimeout(() => setCopyStatus(''), 2000)
+    return () => clearTimeout(timeout)
+  }, [copyStatus])
+
   const copyCode = async () => {
+    setCopyStatus('')
     try {
       await navigator.clipboard.writeText(room.code)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setCopyStatus('copied')
     } catch {
-      setCopied(false)
+      setCopyStatus('failed')
     }
   }
 
@@ -32,9 +38,12 @@ const RoomLobby = ({ room, userId, error, busy, onReady, onStart, onUpdate, onKi
       <div className="room-code">
         <span className="room-code-label">Room code</span>
         <strong className="room-code-value" aria-label={`Room code ${room.code.split('').join(' ')}`}>{room.code}</strong>
-        <Button variant="secondary" size="sm" onClick={copyCode}>{copied ? 'Copied' : 'Copy code'}</Button>
-        <span className="sr-only" role="status">{copied ? 'Room code copied' : ''}</span>
+        <Button variant="secondary" size="sm" onClick={copyCode}>{copyStatus === 'copied' ? 'Copied' : 'Copy code'}</Button>
+        <span className="sr-only" role="status">{copyStatus === 'copied' ? 'Room code copied' : ''}</span>
       </div>
+      <p className={copyStatus === 'failed' ? 'practice-error' : 'sr-only'} role="alert">
+        {copyStatus === 'failed' ? 'Could not copy the room code. Select the code and copy it manually.' : ''}
+      </p>
 
       <div className="room-columns">
         <section aria-labelledby="room-players">

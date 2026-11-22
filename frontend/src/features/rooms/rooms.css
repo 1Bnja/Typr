@@ -109,6 +109,7 @@
 }
 
 .room-code-value {
+  user-select: all;
   color: var(--ink);
   font-family: ui-monospace, monospace;
   font-size: 30px;
