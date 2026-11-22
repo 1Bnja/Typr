@@ -8,6 +8,7 @@ const TypingText = ({ ref, text, isFocused, isActive }) => {
   const caretRef = useRef(null)
   const lettersRef = useRef([])
   const inputRef = useRef('')
+  const caretIndexRef = useRef(0)
   const layoutRef = useRef(null)
   const animationsRef = useRef(null)
   const motionRef = useRef(null)
@@ -19,7 +20,7 @@ const TypingText = ({ ref, text, isFocused, isActive }) => {
   const moveCaret = useCallback((smooth = true) => {
     const layout = layoutRef.current
     const animations = animationsRef.current
-    const position = layout?.positions[Math.min(inputRef.current.length, text.length - 1)]
+    const position = layout?.positions[Math.min(caretIndexRef.current, text.length - 1)]
     if (!position || !animations) return
 
     const animate = smooth && !motionRef.current.matches
@@ -37,9 +38,9 @@ const TypingText = ({ ref, text, isFocused, isActive }) => {
     windowRef.current.dataset.ready = 'true'
   }, [text.length])
 
-  const updateInput = useCallback((value) => {
+  const updateInput = useCallback((value, caretIndex = value.length) => {
     const previous = inputRef.current
-    if (value === previous) return
+    if (value === previous && caretIndex === caretIndexRef.current) return
     let start = 0
     while (start < previous.length && start < value.length && previous[start] === value[start]) start++
     // React conserva la estructura; solo cambiamos las letras afectadas por la tecla.
@@ -52,7 +53,10 @@ const TypingText = ({ ref, text, isFocused, isActive }) => {
       letter.className = `practice-character practice-character--${state}`
     }
     inputRef.current = value
-    moveCaret()
+    if (caretIndex !== caretIndexRef.current) {
+      caretIndexRef.current = caretIndex
+      moveCaret()
+    }
   }, [text, moveCaret])
 
   useImperativeHandle(ref, () => ({ updateInput }), [updateInput])
@@ -79,6 +83,7 @@ const TypingText = ({ ref, text, isFocused, isActive }) => {
     let active = true
     lettersRef.current = Array.from(textRef.current.querySelectorAll('[data-index]'))
     inputRef.current = ''
+    caretIndexRef.current = 0
     lettersRef.current.forEach((letter, index) => {
       letter.textContent = text[index]
       letter.className = 'practice-character practice-character--pending'
