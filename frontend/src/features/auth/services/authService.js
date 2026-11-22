@@ -7,8 +7,9 @@ export async function login({ email, password }) {
 
     const data = await response.json().catch(() => null)
     if (!response.ok) {
-        const detail = data?.detail
-        throw new Error(typeof detail === 'string' ? detail : 'Error al iniciar sesión')
+        throw new Error(response.status === 401
+            ? 'Email or password is incorrect. Check both and try again.'
+            : 'Could not sign in. Please try again.')
     }
     return data
 }
