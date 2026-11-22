@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth'
 import Button from '../../../components/button'
@@ -19,6 +19,11 @@ const Dashboard = () => {
     const [stats, setStats] = useState(null)
     const [status, setStatus] = useState('loading')
     const [retry, setRetry] = useState(0)
+    const heading = useRef(null)
+
+    useEffect(() => {
+        heading.current?.focus()
+    }, [])
 
     useEffect(() => {
         if (!token || authStatus !== 'authenticated') return
@@ -42,7 +47,7 @@ const Dashboard = () => {
     return (
         <section className="practice practice-records stats">
             <header className="practice-header">
-                <h1>{user?.username ? `Welcome back, ${user.username}` : 'Welcome back'}</h1>
+                <h1 ref={heading} tabIndex={-1}>{user?.username ? `Welcome back, ${user.username}` : 'Welcome back'}</h1>
                 <p>Your speed, accuracy and latest matches at a glance.</p>
             </header>
 
@@ -50,7 +55,7 @@ const Dashboard = () => {
             {status === 'error' && (
                 <div className="records-feedback" role="alert">
                     <p>Could not load your profile. Please try again.</p>
-                    <Button variant="secondary" onClick={() => { setStatus('loading'); setRetry((value) => value + 1) }}>Try again</Button>
+                    <Button variant="secondary" onClick={() => { heading.current?.focus(); setStatus('loading'); setRetry((value) => value + 1) }}>Try again</Button>
                 </div>
             )}
 
