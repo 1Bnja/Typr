@@ -79,12 +79,42 @@ jobs:
           npm ci
           npx playwright install chromium --with-deps
 
-      - name: Run backend and browser Gherkin suites
+      - name: Run backend Gherkin suite
+        id: backend-gherkin
+        run: scripts/test-stack --behave
+
+      - name: Run browser Gherkin suite
+        id: browser-gherkin
+        if: ${{ !cancelled() && (steps.backend-gherkin.outcome == 'success' || steps.backend-gherkin.outcome == 'failure') }}
+        env:
+          TYPR_BROWSER_RESULTS: ${{ runner.temp }}/typr-browser-raw
         run: |
-          result=0
-          scripts/test-stack --behave || result=1
-          bash scripts/test-registration-browser || result=1
-          exit "$result"
+          mkdir -m 700 "$TYPR_BROWSER_RESULTS"
+          if ! bash scripts/test-registration-browser --format "message:$TYPR_BROWSER_RESULTS/results.ndjson" \
+            >"$TYPR_BROWSER_RESULTS/browser.log" 2>&1; then
+            echo "::error::Browser Gherkin failed; see the sanitized failure artifact."
+            exit 1
+          fi
+
+      - name: Prepare safe browser failure artifacts
+        id: browser-artifacts
+        if: ${{ failure() && steps.browser-gherkin.outcome == 'failure' }}
+        run: |
+          python3 frontend/e2e/stage-failure-artifacts.py \
+            "$RUNNER_TEMP/typr-browser-raw" "$RUNNER_TEMP/typr-browser-upload"
+
+      - name: Upload browser failure artifacts
+        if: ${{ failure() && steps.browser-artifacts.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: typr-browser-failure
+          path: ${{ runner.temp }}/typr-browser-upload/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Remove temporary browser artifacts
+        if: ${{ always() }}
+        run: rm -rf -- "$RUNNER_TEMP/typr-browser-raw" "$RUNNER_TEMP/typr-browser-upload"
 
   websocket-latency-tests:
     name: websocket-latency-tests

@@ -9,6 +9,11 @@ npm ci --prefix frontend/e2e
 bash scripts/test-registration-browser
 ```
 
+Chromium opens visibly by default for local terminal, batch, and notebook runs.
+On a machine without a desktop, run `TYPR_HEADLESS=1 bash scripts/test-registration-browser`
+or set `TYPR_HEADLESS=1` in the batch or notebook environment. GitHub Actions
+always runs headless.
+
 Set `TYPR_CHROMIUM_PATH` to use a system Chromium (still run the Playwright
 install command to get its video encoder). Ports 5173 and 8000
 must be free. The script starts Vite and the real API with a disposable
