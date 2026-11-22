@@ -1,5 +1,5 @@
 import unittest
-from pathlib import Path
+from unittest.mock import patch
 
 from test_text_postgresql import ENABLED, require_local_fixture
 
@@ -12,23 +12,27 @@ class PostgreSQLPracticeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         require_local_fixture()
+        from alembic import command
         from sqlalchemy import create_engine
+        from sqlalchemy.engine import make_url
         from sqlalchemy.orm import sessionmaker
+        from app.commands.migrate import alembic_config
         from app.config import settings
 
-        cls.engine = create_engine(
-            settings.database_url,
-            connect_args={"options": "-csearch_path=practice_results_test"},
+        url = make_url(settings.database_url).update_query_dict(
+            {"options": "-csearch_path=practice_results_test"}
         )
-        schema = Path(__file__).resolve().parents[3] / "supabase/db/init.sql"
+        cls.engine = create_engine(url)
+        cls.addClassCleanup(cls.engine.dispose)
         with cls.engine.begin() as connection:
             connection.exec_driver_sql("CREATE SCHEMA practice_results_test")
-            connection.exec_driver_sql(schema.read_text(encoding="utf-8"))
+        cls.addClassCleanup(cls.drop_schema)
+        with patch.object(settings, "database_url", url.render_as_string(hide_password=False)):
+            command.upgrade(alembic_config(), "head")
         cls.sessions = sessionmaker(bind=cls.engine)
-        from app.models import AuthSession, User
+        from app.models import User
         from app.services.sessions import issue_session
 
-        AuthSession.__table__.create(cls.engine)
         with cls.sessions() as db:
             user = User(
                 username="practice_test",
@@ -41,12 +45,9 @@ class PostgreSQLPracticeTests(unittest.TestCase):
             cls.headers = {"Authorization": f"Bearer {issue_session(db, user.id)}"}
 
     @classmethod
-    def tearDownClass(cls):
-        try:
-            with cls.engine.begin() as connection:
-                connection.exec_driver_sql("DROP SCHEMA practice_results_test CASCADE")
-        finally:
-            cls.engine.dispose()
+    def drop_schema(cls):
+        with cls.engine.begin() as connection:
+            connection.exec_driver_sql("DROP SCHEMA practice_results_test CASCADE")
 
     def setUp(self):
         from fastapi.testclient import TestClient
@@ -135,6 +136,7 @@ class PostgreSQLPracticeTests(unittest.TestCase):
         self.assertEqual(entries[0]["position"], 1)
 
     def test_practice_record_must_beat_baseline_and_then_the_stored_mark(self):
+        from sqlalchemy import select
         from app.models import Difficulty, Language, Text, User
         from app.services.rooms import pick_text
         from app.services.sessions import issue_session
@@ -152,7 +154,8 @@ class PostgreSQLPracticeTests(unittest.TestCase):
             db.commit()
             text_id, challenger_id = sample.id, challenger.id
             self.assertEqual((sample.ideal_time_ms, sample.record_user_id), (None, None))
-            round_text = pick_text(db, Language.ENG, Difficulty.EASY)
+            excluded_ids = list(db.scalars(select(Text.id).where(Text.id != text_id)))
+            round_text = pick_text(db, Language.ENG, Difficulty.EASY, excluded_ids)
             self.assertEqual((round_text.id, round_text.ideal_time_ms), (text_id, baseline_ms))
 
         with self.sessions() as db:
@@ -187,7 +190,8 @@ class PostgreSQLPracticeTests(unittest.TestCase):
             db.add(sample)
             db.commit()
             text_id = sample.id
-            round_text = pick_text(db, Language.ENG, Difficulty.EASY)
+            excluded_ids = list(db.scalars(select(Text.id).where(Text.id != text_id)))
+            round_text = pick_text(db, Language.ENG, Difficulty.EASY, excluded_ids)
             self.assertEqual((round_text.id, round_text.ideal_time_ms), (text_id, 6400))
 
         endpoint = "/api/v1/matches/practice"
