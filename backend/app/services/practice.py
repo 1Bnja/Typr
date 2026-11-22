@@ -2,7 +2,7 @@ import unicodedata
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -20,6 +20,7 @@ from app.services.metrics import (
     calculate_score,
     count_correct_chars,
 )
+from app.services.race import ideal_time_ms
 from app.services.texts_handler import TextFacade
 from app.text_enums import Difficulty, Language
 
@@ -127,10 +128,8 @@ def save_practice_match(
                 update(Text)
                 .where(
                     Text.id == text.id,
-                    or_(
-                        Text.ideal_time_ms.is_(None),
-                        Text.ideal_time_ms > data.time_ms,
-                    ),
+                    func.coalesce(Text.ideal_time_ms, ideal_time_ms(text.content, None))
+                    > data.time_ms,
                 )
                 .values(ideal_time_ms=data.time_ms, record_user_id=user_id)
             )
