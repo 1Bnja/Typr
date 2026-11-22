@@ -9,12 +9,10 @@ const inputClass =
     'w-full rounded-xl border border-divider bg-surface px-4 py-3 font-normal text-charcoal shadow-[0_3px_0_var(--line)] outline-none caret-charcoal placeholder:text-muted selection:bg-mint/45 selection:text-charcoal focus-visible:border-[color:var(--auth-field-focus-border)] focus-visible:shadow-[0_3px_0_var(--auth-field-focus-border),0_0_0_4px_var(--focus-ring)]'
 const fieldErrorClass = '-mt-2 text-sm font-semibold text-danger empty:-mt-4'
 
-const LoginForm = ({ isRegistering }) => {
+const LoginForm = ({ isRegistering, draft, onDraftChange }) => {
     const navigate = useNavigate()
     const { signIn } = useAuth()
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [username, setUsername] = useState('')
+    const { email, password, username } = draft
     const [error, setError] = useState(null)
     const [emailError, setEmailError] = useState(null)
     const [fieldErrors, setFieldErrors] = useState({})
@@ -65,7 +63,7 @@ const LoginForm = ({ isRegistering }) => {
                             aria-describedby={fieldErrors.username ? usernameErrorId : undefined}
                             value={username}
                             onChange={(e) => {
-                                setUsername(e.target.value)
+                                onDraftChange('username', e.target.value)
                                 setFieldErrors((current) => ({ ...current, username: undefined }))
                             }}
                             placeholder="yourname"
@@ -87,7 +85,7 @@ const LoginForm = ({ isRegistering }) => {
                     aria-describedby={emailError ? emailErrorId : undefined}
                     value={email}
                     onChange={(e) => {
-                        setEmail(e.target.value)
+                        onDraftChange('email', e.target.value)
                         setEmailError(null)
                     }}
                     placeholder="you@email.com"
@@ -109,7 +107,7 @@ const LoginForm = ({ isRegistering }) => {
                     aria-describedby={fieldErrors.password ? passwordErrorId : undefined}
                     value={password}
                     onChange={(e) => {
-                        setPassword(e.target.value)
+                        onDraftChange('password', e.target.value)
                         if (isRegistering) {
                             setFieldErrors((current) => ({ ...current, password: undefined }))
                         }
