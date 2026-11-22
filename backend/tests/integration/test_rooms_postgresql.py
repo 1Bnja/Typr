@@ -17,12 +17,18 @@ class PostgreSQLRoomsTests(unittest.TestCase):
         from app.commands.migrate import alembic_config
         from app.database import SessionLocal
         from app.main import app
+        cls.SessionLocal = staticmethod(SessionLocal)
+        cls.client = TestClient(app)
+        cls.addClassCleanup(cls.client.close)
+        cls.head = ScriptDirectory.from_config(alembic_config()).get_current_head()
+        with cls.SessionLocal() as db:
+            cls.revision = db.scalar(text("SELECT version_num FROM alembic_version"))
+
+    def setUp(self):
         from app.models import User
         from app.services.sessions import issue_session
 
-        cls.SessionLocal = staticmethod(SessionLocal)
-        cls.client = TestClient(app)
-        with cls.SessionLocal() as db:
+        with self.SessionLocal() as db:
             user = User(
                 username="rooms_postgres",
                 email="rooms-postgres@example.test",
@@ -30,29 +36,19 @@ class PostgreSQLRoomsTests(unittest.TestCase):
             )
             db.add(user)
             db.commit()
-            cls.user_id = user.id
-            cls.headers = {"Authorization": f"Bearer {issue_session(db, cls.user_id)}"}
+            self.user_id = user.id
+            self.addCleanup(self.clean_up_host)
+            self.headers = {"Authorization": f"Bearer {issue_session(db, self.user_id)}"}
 
-        # La prueba debe ejecutarse sobre el head que usara el deploy.
-        cls.head = ScriptDirectory.from_config(alembic_config()).get_current_head()
-        with cls.SessionLocal() as db:
-            cls.revision = db.scalar(
-                text("SELECT version_num FROM alembic_version")
-            )
-
-    @classmethod
-    def tearDownClass(cls):
+    def clean_up_host(self):
         from sqlalchemy import delete
 
         from app.models import Room, User
 
-        try:
-            with cls.SessionLocal() as db:
-                db.execute(delete(Room).where(Room.host_id == cls.user_id))
-                db.execute(delete(User).where(User.id == cls.user_id))
-                db.commit()
-        finally:
-            cls.client.close()
+        with self.SessionLocal() as db:
+            db.execute(delete(Room).where(Room.host_id == self.user_id))
+            db.execute(delete(User).where(User.id == self.user_id))
+            db.commit()
 
     def test_creates_room_on_migrated_postgresql_schema(self):
         self.assertEqual(self.revision, self.head)
