@@ -279,16 +279,86 @@ Then('the joining player sees the other members and the room settings', async fu
   })}`)
 })
 
-When('I remove that player through the lobby', async function () {
+async function cancelRoomAction(world, trigger, title, path, keyboard) {
+  let deletes = 0
+  await world.page.route(path, async route => {
+    if (route.request().method() === 'DELETE') {
+      deletes += 1
+      await route.abort()
+    } else {
+      await route.continue()
+    }
+  })
+  try {
+    await trigger.focus()
+    await trigger.press('Enter')
+    const dialog = world.page.getByRole('dialog', { name: title, exact: true })
+    const cancel = dialog.getByRole('button', { name: 'Cancel', exact: true })
+    await expect(cancel).toBeFocused()
+    if (keyboard) await cancel.press('Escape')
+    else await cancel.click()
+    await expect(dialog).toBeHidden()
+    await expect(trigger).toBeFocused()
+    assert.equal(deletes, 0)
+  } finally {
+    await world.page.unroute(path)
+  }
+}
+
+When('I cancel removing that player with Escape', async function () {
   const { id, username } = this.removedMember.user
+  const trigger = this.page.getByRole('button', { name: `Remove ${username} from the room`, exact: true })
+  await cancelRoomAction(this, trigger, `Remove ${username}?`, `${rooms}/${this.room.code}/members/${id}`, true)
+})
+
+Then('the player still belongs to the room', async function () {
+  const { headers, user } = this.removedMember
+  await expect(memberRow(this.page, user.username)).toBeVisible()
+  const membership = await this.request.get(`${rooms}/me`, { headers })
+  assert.equal(membership.status(), 200)
+  assert.equal((await membership.json()).code, this.room.code)
+})
+
+When('I confirm removing that player through the lobby', async function () {
+  const { id, username } = this.removedMember.user
+  await this.page.getByRole('button', { name: `Remove ${username} from the room`, exact: true }).click()
+  const dialog = this.page.getByRole('dialog', { name: `Remove ${username}?`, exact: true })
   const [response] = await Promise.all([
     this.page.waitForResponse(res =>
       res.url() === `${rooms}/${this.room.code}/members/${id}` && res.request().method() === 'DELETE'),
-    this.page.getByRole('button', { name: `Remove ${username} from the room`, exact: true }).click(),
+    dialog.getByRole('button', { name: 'Remove player', exact: true }).click(),
   ])
   assert.equal(response.status(), 200)
   this.roomAfterRemoval = await response.json()
   this.removalStatus = response.status()
+})
+
+When('I cancel closing the room with the Cancel button', async function () {
+  const trigger = this.page.getByRole('button', { name: 'Close room', exact: true })
+  await cancelRoomAction(this, trigger, 'Close this room?', `${rooms}/${this.room.code}`, false)
+})
+
+When('I confirm closing the room', async function () {
+  await this.page.getByRole('button', { name: 'Close room', exact: true }).click()
+  const dialog = this.page.getByRole('dialog', { name: 'Close this room?', exact: true })
+  const [response] = await Promise.all([
+    this.page.waitForResponse(res =>
+      res.url() === `${rooms}/${this.room.code}` && res.request().method() === 'DELETE'),
+    dialog.getByRole('button', { name: 'Close room', exact: true }).click(),
+  ])
+  assert.equal(response.status(), 204)
+})
+
+Then('both players leave the closed room', async function () {
+  await expect(this.page).toHaveURL(`${origin}/rooms`)
+  const { page, headers } = this.removedMember
+  await expect(page.getByRole('alert')).toContainText('This room was closed.')
+  await expect.poll(() => this.removedMember.socketClosed).toBe(true)
+  for (const credentials of [auth(this), { headers }]) {
+    const response = await this.request.get(`${rooms}/me`, credentials)
+    assert.equal(response.status(), 200)
+    assert.equal(await response.json(), null)
+  }
 })
 
 Then("the player is removed from the host's roster", async function () {

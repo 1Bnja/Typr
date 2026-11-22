@@ -20,9 +20,21 @@ Feature: Administering multiplayer rooms
     Given I register a new account in the browser
     And I host a waiting room
     And another player belongs to the room in a separate browser context
-    When I remove that player through the lobby
+    When I cancel removing that player with Escape
+    Then the player still belongs to the room
+    When I confirm removing that player through the lobby
     Then the player is removed from the host's roster
     And the removed player is disconnected and no longer belongs to the room
+
+  @TC-USAB-02
+  Scenario: The host can cancel or confirm closing a waiting room
+    Given I register a new account in the browser
+    And I host a waiting room
+    And another player belongs to the room in a separate browser context
+    When I cancel closing the room with the Cancel button
+    Then the player still belongs to the room
+    When I confirm closing the room
+    Then both players leave the closed room
 
   @TC-FUNC-23
   Scenario: A player joins a waiting room with a valid code
