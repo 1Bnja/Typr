@@ -10,7 +10,6 @@ import { useAuth } from '../../features/auth/context/auth-context'
 import './nav-bar.css'
 
 const links = [
-  { to: '/', label: 'Home' },
   { to: '/practice', label: 'Practice' },
   { to: '/rooms', label: 'Multiplayer' },
   { to: '/about', label: 'About' },
@@ -66,6 +65,8 @@ const Navbar = ({ focusMode = false }) => {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { user, signOut } = useAuth()
+  const homeLink = user ? { to: '/profile', label: 'Profile' } : { to: '/', label: 'Home' }
+  const navigationLinks = [homeLink, ...links]
 
   const [open, setOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -158,7 +159,7 @@ const Navbar = ({ focusMode = false }) => {
           className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 md:grid md:grid-cols-[1fr_auto_1fr]"
         >
           <Link
-            to="/"
+            to={homeLink.to}
             onClick={close}
             className={`flex items-center gap-2 justify-self-start rounded-lg ${focusRing}`}
           >
@@ -167,7 +168,7 @@ const Navbar = ({ focusMode = false }) => {
           </Link>
 
           <ul className="hidden items-center gap-1 md:flex">
-            {links.map((link) => (
+            {navigationLinks.map((link) => (
               <li key={link.to}>
                 {link.to === '/practice' && user ? (
                   <PracticeMenu className={desktopLinkClass({ isActive: pathname === '/practice' || pathname.startsWith('/practice/') })} />
@@ -276,7 +277,7 @@ const Navbar = ({ focusMode = false }) => {
         )}
 
         <ul className="flex flex-col gap-1">
-          {links.map((link) => (
+          {navigationLinks.map((link) => (
             <li key={link.to}>
               {link.to === '/practice' && user ? (
                 <PracticeMenu mobile className={mobileLinkClass({ isActive: pathname === '/practice' || pathname.startsWith('/practice/') })} onNavigate={close} />

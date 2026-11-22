@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth'
 import Button from '../../../components/button'
 import Stat from '../../practice/components/stat'
@@ -35,9 +35,6 @@ const Dashboard = () => {
         return () => controller.abort()
     }, [token, authStatus, retry])
 
-    if (authStatus === 'loading') return <p className="p-8 text-center">Loading…</p>
-    if (authStatus === 'unauthenticated') return <Navigate to="/login" replace />
-
     const summary = stats?.summary
     const recent = stats?.history.slice(0, RECENT_LIMIT) ?? []
     const empty = status === 'ready' && summary.totalMatches === 0
@@ -49,10 +46,10 @@ const Dashboard = () => {
                 <p>Your speed, accuracy and latest matches at a glance.</p>
             </header>
 
-            {status === 'loading' && !stats && <p role="status" className="records-feedback">Loading your dashboard…</p>}
+            {status === 'loading' && !stats && <p role="status" className="records-feedback">Loading your profile…</p>}
             {status === 'error' && (
                 <div className="records-feedback" role="alert">
-                    <p>Could not load your dashboard. Please try again.</p>
+                    <p>Could not load your profile. Please try again.</p>
                     <Button variant="secondary" onClick={() => { setStatus('loading'); setRetry((value) => value + 1) }}>Try again</Button>
                 </div>
             )}

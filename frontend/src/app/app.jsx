@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from 'react'
-import { Outlet, Routes, Route } from 'react-router-dom'
+import { Navigate, Outlet, Routes, Route } from 'react-router-dom'
 import Navbar from '../components/nav-bar'
 import Login from '../features/auth/pages/login'
 import { useAuth } from '../features/auth/context/auth-context'
@@ -26,6 +26,16 @@ function SessionBoundary() {
   return <Outlet />
 }
 
+function Index() {
+  const { status } = useAuth()
+  return status === 'authenticated' ? <Navigate to="/profile" replace /> : <Home />
+}
+
+function ProfileBoundary() {
+  const { status } = useAuth()
+  return status === 'authenticated' ? <Outlet /> : <Navigate to="/login" replace />
+}
+
 const App = () => {
   const [focusMode, setFocusMode] = useState(false)
   return (
@@ -34,13 +44,16 @@ const App = () => {
       <Navbar focusMode={focusMode} />
       <main className="flex flex-1 flex-col">
       <Routes>
-        <Route path="/" element={<Home />} />
         <Route path="/about" element={<div>About</div>} />
         <Route path="/contact" element={<div>Contact</div>} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<div>Register</div>} />
         <Route element={<SessionBoundary />}>
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route index element={<Index />} />
+          <Route element={<ProfileBoundary />}>
+            <Route path="/profile" element={<Dashboard />} />
+            <Route path="/dashboard" element={<Navigate to="/profile" replace />} />
+          </Route>
           <Route path="/practice" element={<Practice focusMode={focusMode} onFocusChange={setFocusMode} />} />
           <Route path="/practice/history" element={<History />} />
           <Route path="/practice/leaderboard" element={<Leaderboard />} />

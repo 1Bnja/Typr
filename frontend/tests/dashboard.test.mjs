@@ -18,7 +18,7 @@ const payload = {
     hasMore: true,
 }
 
-test('the dashboard fetches its five newest matches with the bearer token', async (context) => {
+test('the profile fetches its five newest matches with the bearer token', async (context) => {
     const fetchMock = context.mock.method(globalThis, 'fetch', async () => ({ ok: true, json: async () => payload }))
     const controller = new AbortController()
     const data = await getMyStats('token', { offset: 0, limit: 5 }, controller.signal)
@@ -29,7 +29,7 @@ test('the dashboard fetches its five newest matches with the bearer token', asyn
     assert.deepEqual(data, payload)
 })
 
-test('the dashboard shows the retry state when stats cannot be loaded', async (context) => {
+test('the profile stats request rejects when stats cannot be loaded', async (context) => {
     context.mock.method(globalThis, 'fetch', async () => ({ ok: false }))
     await assert.rejects(
         getMyStats('token', { offset: 0, limit: 5 }),
