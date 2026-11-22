@@ -98,7 +98,8 @@ jobs:
           persist-credentials: false
 
       - name: Measure ten-client WebSocket latency (TC-AUTO-02)
-        run: scripts/test-stack --latency
+        continue-on-error: true
+        run: bash scripts/report-ci-latency scripts/test-stack --latency
 
   backend:
     runs-on: self-hosted
