@@ -287,6 +287,18 @@
   font-weight: 600;
 }
 
+.practice-records .records-leaderboard .records-identity {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.practice-records .records-leaderboard .records-username {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .records-you {
   flex-shrink: 0;
   padding: 3px 6px;

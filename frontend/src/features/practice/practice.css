@@ -481,7 +481,7 @@
 }
 
 .practice-character--pending {
-  color: var(--quiet);
+  color: light-dark(#68695f, #9eaaa3);
 }
 
 .practice-character--correct {
@@ -492,6 +492,11 @@
   color: var(--danger-ink);
   background: var(--danger-bg);
   border-radius: 2px;
+}
+
+.practice--typing .practice-character--incorrect {
+  text-decoration: underline wavy;
+  text-underline-offset: 0.15em;
 }
 
 .practice-test-footer {

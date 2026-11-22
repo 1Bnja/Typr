@@ -17,7 +17,7 @@ const links = [
 ]
 
 const focusRing =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint focus-visible:ring-offset-2 focus-visible:ring-offset-canvas'
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-canvas'
 
 const desktopLinkClass = ({ isActive }) =>
   [
@@ -202,7 +202,7 @@ const Navbar = ({ focusMode = false }) => {
                     className={`flex items-center gap-2 rounded-full border border-divider py-1 pl-1 pr-3 text-sm font-medium text-charcoal transition-colors hover:bg-subtle ${focusRing}`}
                   >
                     <Avatar name={user.username} className="h-7 w-7 text-xs" />
-                    <span className="max-w-32 truncate">{user.username}</span>
+                    <span className="max-w-32 break-words text-left">{user.username}</span>
                     <ChevronDown
                       className={`h-4 w-4 text-muted transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`}
                     />
@@ -217,7 +217,7 @@ const Navbar = ({ focusMode = false }) => {
                   >
                     <div className="px-3 py-2">
                       <p className="text-xs text-muted">Sesión iniciada como</p>
-                      <p className="truncate text-sm font-semibold text-charcoal">{user.username}</p>
+                      <p className="break-words text-sm font-semibold text-charcoal">{user.username}</p>
                     </div>
                     <div className="my-1 h-px bg-divider" />
                     <button
@@ -271,7 +271,7 @@ const Navbar = ({ focusMode = false }) => {
             <Avatar name={user.username} className="h-10 w-10 text-sm" />
             <div className="min-w-0">
               <p className="text-xs text-muted">Sesión iniciada como</p>
-              <p className="truncate text-sm font-semibold text-charcoal">{user.username}</p>
+              <p className="break-words text-sm font-semibold text-charcoal">{user.username}</p>
             </div>
           </div>
         )}
