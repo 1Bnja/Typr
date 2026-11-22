@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../auth'
 import PlayExpiryWarning from '../../auth/components/play-expiry-warning'
@@ -8,7 +8,7 @@ import PracticeSetup from '../components/practice-setup'
 import TypingTest from '../components/typing-test'
 import TestResults from '../components/test-results'
 import TypingReference from '../components/typing-reference'
-import { getRandomText, reportPracticeActivity, savePracticeMatch } from '../services/practice-service'
+import { createPracticeAttemptId, getRandomText, reportPracticeActivity, savePracticeMatch } from '../services/practice-service'
 import { DIFFICULTIES, LANGUAGES } from '../constants'
 import '../practice.css'
 
@@ -31,6 +31,8 @@ const Practice = ({ focusMode = false, onFocusChange }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [saveStatus, setSaveStatus] = useState('idle')
+  const submission = useRef(null)
+  const saving = useRef(false)
   const [attempt, setAttempt] = useState(0)
   const [error, setError] = useState('')
 
@@ -48,6 +50,7 @@ const Practice = ({ focusMode = false, onFocusChange }) => {
       const newText = await getRandomText(token, { language, difficulty, previousId: text?.id })
       setText(newText)
       setResult(null)
+      submission.current = null
       setSaveStatus('idle')
       setAttempt((current) => current + 1)
       setPhase('typing')
@@ -58,24 +61,33 @@ const Practice = ({ focusMode = false, onFocusChange }) => {
     }
   }
 
-  const handleFinish = async (testResult) => {
+  const saveResult = async () => {
+    if (saving.current || !submission.current) return
     if (Date.now() >= getAbsoluteDeadline(token)) {
       rejectSession(token, expiryNotice)
       return
     }
-    setResult(testResult)
-    setPhase('results')
-
+    saving.current = true
     setSaveStatus('saving')
     try {
-      const saved = await savePracticeMatch(token, { textId: text.id, difficulty: text.difficulty, ...testResult })
+      const saved = await savePracticeMatch(token, submission.current)
       if (saved?.ppm != null) {
-        setResult({ ...testResult, ppm: saved.ppm, precisionPct: saved.precisionPct, score: saved.score, progress: saved.progress })
+        setResult((current) => ({ ...current, ppm: saved.ppm, precisionPct: saved.precisionPct, score: saved.score, progress: saved.progress }))
       }
       setSaveStatus('saved')
     } catch {
       setSaveStatus('error')
+    } finally {
+      saving.current = false
     }
+  }
+
+  const handleFinish = (testResult) => {
+    if (submission.current) return
+    submission.current = { ...testResult, textId: text.id, difficulty: text.difficulty, attemptId: createPracticeAttemptId() }
+    setResult(testResult)
+    setPhase('results')
+    void saveResult()
   }
 
   return (
@@ -120,6 +132,7 @@ const Practice = ({ focusMode = false, onFocusChange }) => {
           result={result}
           language={text.language}
           saveStatus={saveStatus}
+          onRetrySave={saveResult}
           onNewText={startWithNewText}
           onChangeSettings={() => setPhase('setup')}
           isLoading={isLoading}

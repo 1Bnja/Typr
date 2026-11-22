@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { getRandomText, savePracticeMatch } from '../src/features/practice/services/practice-service.js'
+import { createPracticeAttemptId, getRandomText, savePracticeMatch } from '../src/features/practice/services/practice-service.js'
 import { calculatePpm, calculatePrecision, calculateScore } from '../src/features/practice/utils/metrics.js'
 
 test('practice requests a saved phrase with filters, authentication and previous ID', async (context) => {
@@ -66,6 +66,21 @@ test('saving practice sends the existing text ID, metrics and bearer token', asy
     timeMs: 30000, typed: 'casa mesa gato', keystrokes: 16, errors: 1,
   })
   assert.deepEqual(result, saved)
+})
+
+test('a retry sends the same attempt ID and raw signals after a lost response', async (context) => {
+  const attemptId = createPracticeAttemptId()
+  assert.match(attemptId, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/)
+  assert.notEqual(createPracticeAttemptId(), attemptId)
+  const payload = { attemptId, textId: 11, timeMs: 1000, typed: 'casa', keystrokes: 4, errors: 0 }
+  let sends = 0
+  const mock = context.mock.method(globalThis, 'fetch', async () => {
+    if (++sends === 1) throw new TypeError('Connection lost')
+    return { ok: true, json: async () => ({ id: 1, textId: 11 }) }
+  })
+  await assert.rejects(savePracticeMatch('token', payload), /Connection lost/)
+  assert.deepEqual(await savePracticeMatch('token', payload), { id: 1, textId: 11 })
+  assert.deepEqual(mock.mock.calls.map((call) => JSON.parse(call.arguments[1].body)), [payload, payload])
 })
 
 test('saving with an existing text sends its ID and propagates API errors', async (context) => {

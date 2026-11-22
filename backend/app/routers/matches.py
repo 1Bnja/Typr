@@ -9,6 +9,7 @@ from app.schemas.practice import (
     PracticeMatchPublic,
 )
 from app.services.practice import (
+    PracticeAttemptConflict,
     PracticeStorageError,
     PracticeDifficultyMismatch,
     PracticeTextNotFound,
@@ -32,6 +33,10 @@ def create_practice_match(
 ):
     try:
         return save_practice_match(db, user.id, data)
+    except PracticeAttemptConflict:
+        raise HTTPException(
+            status_code=409, detail="Este identificador corresponde a otro resultado."
+        )
     except PracticeTextNotFound:
         raise HTTPException(status_code=404, detail="El texto no existe.")
     except PracticeDifficultyMismatch:
