@@ -30,7 +30,7 @@ const Login = () => {
                     {isRegistering ? 'Already have an account? ' : "Don't have an account? "}
                     <button
                         type="button"
-                        className="font-semibold text-charcoal underline decoration-[#18a98a] underline-offset-4 outline-none focus-visible:rounded-sm focus-visible:shadow-[0_0_0_4px_rgb(47_217_180/0.45)]"
+                        className="font-semibold text-charcoal underline decoration-[#18a98a] underline-offset-4 outline-none focus-visible:rounded-sm focus-visible:shadow-[0_0_0_4px_var(--focus-ring)]"
                         onClick={() => setIsRegistering((current) => !current)}
                     >
                         {isRegistering ? 'Sign in' : 'Register'}

@@ -32,3 +32,28 @@ Then('the form reports {string} without marking email invalid', async function (
 Then('registration keeps all my entered values', async function () {
   await this.registration.expectValues(this.values)
 })
+
+Given('I open the registration form', async function () {
+  await this.registration.open(origin)
+})
+
+When('I enter a {word} of {int} characters and submit valid remaining fields', async function (field, length) {
+  const id = randomBytes(6).toString('hex')
+  this.values = { username: `qa_${id}`, email: `qa_${id}@example.com`, password: 'LocalTest123!' }
+  this.values[field] = this.values[field].padEnd(length, 'x').slice(0, length)
+  const invalid = field === 'username' ? length < 3 || length > 20 : length < 8
+  if (invalid) {
+    this.expectResourceError('/api/v1/auth/register', httpError(422))
+  }
+  this.registrationStatus = await this.registration.submit(this.values)
+  if (invalid) assert.equal(this.registrationStatus, 422)
+})
+
+Then('registration creates an account and opens the profile', async function () {
+  assert.equal(this.registrationStatus, 201)
+  await this.registration.expectProfile()
+})
+
+Then('the {word} field displays a length message mentioning {int} characters', async function (field, limit) {
+  await this.registration.expectLengthError(field, limit)
+})

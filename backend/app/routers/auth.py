@@ -11,6 +11,23 @@ from app.services.sessions import issue_session, renew_from_practice, revoke_ses
 
 router = APIRouter(tags=["auth"])
 
+
+def registration_validation_details(errors):
+    fields = ("username", "email", "password")
+    types = (
+        "missing", "string_type", "string_too_short", "string_too_long",
+        "string_pattern_mismatch", "value_error", "model_attributes_type", "json_invalid",
+    )
+    details = []
+    for error in errors:
+        loc = error["loc"]
+        field = next((field for field in fields if tuple(loc) == ("body", field)), None)
+        kind = next((kind for kind in types if error["type"] == kind), "invalid")
+        # Build from constants; validation messages and context can contain input.
+        details.append({"loc": ["body", field] if field else ["body"], "type": kind})
+    return details
+
+
 @router.post("/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
 def register(data: RegisterRequest, db: Session = Depends(get_db)):
     try:
