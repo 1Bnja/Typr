@@ -1,9 +1,10 @@
+import { sessionFetch } from '../../auth/utils/session-fetch.js'
+
 async function postText(path, body, token) {
-  const response = await fetch(`/api/v1/texts${path}`, {
+  const response = await sessionFetch(token, `/api/v1/texts${path}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(body),
   })

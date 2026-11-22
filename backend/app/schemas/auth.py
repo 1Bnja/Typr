@@ -1,4 +1,6 @@
-from pydantic import EmailStr, Field, field_validator
+from datetime import datetime
+
+from pydantic import ConfigDict, EmailStr, Field, field_validator
 from app.schemas.base import CamelModel
 from app.schemas.user import UserPublic
 
@@ -21,3 +23,14 @@ class LoginRequest(CamelModel):
 class TokenResponse(CamelModel):
     token: str
     user: UserPublic
+
+
+class PracticeActivityRequest(CamelModel):
+    model_config = ConfigDict(extra="forbid")
+
+    notice_id: int = Field(strict=True, gt=0, le=2**53 - 1)
+
+
+class PracticeActivityResponse(CamelModel):
+    idle_expires_at: datetime
+    absolute_expires_at: datetime

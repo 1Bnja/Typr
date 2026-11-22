@@ -15,7 +15,7 @@ import {
 // Teclas que moverían el cursor dentro del input y desordenarían la comparación.
 const BLOCKED_KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Enter']
 
-const TypingTest = ({ text, onFinish, onCancel, onFocusChange }) => {
+const TypingTest = ({ text, onActivity, onFinish, onCancel, onFocusChange }) => {
   const [hasStarted, setHasStarted] = useState(false)
   const [stats, setStats] = useState({ typed: '', keystrokes: 0, errors: 0, elapsedMs: 0 })
   const [isFocused, setIsFocused] = useState(false)
@@ -76,6 +76,7 @@ const TypingTest = ({ text, onFinish, onCancel, onFocusChange }) => {
     }
 
     const time = Date.now()
+    if (e.nativeEvent.isTrusted && value.length > session.typed.length) onActivity()
     if (session.startTime === null) {
       session.startTime = time
       setHasStarted(true)

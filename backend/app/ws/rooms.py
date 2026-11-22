@@ -39,8 +39,7 @@ from sqlalchemy.orm import Session
 
 from app.deps import get_db
 from app.models import User
-from app.security import decode_access_token
-from app.services import rooms
+from app.services import rooms, sessions
 from app.services.race import Racer, RaceResult, RaceText, build_results, summarize_match, time_limit_ms
 from app.services.rooms import MatchConfig, RoomError
 
@@ -48,6 +47,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 AUTH_TIMEOUT_S = 5
+SESSION_CHECK_INTERVAL_S = 1
 COUNTDOWN_S = 3
 INTERMISSION_S = 8
 FINAL_RESULTS_S = 15
@@ -67,10 +67,6 @@ async def run_db(app: FastAPI, function, *args):
             return function(db, *args)
 
     return await run_in_threadpool(call)
-
-
-def _load_user(db: Session, user_id: int) -> User | None:
-    return db.get(User, user_id)
 
 
 def _room_state(db: Session, code: str) -> dict:
@@ -277,7 +273,7 @@ class RoomHub:
 
     async def handle(
         self, live: LiveRoom, user: User, socket: WebSocket, message
-    ) -> None:
+    ) -> bool:
         kind = message.get("type") if isinstance(message, dict) else None
         if kind == "ready" and isinstance(message.get("ready"), bool):
             await run_db(
@@ -287,9 +283,10 @@ class RoomHub:
         elif kind == "start":
             await self.start(live, user.id)
         elif kind == "progress":
-            await self.progress(live, user.id, socket, message)
+            return await self.progress(live, user.id, socket, message)
         else:
             raise RoomError("invalid_message")
+        return False
 
     async def start(self, live: LiveRoom, user_id: int) -> None:
         async with live.start_lock:
@@ -304,11 +301,14 @@ class RoomHub:
 
     async def progress(
         self, live: LiveRoom, user_id: int, socket: WebSocket, message: dict
-    ) -> None:
+    ) -> bool:
         race = live.race
         racer = race.racers.get(user_id) if race is not None else None
-        if racer is None or racer.finished_ms is not None:
-            return  # un avance que llega tarde ya no cuenta
+        if (
+            racer is None or racer.finished_ms is not None or race.done.is_set()
+            or race.elapsed_ms() >= race.limit_ms
+        ):
+            return False
         typed, errors = message.get("typed"), message.get("errors")
         length = len(race.text.content)
         if (
@@ -318,6 +318,7 @@ class RoomHub:
             or errors < racer.errors
         ):
             raise RoomError("invalid_message")
+        advanced = typed > racer.typed
         racer.typed, racer.errors = typed, errors
         finished = typed == length
         if finished:
@@ -335,6 +336,7 @@ class RoomHub:
         )
         if finished:
             self._check_race_done(live)
+        return advanced
 
     def _check_race_done(self, live: LiveRoom) -> None:
         """La ronda termina cuando todos los jugadores conectados completaron."""
@@ -452,7 +454,7 @@ class RoomHub:
 hub = RoomHub()
 
 
-async def _authenticate(socket: WebSocket) -> User | None:
+async def _authenticate(socket: WebSocket) -> tuple[User, str] | None:
     try:
         message = await asyncio.wait_for(socket.receive_json(), AUTH_TIMEOUT_S)
     except (asyncio.TimeoutError, ValueError, KeyError):
@@ -460,20 +462,40 @@ async def _authenticate(socket: WebSocket) -> User | None:
     if not isinstance(message, dict) or message.get("type") != "auth":
         return None
     token = message.get("token")
-    user_id = decode_access_token(token) if isinstance(token, str) else None
-    if user_id is None:
+    if not isinstance(token, str):
         return None
-    return await run_db(socket.app, _load_user, user_id)
+    user = await run_db(socket.app, sessions.session_user, token)
+    return (user, token) if user is not None else None
 
 
-async def _listen(live: LiveRoom, user: User, socket: WebSocket) -> None:
+async def _listen(live: LiveRoom, user: User, socket: WebSocket, token: str) -> None:
     while True:
+        received = True
         try:
-            message = await socket.receive_json()
+            async with asyncio.timeout(SESSION_CHECK_INTERVAL_S):
+                message = await socket.receive_json()
+        except TimeoutError:
+            received = False
         except (ValueError, KeyError):
             message = None
+        authorized = await run_db(live.app, sessions.validate_race_session, token)
+        if live.sockets.get(user.id) is not socket:
+            return
+        if authorized is None:
+            await _close_quietly(socket, CLOSE_UNAUTHORIZED)
+            return
+        if not received:
+            continue
         try:
-            await hub.handle(live, user, socket, message)
+            advanced = await hub.handle(live, user, socket, message)
+            if (
+                advanced
+                and not authorized.renewal_not_due()
+                and not await run_db(live.app, sessions.renew_from_race, token)
+            ):
+                if live.sockets.get(user.id) is socket:
+                    await _close_quietly(socket, CLOSE_UNAUTHORIZED)
+                return
         except RoomError as error:
             await hub.send(
                 socket, {"type": "error", "code": error.code, "detail": error.message}
@@ -487,10 +509,11 @@ async def room_socket(
     await socket.accept()
     code = code.upper()
     try:
-        user = await _authenticate(socket)
-        if user is None:
+        auth = await _authenticate(socket)
+        if auth is None:
             await socket.close(code=CLOSE_UNAUTHORIZED)
             return
+        user, token = auth
         try:
             await run_db(socket.app, rooms.get_member_room, code, user.id)
         except RoomError as error:
@@ -500,7 +523,7 @@ async def room_socket(
         live, previous = hub.attach(socket.app, code, user.id, socket)
         try:
             await hub.welcome(live, user, socket, previous)
-            await _listen(live, user, socket)
+            await _listen(live, user, socket, token)
         finally:
             await hub.disconnect(live, user.id, socket)
     except WebSocketDisconnect:

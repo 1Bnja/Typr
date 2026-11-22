@@ -15,7 +15,7 @@ from app.database import Base
 from app.deps import get_db
 from app.main import app
 from app.models import Room, RoomStatus, User, room_members
-from app.security import create_access_token
+from app.services.sessions import issue_session
 
 CONFIG = {"language": "spa", "difficulty": "medium", "rounds": 3, "timeLimitS": 90}
 
@@ -42,6 +42,7 @@ class RoomsApiTests(unittest.TestCase):
             db.add_all(users)
             db.commit()
             self.ids = [user.id for user in users]
+            self.tokens = [issue_session(db, user_id) for user_id in self.ids]
 
         def test_db():
             with self.sessions() as db:
@@ -54,7 +55,7 @@ class RoomsApiTests(unittest.TestCase):
         self.addCleanup(self.client.close)
 
     def call(self, method, path, user, **kwargs):
-        headers = {"Authorization": f"Bearer {create_access_token(self.ids[user])}"}
+        headers = {"Authorization": f"Bearer {self.tokens[user]}"}
         return self.client.request(method, f"/api/v1/rooms{path}", headers=headers, **kwargs)
 
     def create(self, user=0, **overrides):
