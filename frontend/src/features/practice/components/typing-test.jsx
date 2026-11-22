@@ -21,6 +21,7 @@ const TypingTest = ({ text, onActivity, onFinish, onCancel, onFocusChange }) => 
   const [isFocused, setIsFocused] = useState(false)
   const inputRef = useRef(null)
   const textRef = useRef(null)
+  const settingsDialogRef = useRef(null)
   const compositionRef = useRef(false)
   const sessionRef = useRef({ typed: '', startTime: null, keystrokes: 0, errors: 0 })
   const finishedRef = useRef(false)
@@ -130,6 +131,14 @@ const TypingTest = ({ text, onActivity, onFinish, onCancel, onFocusChange }) => 
     if (input.selectionStart !== end || input.selectionEnd !== end) input.setSelectionRange(end, end)
   }
 
+  const handleChangeSettings = () => {
+    if (sessionRef.current.startTime === null) {
+      onCancel()
+      return
+    }
+    settingsDialogRef.current.showModal()
+  }
+
   return (
     <div className="practice-session">
       <div className="practice-metrics">
@@ -177,9 +186,21 @@ const TypingTest = ({ text, onActivity, onFinish, onCancel, onFocusChange }) => 
       </div>
 
       <div className="practice-session-actions practice-focus-fade" inert={focusMode} aria-hidden={focusMode || undefined}>
-        <Button variant="ghost" onClick={onCancel}>Change settings</Button>
+        <Button variant="ghost" onClick={handleChangeSettings}>Change settings</Button>
         <p><kbd>Backspace</kbd> to correct · <kbd>Esc</kbd> to leave focus mode</p>
       </div>
+
+      <dialog ref={settingsDialogRef} className="practice-settings-dialog" aria-labelledby="discard-practice-title" aria-describedby="discard-practice-description">
+        <h2 id="discard-practice-title">Discard this attempt?</h2>
+        <p id="discard-practice-description">Changing settings will discard your current attempt without saving it. You can start a new test from setup.</p>
+        <div className="practice-settings-dialog-actions">
+          <Button variant="ghost" onClick={() => settingsDialogRef.current.close()}>Keep typing</Button>
+          <Button onClick={() => {
+            settingsDialogRef.current.close()
+            onCancel()
+          }}>Discard and change settings</Button>
+        </div>
+      </dialog>
     </div>
   )
 }
