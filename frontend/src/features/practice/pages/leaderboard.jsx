@@ -80,11 +80,7 @@ const Leaderboard = () => {
           </div>
         )}
         {status === 'ready' && ranking.entries.length === 0 && (
-          <div className="records-feedback">
-            <h2>The first place is still open.</h2>
-            <p>No completed tests for this month and level yet. Finish a test to join.</p>
-            <Link to={`/practice?difficulty=${difficulty}&language=${language || 'spa'}`} className="records-text-link">Start a practice test</Link>
-          </div>
+          <p className="records-feedback" lang="es">Aún no hay partidas para esta categoría</p>
         )}
         {status === 'ready' && ranking.entries.length > 0 && (
           <div className="records-table-scroll styled-scrollbar" role="region" aria-label="Monthly practice ranking" tabIndex={0}>
