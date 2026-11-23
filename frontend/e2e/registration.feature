@@ -1,4 +1,11 @@
-Feature: Registration validation
+Feature: Registration
+  @TC-FUNC-02
+  Scenario: Successful registration signs me in and opens the profile
+    Given I open the registration form with valid new account data
+    When I submit the registration form
+    Then the account is created
+    And I land on the profile with an authenticated session
+
   @TC-FUNC-02
   Scenario Outline: Email conflicts are reported at the email field
     Given an account exists and I open the registration form

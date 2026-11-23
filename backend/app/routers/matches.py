@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app.api_docs import UNAUTHORIZED
 from app.deps import get_current_user, get_db
 from app.models import User
 from app.schemas.practice import (
@@ -24,7 +25,17 @@ router = APIRouter(tags=["matches"])
 
 
 @router.post(
-    "/practice", response_model=PracticeMatchPublic, status_code=status.HTTP_201_CREATED
+    "/practice",
+    response_model=PracticeMatchPublic,
+    status_code=status.HTTP_201_CREATED,
+    summary="Save a practice match",
+    description="Stores the result of a solo practice match for the authenticated user.",
+    responses={
+        **UNAUTHORIZED,
+        404: {"description": "The referenced text does not exist."},
+        422: {"description": "Invalid payload, or the difficulty does not match the stored text."},
+        503: {"description": "The result could not be saved."},
+    },
 )
 def create_practice_match(
     data: PracticeMatchCreate,
@@ -52,7 +63,13 @@ def create_practice_match(
         )
 
 
-@router.get("/practice", response_model=list[PracticeMatchPublic])
+@router.get(
+    "/practice",
+    response_model=list[PracticeMatchPublic],
+    summary="List practice matches",
+    description="Paginated practice history of the authenticated user, optionally filtered by difficulty and language.",
+    responses={**UNAUTHORIZED, 503: {"description": "The results could not be loaded."}},
+)
 def practice_history(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -69,7 +86,17 @@ def practice_history(
         )
 
 
-@router.get("/leaderboard", response_model=MonthlyLeaderboard)
+@router.get(
+    "/leaderboard",
+    response_model=MonthlyLeaderboard,
+    summary="Get the monthly leaderboard",
+    description="Ranking of practice matches for a difficulty and month (`YYYY-MM`, defaults to the current month).",
+    responses={
+        **UNAUTHORIZED,
+        422: {"description": "Invalid month or query parameters."},
+        503: {"description": "The leaderboard could not be loaded."},
+    },
+)
 def practice_leaderboard(
     difficulty: Difficulty = Difficulty.EASY,
     month: str | None = Query(default=None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$"),

@@ -48,8 +48,9 @@ export class RegistrationPage {
     }
   }
 
-  async expectProfile() {
+  async expectProfile({ username }) {
     await expect(this.page).toHaveURL(/\/profile$/)
+    await expect(this.page.getByRole('heading', { name: `Welcome back, ${username}` })).toBeVisible()
   }
 
   async expectEmailError(message) {
