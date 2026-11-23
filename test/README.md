@@ -20,7 +20,9 @@ In a terminal, the Spanish menu lets you run all suites, choose one, or exit wit
 
 With redirected input or output, or a nonempty `CI` variable, the command runs all suites without prompting or creating a viewport log. The launcher takes no arguments.
 
-Each run replaces `reporte_tests.xml` in the repository root and returns pytest's exit code. When running all suites, the wrappers run sequentially; JUnit durations are for whole wrappers, not individual tests. GitHub Actions uploads only the XML, including when pytest reports failures. If setup fails before pytest, there is no XML to upload.
+Each local run replaces `reporte_tests.xml` in the repository root and returns pytest's exit code. When running all suites, the wrappers run sequentially; JUnit durations are for whole wrappers, not individual tests.
+
+The local `Typr test report` workflow configuration separates latency into the informational `reporte_latency.xml`. The other suites write `reporte_tests.xml`; upload is attempted even on failure, but setup errors can leave reports missing. This describes the workflow files, not a verified live run. The separate [browser CI job](../frontend/e2e/README.md#reports-and-failure-recordings) handles its own failure artifacts.
 
 The backend uses `backend/Dockerfile`, `backend/requirements.txt` and the standalone Compose fixture. Tests use disposable data and do not need application `.env` files, live Gemini, Supabase, or production credentials. Do not run fixture suites concurrently or supply external Docker, Compose, application, or Vite settings. A forced kill may prevent cleanup; inspect only resources from that run before removing anything.
 
@@ -33,9 +35,9 @@ python tests/suite_runner.py --help
 
 The runner streams subprocess output to the terminal; the notebook's manual helper uses the same runner. A browser diagnostics pass means the intentional failure matched the expected Cucumber counts and both browser errors. Chromium traces, videos and reports remain in ignored `frontend/e2e/test-results/`. Human visual, accessibility, and device checks are not part of this run.
 
-## Read or export the report
+## Browse the QA catalog
 
-With the test environment active, install the separate analysis dependencies and register its kernel:
+With the test environment active, install the notebook dependencies and register its kernel:
 
 ```bash
 python -m pip install -r notebooks/requirements.txt
@@ -43,19 +45,8 @@ python -m ipykernel install --sys-prefix --name python3
 ./test/run.bash
 ```
 
-The launcher opens the [QA index](../tests.ipynb). Follow its link to the historical analysis notebook to read `reporte_tests.xml`. Keep the local Jupyter URL private.
-
-To export an interactive, offline HTML report without notebook source, place `reporte_tests.xml` in the repository root, then run:
-
-```bash
-jupyter nbconvert --to html --no-input --execute \
-  --config=notebooks/nbconvert_config.py \
-  --ExecutePreprocessor.kernel_name=python3 \
-  notebooks/analisis_tests.ipynb
-```
-
-The export writes `notebooks/analisis_tests.html` without modifying the notebook. The manual debug cell only defines a helper; exporting does not rerun tests. If you add your own debug call, remove it before exporting.
+The launcher opens the [QA index](../tests.ipynb) without running tests. To inspect the latest local JUnit results, open `reporte_tests.xml` in the repository root after running the suites. The report counts suite wrappers, not individual QA case IDs. The historical analysis notebook is not distributed. Keep local reports and the Jupyter URL private.
 
 ## Strip outputs at commit
 
-With the analysis environment active, run `pre-commit install` once per clone. The shared hook uses `nbstripout` on staged notebooks. If it cleans a notebook, review and restage it, then retry the commit. If your clone already manages hooks, integrate the shared hook with that setup rather than replacing it.
+With the notebook environment active, run `pre-commit install` once per clone. The shared hook uses `nbstripout` on staged notebooks. If it cleans a notebook, review and restage it, then retry the commit. The hook does not replace manual review of notebook text and attachments. If your clone already manages hooks, integrate the shared hook with that setup rather than replacing it.

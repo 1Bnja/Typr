@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: nbstripout
+        name: Strip notebook outputs
+        entry: nbstripout
+        language: python
+        additional_dependencies: ['nbstripout>=0.8,<1']
+        types: [jupyter]

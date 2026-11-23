@@ -1,0 +1,9 @@
+jupyterlab==4.6.6
+ipykernel==7.4.0
+pandas>=2.2,<4
+plotly>=6,<7
+junitparser>=4,<6
+seaborn>=0.13,<1
+nbconvert==7.17.2
+nbstripout>=0.8,<1
+pre-commit>=4,<5
