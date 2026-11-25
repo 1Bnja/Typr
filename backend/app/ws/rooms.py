@@ -26,6 +26,7 @@ curso. Eso alcanza mientras el backend corra en un único proceso.
 """
 
 import asyncio
+import json
 import logging
 import time
 from contextlib import contextmanager
@@ -172,12 +173,30 @@ class RoomHub:
             # Ese socket ya se cayó; su propio bucle se encarga de sacarlo.
             pass
 
+    async def send_text(self, socket: WebSocket, text: str) -> None:
+        try:
+            await socket.send_text(text)
+        except (WebSocketDisconnect, RuntimeError):
+            pass
+
     async def broadcast(
         self, live: LiveRoom, message: dict, exclude: WebSocket | None = None
     ) -> None:
         for socket in list(live.sockets.values()):
             if socket is not exclude:
                 await self.send(socket, message)
+
+    async def broadcast_text(
+        self, live: LiveRoom, text: str, exclude: WebSocket | None = None
+    ) -> None:
+        """Envía una trama ya serializada a varios sockets.
+
+        Una sola codificación por difusión evita repetir el mismo JSON para
+        cada destinatario; el orden de los envíos se mantiene igual.
+        """
+        for socket in list(live.sockets.values()):
+            if socket is not exclude:
+                await self.send_text(socket, text)
 
     async def broadcast_state(self, live: LiveRoom) -> None:
         try:
@@ -324,14 +343,18 @@ class RoomHub:
         if finished:
             racer.finished_ms = race.elapsed_ms()
             race.finish_order.append(user_id)
-        await self.broadcast(
+        await self.broadcast_text(
             live,
-            {
-                "type": "progress_update",
-                "userId": user_id,
-                "progress": typed / length,
-                "finished": finished,
-            },
+            json.dumps(
+                {
+                    "type": "progress_update",
+                    "userId": user_id,
+                    "progress": typed / length,
+                    "finished": finished,
+                },
+                separators=(",", ":"),
+                ensure_ascii=False,
+            ),
             exclude=socket,
         )
         if finished:

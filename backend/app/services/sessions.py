@@ -80,10 +80,36 @@ class RaceSessionCheck:
 
 
 def validate_race_session(db: Session, token: str) -> RaceSessionCheck | None:
-    row = _validated_session(db, token)
+    """Valida el token sin hidratar el `User`: la carrera solo necesita los plazos.
+
+    El join a `users` conserva la garantía de que el usuario existe; se
+    seleccionan columnas sueltas en lugar de la entidad para evitar el coste
+    de construir un objeto ORM en cada trama.
+    """
+    claims = decode_session_token(token)
+    if claims is None:
+        return None
+    subject, session_id = claims
+    now = utc_now()
+    row = db.execute(
+        select(
+            AuthSession.user_id,
+            AuthSession.idle_expires_at,
+            AuthSession.absolute_expires_at,
+        )
+        .join(User, User.id == AuthSession.user_id)
+        .where(
+            AuthSession.id == session_id,
+            AuthSession.revoked_at.is_(None),
+            AuthSession.idle_expires_at > now,
+            AuthSession.absolute_expires_at > now,
+        )
+    ).one_or_none()
     if row is None:
         return None
-    _, idle, absolute = row
+    user_id, idle, absolute = row
+    if str(user_id) != subject:
+        return None
     return RaceSessionCheck(_utc_deadline(idle), _utc_deadline(absolute))
 
 

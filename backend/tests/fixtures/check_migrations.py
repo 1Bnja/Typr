@@ -17,6 +17,20 @@ def snapshot(connection, projections):
     }
 
 
+def check_record_reset(engine, user_id, text_id, expected_time):
+    with engine.connect() as connection:
+        record = "SELECT record_user_id, ideal_time_ms FROM texts WHERE id = %s"
+        with connection.begin_nested() as savepoint:
+            connection.exec_driver_sql(
+                "UPDATE texts SET record_user_id = NULL WHERE id = %s", (text_id,)
+            )
+            assert connection.exec_driver_sql(record, (text_id,)).one() == (None, 32000)
+            savepoint.rollback()
+        connection.exec_driver_sql("DELETE FROM users WHERE id = %s", (user_id,))
+        assert connection.exec_driver_sql(record, (text_id,)).one() == (None, expected_time)
+        # Closing the connection rolls back the deletion and its cascades.
+
+
 def main():
     require_local_fixture()
     url = os.environ["DATABASE_URL"]
@@ -98,6 +112,22 @@ def main():
         assert notice == 3000000000
 
     print(f"Populated 0003 upgraded to {head}; all six legacy rows preserved.")
+    check_record_reset(engine, user_id, text_id, None)
+
+    command.downgrade(config, "0005")
+    assert current_revision() == "0005"
+    check_record_reset(engine, user_id, text_id, 32000)
+    with engine.connect() as connection:
+        assert connection.exec_driver_sql(
+            "SELECT to_regprocedure('reset_deleted_holder_ideal_time()')"
+        ).scalar_one() is None
+
+    migrate()
+    assert current_revision() == head
+    with engine.connect() as connection:
+        assert snapshot(connection, projections) == before
+    check_record_reset(engine, user_id, text_id, None)
+    print(f"{head} -> 0005 -> {head}: legacy rows preserved and record reset restored.")
     command.check(config)
 
 

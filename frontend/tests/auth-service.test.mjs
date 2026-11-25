@@ -70,12 +70,20 @@ test('login posts only email and password and returns the session payload', asyn
   assert.deepEqual(JSON.parse(request.body), { email: account.email, password: account.password })
 })
 
-test('login surfaces the server detail and falls back to a generic message', async (context) => {
-  context.mock.method(globalThis, 'fetch', reply(401, { detail: 'Credenciales inválidas bro' }))
-  await assert.rejects(login(account), { message: 'Credenciales inválidas bro' })
+test('login returns actionable guidance for a 401 without leaking server detail', async (context) => {
+  const detail = 'No account exists for ana@example.test'
+  context.mock.method(globalThis, 'fetch', reply(401, { detail }))
 
+  await assert.rejects(login(account), (error) => {
+    assert.equal(error.message, 'Email or password is incorrect. Check both and try again.')
+    assert.ok(!error.message.includes(detail), 'Login error must not expose server detail')
+    return true
+  })
+})
+
+test('login returns a generic retry message for a non-401 HTTP failure without JSON', async (context) => {
   context.mock.method(globalThis, 'fetch', reply(502))
-  await assert.rejects(login(account), { message: 'Error al iniciar sesión' })
+  await assert.rejects(login(account), { message: 'Could not sign in. Please try again.' })
 })
 
 test('login propagates network failures and the default export exposes both calls', async (context) => {

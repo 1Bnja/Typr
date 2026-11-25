@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../../auth'
 import Button from '../../../components/button'
@@ -20,6 +20,11 @@ const Stats = () => {
   const [page, setPage] = useState(0)
   const [status, setStatus] = useState('loading')
   const [retry, setRetry] = useState(0)
+  const heading = useRef(null)
+
+  useEffect(() => {
+    if (authStatus === 'authenticated') heading.current?.focus()
+  }, [authStatus])
 
   useEffect(() => {
     if (!token || authStatus !== 'authenticated') return
@@ -50,7 +55,7 @@ const Stats = () => {
   return (
     <section className="practice practice-records stats">
       <header className="practice-header">
-        <h1>Your progress</h1>
+        <h1 ref={heading} tabIndex={-1}>Your progress</h1>
         <p>Your speed and accuracy over time, across practice tests and multiplayer races.</p>
       </header>
 

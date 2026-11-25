@@ -2,6 +2,15 @@ import { sessionFetch } from '../../auth/utils/session-fetch.js'
 
 let lastNotice
 
+export function createPracticeAttemptId() {
+  // getRandomValues also works on the project's non-loopback HTTP deployment.
+  const bytes = crypto.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 export function reportPracticeActivity(token) {
   const noticeId = Date.now()
   if (lastNotice?.token === token && noticeId - lastNotice.noticeId < 60_000) return
@@ -29,14 +38,15 @@ export async function getRandomText(token, { language, difficulty, previousId })
   return data
 }
 
-export async function savePracticeMatch(token, { textId, difficulty, timeMs, typed, keystrokes, errors }) {
+export async function savePracticeMatch(token, { attemptId, textId, difficulty, timeMs, typed, keystrokes, errors }) {
   const response = await sessionFetch(token, '/api/v1/matches/practice', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     // Solo señales crudas: el servidor calcula PPM, precisión y puntaje.
-    body: JSON.stringify({ textId, difficulty, timeMs, typed, keystrokes, errors }),
+    body: JSON.stringify({ attemptId, textId, difficulty, timeMs, typed, keystrokes, errors }),
+    signal: AbortSignal.timeout(10000),
   })
 
   const data = await response.json().catch(() => null)

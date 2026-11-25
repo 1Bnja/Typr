@@ -1,9 +1,10 @@
 import unicodedata
 from datetime import datetime, timedelta, timezone
+from hashlib import sha256
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, or_, select, update
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import func, select, update
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models import Game, GameMode, GameParticipant, Text, User
@@ -20,6 +21,7 @@ from app.services.metrics import (
     calculate_score,
     count_correct_chars,
 )
+from app.services.race import ideal_time_ms
 from app.services.texts_handler import TextFacade
 from app.text_enums import Difficulty, Language
 
@@ -35,6 +37,10 @@ class PracticeStorageError(Exception):
 
 
 class PracticeDifficultyMismatch(Exception):
+    pass
+
+
+class PracticeAttemptConflict(Exception):
     pass
 
 
@@ -70,6 +76,9 @@ def get_practice_text(db: Session, data: PracticeMatchCreate) -> Text:
 def match_public(
     game: Game, participant: GameParticipant, text: Text
 ) -> PracticeMatchPublic:
+    def as_utc(value: datetime) -> datetime:
+        return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+
     return PracticeMatchPublic(
         id=game.id,
         text_id=game.text_id,
@@ -77,18 +86,46 @@ def match_public(
         difficulty=text.difficulty,
         time_ms=participant.time_ms,
         ppm=participant.ppm,
-        precision_pct=participant.precision_pct,
+        precision_pct=round(participant.precision_pct, 1),
         progress=participant.progress,
         score=participant.score,
-        started_at=game.started_at,
-        finished_at=game.finished_at,
+        started_at=as_utc(game.started_at),
+        finished_at=as_utc(game.finished_at),
     )
 
 
 def save_practice_match(
     db: Session, user_id: int, data: PracticeMatchCreate
 ) -> PracticeMatchPublic:
+    request_hash = (
+        sha256(data.model_dump_json(exclude={"attempt_id"}).encode()).hexdigest()
+        if data.attempt_id is not None
+        else None
+    )
+
+    def replay() -> PracticeMatchPublic | None:
+        if data.attempt_id is None:
+            return None
+        row = db.execute(
+            select(Game, GameParticipant, Text)
+            .join(GameParticipant, GameParticipant.game_id == Game.id)
+            .join(Text, Text.id == Game.text_id)
+            .where(
+                GameParticipant.user_id == user_id,
+                GameParticipant.practice_attempt_id == data.attempt_id,
+            )
+        ).one_or_none()
+        if row is None:
+            return None
+        game, participant, text = row
+        if participant.practice_request_hash != request_hash:
+            raise PracticeAttemptConflict()
+        return match_public(game, participant, text)
+
     try:
+        previous = replay()
+        if previous is not None:
+            return previous
         text = get_practice_text(db, data)
         # El usuario tipeó contra el contenido que vio: el crudo del modo local
         # (que recién al guardar se normaliza) o el texto almacenado por id.
@@ -119,18 +156,22 @@ def save_practice_match(
             progress=progress,
             position=1 if progress == 1 else None,
             score=score,
+            practice_attempt_id=data.attempt_id,
+            practice_request_hash=request_hash,
         )
         db.add(participant)
+        if data.attempt_id is not None:
+            # Claim the key before any record update.
+            db.flush()
+            db.refresh(participant)
         if progress == 1 and precision_pct >= MIN_PRECISION:
             # Solo mejora la marca: otra partida pudo superarla mientras se guardaba.
             db.execute(
                 update(Text)
                 .where(
                     Text.id == text.id,
-                    or_(
-                        Text.ideal_time_ms.is_(None),
-                        Text.ideal_time_ms > data.time_ms,
-                    ),
+                    func.coalesce(Text.ideal_time_ms, ideal_time_ms(text.content, None))
+                    > data.time_ms,
                 )
                 .values(ideal_time_ms=data.time_ms, record_user_id=user_id)
             )
@@ -138,6 +179,18 @@ def save_practice_match(
         # El texto y la partida se guardan juntos; un error revierte todo.
         db.commit()
         return result
+    except IntegrityError as error:
+        db.rollback()
+        # The winning concurrent submission has committed; this transaction
+        # left no game or record update behind.
+        try:
+            previous = replay()
+        except SQLAlchemyError as lookup_error:
+            db.rollback()
+            raise PracticeStorageError() from lookup_error
+        if previous is not None:
+            return previous
+        raise PracticeStorageError() from error
     except SQLAlchemyError as error:
         db.rollback()
         raise PracticeStorageError() from error

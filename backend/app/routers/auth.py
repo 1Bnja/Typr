@@ -4,13 +4,40 @@ from sqlalchemy.orm import Session
 from app.api_docs import UNAUTHORIZED
 from app.deps import bearer_scheme, get_db
 from app.schemas.auth import (
-    LoginRequest, PracticeActivityRequest, PracticeActivityResponse, RegisterRequest, TokenResponse,
+    LoginRequest,
+    PracticeActivityRequest,
+    PracticeActivityResponse,
+    RegisterRequest,
+    TokenResponse,
 )
 from app.schemas.user import UserPublic
 from app.services.auth import register_user, authenticate, UserAlreadyExists
 from app.services.sessions import issue_session, renew_from_practice, revoke_session
 
 router = APIRouter(tags=["auth"])
+
+
+def registration_validation_details(errors):
+    fields = ("username", "email", "password")
+    types = (
+        "missing",
+        "string_type",
+        "string_too_short",
+        "string_too_long",
+        "string_pattern_mismatch",
+        "value_error",
+        "model_attributes_type",
+        "json_invalid",
+    )
+    details = []
+    for error in errors:
+        loc = error["loc"]
+        field = next((field for field in fields if tuple(loc) == ("body", field)), None)
+        kind = next((kind for kind in types if error["type"] == kind), "invalid")
+        # Build from constants; validation messages and context can contain input.
+        details.append({"loc": ["body", field] if field else ["body"], "type": kind})
+    return details
+
 
 @router.post(
     "/register",
@@ -27,10 +54,12 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
-                "Este correo ya está en uso" if error.field == "email"
+                "Este correo ya está en uso"
+                if error.field == "email"
                 else "El usuario ya existe bro"
             ),
         ) from error
+
 
 @router.post(
     "/login",
@@ -83,7 +112,9 @@ def practice_activity(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ):
-    deadlines = credentials and renew_from_practice(db, credentials.credentials, data.notice_id)
+    deadlines = credentials and renew_from_practice(
+        db, credentials.credentials, data.notice_id
+    )
     if deadlines is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

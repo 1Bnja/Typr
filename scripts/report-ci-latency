@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Preserve the measurement command's failure; only the Actions step is non-blocking.
+set -euo pipefail
+
+log=$(mktemp)
+trap 'rm -f -- "$log"' EXIT
+set +e
+"$@" 2>&1 | tee "$log"
+statuses=("${PIPESTATUS[@]}")
+set -e
+status=${statuses[0]}
+
+# Report the rounded value for visibility, never use it to decide pass/fail.
+p95=$(sed -nE 's/^ *latencia de progress_update con 10 clientes: mediana=[0-9.]+ ms, p95=([0-9]+\.[0-9]+) ms, max=[0-9.]+ ms \(2700 mensajes\)\r?$/\1 ms/p' "$log" | tail -n 1)
+if [[ ${statuses[1]} != 0 ]] || grep -q ' cleanup=failed$' "$log"; then
+    outcome='Execution error (log capture or fixture cleanup failed)'
+elif [[ $status == 0 && -n $p95 ]]; then
+    outcome='Passed'
+elif [[ $status != 0 && -n $p95 ]] && grep -Fq 'self.assertLess(p95, MAX_LATENCY_MS)' "$log"; then
+    outcome='Failed (p95 did not meet the strict threshold)'
+elif [[ $status != 0 ]] && grep -q '^FAIL: ' "$log"; then
+    outcome='Failed (test assertion)'
+else
+    outcome='Execution error (run did not complete successfully or no measurement was produced)'
+fi
+
+message="TC-AUTO-02: $outcome. p95: ${p95:-unavailable}; required: < 200 ms; command exit: $status."
+if [[ $outcome != Passed ]]; then
+    printf '::warning title=TC-AUTO-02::%s\n' "$message"
+    if [[ $status == 0 ]]; then status=1; fi
+fi
+printf '### %s\n\n%s\n' 'WebSocket latency (non-blocking)' "$message" >> "$GITHUB_STEP_SUMMARY"
+exit "$status"

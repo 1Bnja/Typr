@@ -14,6 +14,36 @@
   color: #10221b;
 }
 
+.practice-settings-dialog {
+  width: min(440px, calc(100% - 32px));
+  margin: auto;
+  padding: 24px;
+  border: 1px solid var(--practice-border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.practice-settings-dialog::backdrop {
+  background: rgb(0 0 0 / 65%);
+}
+
+.practice-settings-dialog h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.practice-settings-dialog p {
+  margin: 12px 0 20px;
+}
+
+.practice-settings-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
 .practice-header {
   margin-bottom: 36px;
   text-align: center;
@@ -451,7 +481,7 @@
 }
 
 .practice-character--pending {
-  color: var(--quiet);
+  color: light-dark(#68695f, #9eaaa3);
 }
 
 .practice-character--correct {
@@ -462,6 +492,11 @@
   color: var(--danger-ink);
   background: var(--danger-bg);
   border-radius: 2px;
+}
+
+.practice--typing .practice-character--incorrect {
+  text-decoration: underline wavy;
+  text-underline-offset: 0.15em;
 }
 
 .practice-test-footer {

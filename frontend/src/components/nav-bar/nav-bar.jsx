@@ -10,7 +10,6 @@ import { useAuth } from '../../features/auth/context/auth-context'
 import './nav-bar.css'
 
 const links = [
-  { to: '/', label: 'Home' },
   { to: '/practice', label: 'Practice' },
   { to: '/rooms', label: 'Multiplayer' },
   { to: '/about', label: 'About' },
@@ -18,7 +17,7 @@ const links = [
 ]
 
 const focusRing =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint focus-visible:ring-offset-2 focus-visible:ring-offset-canvas'
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-canvas'
 
 const desktopLinkClass = ({ isActive }) =>
   [
@@ -66,6 +65,8 @@ const Navbar = ({ focusMode = false }) => {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { user, signOut } = useAuth()
+  const homeLink = user ? { to: '/profile', label: 'Profile' } : { to: '/', label: 'Home' }
+  const navigationLinks = [homeLink, ...links]
 
   const [open, setOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -158,7 +159,7 @@ const Navbar = ({ focusMode = false }) => {
           className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 md:grid md:grid-cols-[1fr_auto_1fr]"
         >
           <Link
-            to="/"
+            to={homeLink.to}
             onClick={close}
             className={`flex items-center gap-2 justify-self-start rounded-lg ${focusRing}`}
           >
@@ -167,7 +168,7 @@ const Navbar = ({ focusMode = false }) => {
           </Link>
 
           <ul className="hidden items-center gap-1 md:flex">
-            {links.map((link) => (
+            {navigationLinks.map((link) => (
               <li key={link.to}>
                 {link.to === '/practice' && user ? (
                   <PracticeMenu className={desktopLinkClass({ isActive: pathname === '/practice' || pathname.startsWith('/practice/') })} />
@@ -201,7 +202,7 @@ const Navbar = ({ focusMode = false }) => {
                     className={`flex items-center gap-2 rounded-full border border-divider py-1 pl-1 pr-3 text-sm font-medium text-charcoal transition-colors hover:bg-subtle ${focusRing}`}
                   >
                     <Avatar name={user.username} className="h-7 w-7 text-xs" />
-                    <span className="max-w-32 truncate">{user.username}</span>
+                    <span className="max-w-32 break-words text-left">{user.username}</span>
                     <ChevronDown
                       className={`h-4 w-4 text-muted transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`}
                     />
@@ -216,7 +217,7 @@ const Navbar = ({ focusMode = false }) => {
                   >
                     <div className="px-3 py-2">
                       <p className="text-xs text-muted">Sesión iniciada como</p>
-                      <p className="truncate text-sm font-semibold text-charcoal">{user.username}</p>
+                      <p className="break-words text-sm font-semibold text-charcoal">{user.username}</p>
                     </div>
                     <div className="my-1 h-px bg-divider" />
                     <button
@@ -270,13 +271,13 @@ const Navbar = ({ focusMode = false }) => {
             <Avatar name={user.username} className="h-10 w-10 text-sm" />
             <div className="min-w-0">
               <p className="text-xs text-muted">Sesión iniciada como</p>
-              <p className="truncate text-sm font-semibold text-charcoal">{user.username}</p>
+              <p className="break-words text-sm font-semibold text-charcoal">{user.username}</p>
             </div>
           </div>
         )}
 
         <ul className="flex flex-col gap-1">
-          {links.map((link) => (
+          {navigationLinks.map((link) => (
             <li key={link.to}>
               {link.to === '/practice' && user ? (
                 <PracticeMenu mobile className={mobileLinkClass({ isActive: pathname === '/practice' || pathname.startsWith('/practice/') })} onNavigate={close} />

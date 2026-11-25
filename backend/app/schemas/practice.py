@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import ConfigDict, Field, model_validator
 
@@ -18,6 +19,7 @@ class PracticeTextInput(CamelModel):
 class PracticeMatchCreate(CamelModel):
     model_config = ConfigDict(extra="forbid")
 
+    attempt_id: UUID | None = None
     text_id: int | None = Field(default=None, gt=0)
     text: PracticeTextInput | None = None
     difficulty: Difficulty | None = None

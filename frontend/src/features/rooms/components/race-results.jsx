@@ -5,7 +5,7 @@ import { getSpeedUnit } from '../../practice/utils/metrics'
 
 const oneDecimal = (value) => Number(value.toFixed(1))
 
-const RaceResults = ({ results, userId, language, onContinue }) => {
+const RaceResults = ({ results, userId, language, onContinue, onAutoReturn }) => {
   const { round, rounds, nextRoundInS, matchResults, returnToRoomInS } = results
   const final = Array.isArray(matchResults)
   const unit = getSpeedUnit(language)
@@ -16,12 +16,12 @@ const RaceResults = ({ results, userId, language, onContinue }) => {
     if (!final) return undefined
     const updateCountdown = () => setSecondsLeft(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)))
     const interval = setInterval(updateCountdown, 250)
-    const timeout = setTimeout(onContinue, Math.max(0, deadline - Date.now()))
+    const timeout = setTimeout(onAutoReturn, Math.max(0, deadline - Date.now()))
     return () => {
       clearInterval(interval)
       clearTimeout(timeout)
     }
-  }, [deadline, final, onContinue])
+  }, [deadline, final, onAutoReturn])
 
   return (
     <div className={`race-results${final ? ' race-results--final' : ''}`}>

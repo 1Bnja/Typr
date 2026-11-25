@@ -1,5 +1,5 @@
 import unittest
-from pathlib import Path
+from unittest.mock import patch
 
 from test_text_postgresql import ENABLED, require_local_fixture
 
@@ -12,23 +12,27 @@ class PostgreSQLPracticeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         require_local_fixture()
+        from alembic import command
         from sqlalchemy import create_engine
+        from sqlalchemy.engine import make_url
         from sqlalchemy.orm import sessionmaker
+        from app.commands.migrate import alembic_config
         from app.config import settings
 
-        cls.engine = create_engine(
-            settings.database_url,
-            connect_args={"options": "-csearch_path=practice_results_test"},
+        url = make_url(settings.database_url).update_query_dict(
+            {"options": "-csearch_path=practice_results_test"}
         )
-        schema = Path(__file__).resolve().parents[3] / "supabase/db/init.sql"
+        cls.engine = create_engine(url)
+        cls.addClassCleanup(cls.engine.dispose)
         with cls.engine.begin() as connection:
             connection.exec_driver_sql("CREATE SCHEMA practice_results_test")
-            connection.exec_driver_sql(schema.read_text(encoding="utf-8"))
+        cls.addClassCleanup(cls.drop_schema)
+        with patch.object(settings, "database_url", url.render_as_string(hide_password=False)):
+            command.upgrade(alembic_config(), "head")
         cls.sessions = sessionmaker(bind=cls.engine)
-        from app.models import AuthSession, User
+        from app.models import User
         from app.services.sessions import issue_session
 
-        AuthSession.__table__.create(cls.engine)
         with cls.sessions() as db:
             user = User(
                 username="practice_test",
@@ -41,12 +45,9 @@ class PostgreSQLPracticeTests(unittest.TestCase):
             cls.headers = {"Authorization": f"Bearer {issue_session(db, user.id)}"}
 
     @classmethod
-    def tearDownClass(cls):
-        try:
-            with cls.engine.begin() as connection:
-                connection.exec_driver_sql("DROP SCHEMA practice_results_test CASCADE")
-        finally:
-            cls.engine.dispose()
+    def drop_schema(cls):
+        with cls.engine.begin() as connection:
+            connection.exec_driver_sql("DROP SCHEMA practice_results_test CASCADE")
 
     def setUp(self):
         from fastapi.testclient import TestClient
@@ -133,6 +134,99 @@ class PostgreSQLPracticeTests(unittest.TestCase):
         self.assertEqual(entries[0]["userId"], self.user_id)
         self.assertEqual(entries[0]["score"], second.json()["score"])
         self.assertEqual(entries[0]["position"], 1)
+
+    def test_practice_record_must_beat_baseline_and_then_the_stored_mark(self):
+        from sqlalchemy import select
+        from app.models import Difficulty, Language, Text, User
+        from app.services.rooms import pick_text
+        from app.services.sessions import issue_session
+
+        phrase = "A fresh synthetic typing sample."
+        baseline_ms = len(phrase) * 200
+        with self.sessions() as db:
+            sample = Text(content=phrase, language=Language.ENG, difficulty=Difficulty.EASY)
+            challenger = User(
+                username="record_challenger",
+                email="record-challenger@example.test",
+                hashed_password="test-only",
+            )
+            db.add_all([sample, challenger])
+            db.commit()
+            text_id, challenger_id = sample.id, challenger.id
+            self.assertEqual((sample.ideal_time_ms, sample.record_user_id), (None, None))
+            excluded_ids = list(db.scalars(select(Text.id).where(Text.id != text_id)))
+            round_text = pick_text(db, Language.ENG, Difficulty.EASY, excluded_ids)
+            self.assertEqual((round_text.id, round_text.ideal_time_ms), (text_id, baseline_ms))
+
+        with self.sessions() as db:
+            challenger_headers = {"Authorization": f"Bearer {issue_session(db, challenger_id)}"}
+
+        payload = {"textId": text_id, "typed": phrase, "keystrokes": len(phrase), "errors": 0}
+        cases = (
+            (baseline_ms + 1, self.headers, (None, None)),
+            (baseline_ms, self.headers, (None, None)),
+            (baseline_ms - 1, self.headers, (baseline_ms - 1, self.user_id)),
+            (baseline_ms - 1, challenger_headers, (baseline_ms - 1, self.user_id)),
+            (baseline_ms - 2, challenger_headers, (baseline_ms - 2, challenger_id)),
+        )
+        for time_ms, headers, expected in cases:
+            with self.subTest(time_ms=time_ms, expected=expected):
+                response = self.client.post(
+                    "/api/v1/matches/practice", json={**payload, "timeMs": time_ms}, headers=headers
+                )
+                self.assertEqual(response.status_code, 201, response.text)
+                with self.sessions() as db:
+                    stored = db.get(Text, text_id)
+                    self.assertEqual((stored.ideal_time_ms, stored.record_user_id), expected)
+
+    def test_practice_api_keeps_ideal_time_record_holder_and_score_server_owned(self):
+        from sqlalchemy import func, select
+        from app.models import Difficulty, Game, Language, Text
+        from app.services.rooms import pick_text
+
+        phrase = "Only the server sets the record."
+        with self.sessions() as db:
+            sample = Text(content=phrase, language=Language.ENG, difficulty=Difficulty.EASY)
+            db.add(sample)
+            db.commit()
+            text_id = sample.id
+            excluded_ids = list(db.scalars(select(Text.id).where(Text.id != text_id)))
+            round_text = pick_text(db, Language.ENG, Difficulty.EASY, excluded_ids)
+            self.assertEqual((round_text.id, round_text.ideal_time_ms), (text_id, 6400))
+
+        endpoint = "/api/v1/matches/practice"
+        payload = {
+            "textId": text_id,
+            "timeMs": 6399,
+            "typed": phrase,
+            "keystrokes": len(phrase),
+            "errors": 0,
+        }
+        server_fields = {"idealTimeMs": 5000, "recordUserId": self.user_id + 1, "score": 42}
+        rejected = self.client.post(
+            endpoint, json={**payload, **server_fields}, headers=self.headers
+        )
+        self.assertEqual(rejected.status_code, 422, rejected.text)
+        self.assertEqual(
+            {(tuple(error["loc"]), error["type"]) for error in rejected.json()["detail"]},
+            {(("body", field), "extra_forbidden") for field in server_fields},
+        )
+        with self.sessions() as db:
+            stored = db.get(Text, text_id)
+            self.assertEqual((stored.ideal_time_ms, stored.record_user_id), (None, None))
+            self.assertEqual(
+                db.scalar(select(func.count()).select_from(Game).where(Game.text_id == text_id)),
+                0,
+            )
+
+        accepted = self.client.post(endpoint, json=payload, headers=self.headers)
+        self.assertEqual(accepted.status_code, 201, accepted.text)
+        result = accepted.json()
+        self.assertEqual(result["score"], 60)
+        with self.sessions() as db:
+            stored = db.get(Text, text_id)
+            self.assertEqual((stored.ideal_time_ms, stored.record_user_id), (6399, self.user_id))
+            self.assertEqual(db.get(Game, result["id"]).participants[0].score, 60)
 
     def test_participant_failure_rolls_back_new_text_and_game_in_postgresql(self):
         from sqlalchemy import func, select

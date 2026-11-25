@@ -1,6 +1,17 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, UniqueConstraint, text
+from uuid import UUID
+
+from sqlalchemy import (
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    Uuid,
+    text,
+)
 from sqlalchemy.dialects.postgresql import REAL
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
@@ -35,6 +46,9 @@ class GameParticipant(Base):
     __tablename__ = "game_participants"
     __table_args__ = (
         UniqueConstraint("game_id", "user_id", name="game_participants_game_id_user_id_key"),
+        UniqueConstraint(
+            "user_id", "practice_attempt_id", name="uq_participants_practice_attempt"
+        ),
         Index("ix_game_participants_user_id", "user_id"),
     )
 
@@ -48,5 +62,7 @@ class GameParticipant(Base):
     progress: Mapped[float | None] = mapped_column(REAL)
     position: Mapped[int | None] = mapped_column(Integer)
     score: Mapped[int | None] = mapped_column(Integer)
+    practice_attempt_id: Mapped[UUID | None] = mapped_column(Uuid)
+    practice_request_hash: Mapped[str | None] = mapped_column(String(64))
     game: Mapped["Game"] = relationship(back_populates="participants", foreign_keys=[game_id])
     user: Mapped["User"] = relationship(back_populates="participations", foreign_keys=[user_id])

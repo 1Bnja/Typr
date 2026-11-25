@@ -277,32 +277,34 @@ class PracticeMatchTests(unittest.TestCase):
         self.assertEqual(self.save(payload).status_code, 201)
 
     def test_completed_practice_updates_text_ideal_time_only_when_faster(self):
-        self.assertEqual(self.save().status_code, 201)
+        # "Hello world." has a 2400 ms reference time; the first record must beat it.
+        first = self.save({**self.payload, "timeMs": 2399})
+        self.assertEqual(first.status_code, 201, first.text)
         with self.sessions() as db:
             stored = db.get(Text, self.text_id)
-            self.assertEqual(stored.ideal_time_ms, 30000)
+            self.assertEqual(stored.ideal_time_ms, 2399)
             self.assertEqual(stored.record_user_id, self.user_ids[0])
 
         faster = self.save(
-            {**self.payload, "timeMs": 15000}, headers=self.other_headers
+            {**self.payload, "timeMs": 2000}, headers=self.other_headers
         )
         self.assertEqual(faster.status_code, 201, faster.text)
         with self.sessions() as db:
             stored = db.get(Text, self.text_id)
-            self.assertEqual(stored.ideal_time_ms, 15000)
+            self.assertEqual(stored.ideal_time_ms, 2000)
             self.assertEqual(stored.record_user_id, self.user_ids[1])
 
-        slower = self.save({**self.payload, "timeMs": 40000})
+        slower = self.save({**self.payload, "timeMs": 2399})
         self.assertEqual(slower.status_code, 201, slower.text)
         with self.sessions() as db:
             stored = db.get(Text, self.text_id)
-            self.assertEqual(stored.ideal_time_ms, 15000)
+            self.assertEqual(stored.ideal_time_ms, 2000)
             self.assertEqual(stored.record_user_id, self.user_ids[1])
 
     def test_incomplete_or_low_precision_practice_does_not_set_ideal_time(self):
         cases = (
-            {"timeMs": 5000, "typed": "Hello"},
-            {"timeMs": 5000, "keystrokes": 10, "errors": 5},
+            {"timeMs": 1000, "typed": "Hello"},
+            {"timeMs": 1000, "keystrokes": 10, "errors": 5},
         )
         for update in cases:
             with self.subTest(update=update):

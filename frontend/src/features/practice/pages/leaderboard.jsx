@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../../auth'
 import Button from '../../../components/button'
@@ -20,6 +20,7 @@ const Leaderboard = () => {
   const [ranking, setRanking] = useState(null)
   const [status, setStatus] = useState('loading')
   const [retry, setRetry] = useState(0)
+  const rankingHeading = useRef(null)
 
   useEffect(() => {
     if (!token || authStatus !== 'authenticated') return
@@ -68,7 +69,7 @@ const Leaderboard = () => {
       </div>
 
       <div className="records-section-heading">
-        <h2>{formatMonth(month)}</h2>
+        <h2 ref={rankingHeading} tabIndex={-1}>{formatMonth(month)}</h2>
         <span>Top 50 · one best test per person</span>
       </div>
       <div className="records-content" aria-busy={status === 'loading'}>
@@ -76,15 +77,11 @@ const Leaderboard = () => {
         {status === 'error' && (
           <div className="records-feedback" role="alert">
             <p>Could not load the leaderboard. Please try again.</p>
-            <Button variant="secondary" onClick={() => { setStatus('loading'); setRetry((value) => value + 1) }}>Try again</Button>
+            <Button variant="secondary" onClick={() => { rankingHeading.current?.focus(); setStatus('loading'); setRetry((value) => value + 1) }}>Try again</Button>
           </div>
         )}
         {status === 'ready' && ranking.entries.length === 0 && (
-          <div className="records-feedback">
-            <h2>The first place is still open.</h2>
-            <p>No completed tests for this month and level yet. Finish a test to join.</p>
-            <Link to={`/practice?difficulty=${difficulty}&language=${language || 'spa'}`} className="records-text-link">Start a practice test</Link>
-          </div>
+          <p className="records-feedback" lang="es">Aún no hay partidas para esta categoría</p>
         )}
         {status === 'ready' && ranking.entries.length > 0 && (
           <div className="records-table-scroll styled-scrollbar" role="region" aria-label="Monthly practice ranking" tabIndex={0}>

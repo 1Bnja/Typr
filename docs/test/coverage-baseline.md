@@ -1,8 +1,28 @@
 # Typr coverage baseline
 
-The backend exceeded the QA plan’s 80% domain target on the **proposed services-only scope**: **89.74% statement coverage** and **81.63% branch coverage**. This is not a passing test run: the ten-client race failed its latency assertion under instrumentation. The frontend’s 38 Node tests passed; they covered **62.56% of lines** across the `.js` files in `frontend/src`, not the full React application.
+The local workflow configures the `backend-coverage` job for pull requests to `main` and manual dispatch. The job checks an interim **60% branch coverage floor** for `backend/app/services/`. The Master Test Plan’s **80% domain coverage target is unchanged**. The latest local verification passed after the practice record fixture was corrected; the [automation notebook](../../notebooks/automatizacion.ipynb#verificacion-local) records the failed earlier run and the successful rerun. Live checks and effective branch protection are unverified.
 
-Measured on 2026-11-19 against local checkout `dbed554` plus existing working-tree changes. No gate was installed or approved.
+This gate is separate from the notebook’s [local coverage union](../../notebooks/automatizacion.ipynb#cobertura-local-parcial), which reports frontend, backend app, and migrations separately. There is no global coverage percentage.
+
+## Reproduce the CI check
+
+From the repository root, with Docker and Compose available and no external database or application credentials in the environment:
+
+```bash
+bash scripts/test-backend-coverage
+```
+
+The script uses the existing disposable PostgreSQL fixture and coverage.py `7.13.5`, installed only for this run. It runs the text-service, PostgreSQL integration, and ordinary backend `unittest` suites. Migration and smoke setup are not measured. TC-AUTO-02 latency, Behave, browser E2E, and frontend tests are excluded.
+
+The check divides covered branch exits by total branch exits in all Python files under `backend/app/services/`. The threshold uses the exact counts, not the rounded display or coverage.py’s combined statement-and-branch total. The command exits nonzero if setup or tests fail, the report is invalid, or coverage is below 60%; it cleans up the temporary output and Compose resources on exit.
+
+Older local comparison, 2026-11-20, from `bcdf85a` plus the CI changes: **267 / 336 branch exits (79.46%)** across 23 service Python files, with **201 tests passed** (107 text-service, 8 PostgreSQL integration, 86 ordinary backend). This passed the interim floor but was below 80% on this branch-only metric.
+
+## Historical baseline (before the CI gate)
+
+The historical backend run measured **89.74% statement coverage** and **81.63% branch coverage** on the proposed services-only scope, but the ten-client race failed its latency assertion under instrumentation. The frontend’s 38 Node tests passed; they covered **62.56% of lines** across the `.js` files in `frontend/src`, not the full React application.
+
+Measured on 2026-11-19 against local checkout `dbed554` plus existing working-tree changes. The figures below predate the CI gate.
 
 ## Backend: what the 80% comparison counts
 
@@ -35,16 +55,17 @@ Both runs passed all 38 tests from `dashboard`, `practice`, `rooms`, `speed-hist
 ## Reproduce locally
 
 Run `scripts/test-stack --latency` from the repository root to run TC-AUTO-02
-alone, without coverage or PostgreSQL. The test still uses its temporary SQLite
-database; the command logs the p95 for all 2,700 updates and requires it to be
-below 200 ms. The `websocket-latency-tests` PR check runs the same command on a
-separate GitHub-hosted runner. Timing can still vary by host.
+alone, without coverage or PostgreSQL. The test uses temporary SQLite and
+requires p95 below 200 ms across 2,700 updates. The local workflow configures
+`websocket-latency-tests` to report the same command on a separate runner
+without failing CI on its result. The local command retains its exit status.
+[TC-AUTO-02](../../notebooks/automatizacion.ipynb#TC-AUTO-02) remains under study.
 
 Use `scripts/test-stack --unittest` for the ordinary backend unit and PostgreSQL
 integration suites without latency or coverage, or `scripts/test-stack` to keep
-the combined local run, including latency. The coverage recipe below excludes
-TC-AUTO-02 by discovery; the historical figures above still include its
-instrumented run and have not been remeasured on the new scope.
+the combined local run, including latency. The legacy reporting recipe below
+now excludes TC-AUTO-02 by discovery; the historical figures above still include
+its instrumented run. Use the CI command above to reproduce the gate.
 
 Run from the repository root in Bash. The backend run used Docker, Compose, PostgreSQL `16-alpine`, Python `3.11.18`, and coverage.py `7.13.5`. Use a local image from the existing `backend/Dockerfile` `test-runner` target (the exact cached image tag used is below; if unavailable, build the target locally and substitute its tag). Only the wheel download needs access to the package index; the runner and ephemeral database use the fixture’s internal network. No repository `.env` or real credentials are passed to the runner.
 
@@ -52,7 +73,7 @@ Run from the repository root in Bash. The backend run used Docker, Compose, Post
 # Run within a subshell so the cleanup trap is scoped to this run.
 (
 set -eu
-out=$(mktemp -d /tmp/opencode/typr-coverage.XXXXXX)
+out=$(mktemp -d)
 chmod 755 "$out"
 image=typr-test-fe068e80bdf34dcb80328b4dd8e27551-test-runner:latest
 project=typr-coverage-$(basename "$out" | cut -d. -f2 | tr '[:upper:]' '[:lower:]')

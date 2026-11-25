@@ -1,4 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from app.routers import auth, health, matches, rooms, texts, users
 from app.ws import rooms as rooms_ws
 
@@ -68,6 +71,18 @@ app = FastAPI(
     description=DESCRIPTION,
     openapi_tags=TAGS_METADATA,
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def handle_request_validation(request: Request, exc: RequestValidationError):
+    if request.scope.get("endpoint") is not auth.register:
+        return await request_validation_exception_handler(request, exc)
+
+    return JSONResponse(
+        status_code=422,
+        content={"detail": auth.registration_validation_details(exc.errors())},
+    )
+
 
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1/auth")

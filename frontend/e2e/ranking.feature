@@ -1,20 +1,24 @@
-@HU-04 @ranking
-Feature: The monthly ranking filters update the table without reloading the page
-
-  Background:
-    Given I register a new account in the browser
-    And I start an individual practice test
-    When I type the whole practice text correctly
-    And I open the monthly ranking
+Feature: Monthly ranking filters
 
   @TC-FUNC-10
-  Scenario: Changing the language filter refreshes the table without reloading
-    Given the ranking lists my result
-    When I switch the language filter to English
-    Then the table refreshes without reloading the page
-    And my result is no longer listed
+  Scenario: Changing difficulty and language replaces the ranking in the same document
+    Given distinct practice results for Easy Spanish, Medium Spanish and Medium English
+    And I register a new account in the browser
+    When I open the monthly ranking for the seeded month
+    Then only "rank_easy_es" appears in the ranking
+    When I select the "Medium" ranking difficulty
+    Then only "rank_medium_es" appears in the ranking
+    When I select the "English" ranking language
+    Then only "rank_medium_en" appears in the ranking
+    And the ranking remains in the original document without a navigation request
 
   @TC-FUNC-12
-  Scenario: A category without matches shows the empty state
-    When I switch the difficulty filter to Hard
-    Then the ranking says the first place is still open
+  Scenario: A valid empty category displays the required empty message
+    Given a completed Hard Spanish result but no Hard English result
+    And I register a new account in the browser
+    When I open the monthly ranking for the seeded month
+    And I select the "Hard" ranking difficulty
+    Then only "rank_hard_es" appears in the ranking
+    When I select the "English" ranking language
+    Then the successful ranking response is empty and no table or error is displayed
+    And the empty ranking message is exactly "Aún no hay partidas para esta categoría"

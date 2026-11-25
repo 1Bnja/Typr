@@ -15,20 +15,41 @@ export class RegistrationPage {
     await this.page.getByRole('button', { name: 'Register', exact: true }).click()
   }
 
-  async submit({ username, email, password }) {
+  async fill({ username, email, password }) {
     await this.username.fill(username)
     await this.email.fill(email)
     await this.password.fill(password)
+  }
+
+  async clickCreateAccount() {
+    await this.form.getByRole('button', { name: 'Create account' }).click()
+  }
+
+  async submit(values) {
+    await this.fill(values)
     const [response] = await Promise.all([
       this.page.waitForResponse((response) =>
         new URL(response.url()).pathname === '/api/v1/auth/register' && response.request().method() === 'POST'),
-      this.form.getByRole('button', { name: 'Create account' }).click(),
+      this.clickCreateAccount(),
     ])
     return response.status()
   }
 
-  async expectDashboard({ username }) {
-    await expect(this.page).toHaveURL(/\/dashboard$/)
+  async expectLengthError(field, limit) {
+    const input = this[field]
+    const message = new RegExp(`\\b${limit} characters\\b`)
+    await expect(this.alert).toBeVisible()
+    await expect(this.alert).toHaveText(message)
+    await expect(input.locator('xpath=../following-sibling::*[1]')).toHaveText(message)
+    await expect(input).toHaveAttribute('aria-invalid', 'true')
+    await expect(input).toHaveAccessibleDescription(message)
+    for (const other of ['username', 'email', 'password'].filter(name => name !== field)) {
+      await expect(this[other]).not.toHaveAttribute('aria-invalid', 'true')
+    }
+  }
+
+  async expectProfile({ username }) {
+    await expect(this.page).toHaveURL(/\/profile$/)
     await expect(this.page.getByRole('heading', { name: `Welcome back, ${username}` })).toBeVisible()
   }
 

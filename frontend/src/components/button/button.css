@@ -143,6 +143,12 @@
   box-shadow: 0 0 0 4px var(--btn-halo);
 }
 
+:is(.site-header, #mobile-menu, .auth-form) .button:focus-visible {
+  --btn-halo: transparent;
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+}
+
 .button--loading {
   background: var(--btn-bg-loading);
   box-shadow: none;

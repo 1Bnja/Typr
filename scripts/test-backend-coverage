@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
+for key in ${!COMPOSE_@} DATABASE_URL JWT_SECRET GEMINI_API_KEY GEMINI_MODEL GOOGLE_API_KEY DOCKER_HOST DOCKER_CONTEXT; do
+    if [[ -v $key ]]; then
+        echo 'Refusing external configuration; use only the standalone test fixture.' >&2
+        exit 2
+    fi
+done
+
+project=${TYPR_COVERAGE_PROJECT:-typr-coverage-$(tr -d '-' </proc/sys/kernel/random/uuid)}
+[[ $project =~ ^typr-coverage-[a-z0-9-]+$ ]] || exit 2
+docker=(docker --context default)
+compose=("${docker[@]}" compose --env-file /dev/null -p "$project" -f docker-compose.test.yml)
+out=$(mktemp -d)
+
+cleanup() {
+    result=$?
+    "${compose[@]}" down --volumes --remove-orphans || result=1
+    rm -rf -- "$out" || result=1
+    exit "$result"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+"${compose[@]}" build test-runner
+"${docker[@]}" run --rm -u "$(id -u):$(id -g)" -v "$out:/out" \
+    "$project-test-runner" python -m pip download --disable-pip-version-check \
+    --only-binary=:all: --no-deps -d /out coverage==7.13.5
+
+"${compose[@]}" up -d --wait --wait-timeout 60 postgres
+"${compose[@]}" run --rm --no-deps -T -u "$(id -u):$(id -g)" \
+    -v "$out:/out" -v "$PWD/scripts/check-service-branch-coverage.py:/workspace/check-service-branch-coverage.py:ro" \
+    -e COVERAGE_FILE=/out/.coverage test-runner sh -ec '
+    python -m pip install --disable-pip-version-check --no-index --no-deps \
+        --target /out/tool /out/coverage-*.whl
+    export PYTHONPATH="/out/tool:$PYTHONPATH"
+    python -c '"'"'import sys; sys.path.insert(0, "backend/tests/integration"); from test_text_postgresql import require_local_fixture; require_local_fixture()'"'"'
+    python -m app.commands.migrate
+    python backend/tests/fixtures/smoke_stack.py
+    python -m coverage run --branch --source=backend/app -m unittest discover -s backend/tests/services/texts_handler -v
+    python -m coverage run --append --branch --source=backend/app -m unittest discover -s backend/tests/integration -v
+    python -m coverage run --append --branch --source=backend/app -m unittest discover -s backend/tests -v
+    python -m coverage json --include="backend/app/services/**" -o /out/services.json
+    python check-service-branch-coverage.py /out/services.json
+'

@@ -109,6 +109,7 @@
 }
 
 .room-code-value {
+  user-select: all;
   color: var(--ink);
   font-family: ui-monospace, monospace;
   font-size: 30px;
@@ -169,8 +170,22 @@
   display: flex;
   flex: 1;
   align-items: center;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 4px 8px;
   min-width: 0;
+}
+
+.room-member-name .records-username,
+.race-results .records-username {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.race-results .records-identity {
+  flex-wrap: wrap;
+  row-gap: 4px;
 }
 
 .room-badge {
@@ -355,9 +370,16 @@
 
 .race-lane-name {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  gap: 2px 4px;
   min-width: 0;
+}
+
+.race-lane-name .records-username {
+  min-width: 0;
+  overflow: visible;
+  overflow-wrap: anywhere;
 }
 
 .race-lane-bar {

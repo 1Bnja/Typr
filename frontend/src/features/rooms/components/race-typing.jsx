@@ -15,7 +15,7 @@ const RaceTyping = ({ content, initial, onInput, inputRef }) => {
     // Al montar, el campo parte del avance ya hecho (0, o lo retomado tras recargar).
     const value = raceInputValue(stateRef.current, content)
     inputRef.current.value = value
-    textRef.current.updateInput(value)
+    textRef.current.updateInput(value, stateRef.current.typed)
     inputRef.current.focus()
   }, [content, inputRef])
 
@@ -28,7 +28,7 @@ const RaceTyping = ({ content, initial, onInput, inputRef }) => {
     if (event.target.value !== value) event.target.value = value
     if (next === stateRef.current) return
     stateRef.current = next
-    textRef.current.updateInput(value)
+    textRef.current.updateInput(value, next.typed)
     onInput(next)
   }
 

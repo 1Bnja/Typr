@@ -105,6 +105,6 @@ Then('signing in again does not resume play', async function () {
   await this.registration.email.fill(this.account.email)
   await this.registration.password.fill(this.account.password)
   await this.registration.form.getByRole('button', { name: 'Sign in' }).click()
-  await expect(this.page).toHaveURL(/\/dashboard$/)
+  await expect(this.page).toHaveURL(/\/profile$/)
   await expect(input(this.page)).toHaveCount(0)
 })

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../auth'
 import PlayExpiryWarning from '../../auth/components/play-expiry-warning'
@@ -23,6 +23,20 @@ const RoomSession = ({ code, token, userId, onFocusChange }) => {
   const { room, phase, countdown, race, results } = state
   const focusMode = raceFocus && phase === 'racing' && connection.status !== 'closed' && !leaving
   const dismissResults = useCallback(() => dispatch({ type: 'dismiss_results' }), [dispatch])
+  const heading = useRef(null)
+  const focusLobby = useRef(false)
+
+  const returnToLobby = () => {
+    focusLobby.current = true
+    dismissResults()
+  }
+
+  useEffect(() => {
+    if (phase === 'lobby' && focusLobby.current) {
+      focusLobby.current = false
+      heading.current?.focus()
+    }
+  }, [phase])
 
   useEffect(() => {
     onFocusChange(focusMode)
@@ -68,7 +82,7 @@ const RoomSession = ({ code, token, userId, onFocusChange }) => {
   return (
     <section className={`practice rooms ${phase === 'racing' ? 'practice--typing' : ''} ${focusMode ? 'practice--focus' : ''}`}>
       <header className="practice-header">
-        <h1 className={phase === 'racing' ? 'sr-only' : ''}>{title}</h1>
+        <h1 ref={heading} tabIndex={-1} className={phase === 'racing' ? 'sr-only' : ''}>{title}</h1>
         <p>
           {phase === 'lobby'
             ? ['language', 'difficulty', 'rounds'].map((key) => settingLabel(key, room[key])).join(' · ')
@@ -91,7 +105,8 @@ const RoomSession = ({ code, token, userId, onFocusChange }) => {
           results={results}
           userId={userId}
           language={room.language}
-          onContinue={dismissResults}
+          onContinue={returnToLobby}
+          onAutoReturn={dismissResults}
         />
       )}
       {phase === 'lobby' && <RoomLobby
