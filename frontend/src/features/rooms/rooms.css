@@ -448,11 +448,32 @@
 }
 
 .race-results--final .records-table {
-  min-width: 980px;
+  /* Sin el píxel de holgura, un contenedor en posición fraccionaria muestra barra de desplazamiento. */
+  width: calc(100% - 1px);
+  min-width: 880px;
 }
 
 .race-results--final .records-col-typist {
   width: 25%;
+}
+
+.race-results--final .records-table :is(th, td) {
+  padding-inline: 10px;
+}
+
+/* En móvil, puesto y nombre dejan a la vista la primera métrica sin desplazar. */
+@media (max-width: 640px) {
+  .race-results .records-col-rank {
+    width: 56px;
+  }
+
+  .race-results .records-col-typist {
+    width: 180px;
+  }
+
+  .race-results .records-table :is(th, td) {
+    padding-inline: 8px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

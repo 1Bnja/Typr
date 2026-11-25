@@ -8,6 +8,7 @@ import { Home } from '../features/home'
 import Texts from '../features/texts/pages/texts'
 import { History, Leaderboard, Practice } from '../features/practice'
 import { Room, Rooms } from '../features/rooms'
+import { About, Contact } from '../features/info'
 import './app.css'
 
 // Recharts solo se descarga al abrir la analítica.
@@ -44,10 +45,10 @@ const App = () => {
       <Navbar focusMode={focusMode} />
       <main className="flex flex-1 flex-col">
       <Routes>
-        <Route path="/about" element={<div>About</div>} />
-        <Route path="/contact" element={<div>Contact</div>} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<div>Register</div>} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/login" element={<Login key="login" />} />
+        <Route path="/register" element={<Login key="register" initialRegistering />} />
         <Route element={<SessionBoundary />}>
           <Route index element={<Index />} />
           <Route element={<ProfileBoundary />}>
