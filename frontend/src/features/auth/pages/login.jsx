@@ -4,8 +4,8 @@ import { useAuth } from '../context/auth-context'
 
 const emptyDraft = { username: '', email: '', password: '' }
 
-const Login = () => {
-    const [isRegistering, setIsRegistering] = useState(false)
+const Login = ({ initialRegistering = false }) => {
+    const [isRegistering, setIsRegistering] = useState(initialRegistering)
     const [drafts, setDrafts] = useState({ login: emptyDraft, register: emptyDraft })
     const { notice } = useAuth()
     const mode = isRegistering ? 'register' : 'login'
